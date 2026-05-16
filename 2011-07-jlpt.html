@@ -3,14 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>JLPT N2 Premium Practice</title>
-
+<title>JLPT N2 — Juli 2011</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
-
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-
 :root{
   --bg:#0b1020;
   --bg2:#121a2f;
@@ -20,218 +17,202 @@
   --text:#f1f5ff;
   --muted:#9fb0d3;
   --primary:#5aa9ff;
-  --primary2:#7c4dff;
   --success:#19c37d;
   --danger:#ff5f73;
   --warning:#ffb547;
+  --font:'Zen Kaku Gothic New',sans-serif;
+  --mono:'JetBrains Mono',monospace;
 }
-
-*{
-  margin:0;
-  padding:0;
-  box-sizing:border-box;
-}
-
+*{margin:0;padding:0;box-sizing:border-box;}
 body{
-  background:
-  radial-gradient(circle at top left,#22345f 0%,transparent 30%),
-  radial-gradient(circle at bottom right,#29194a 0%,transparent 25%),
-  var(--bg);
+  background:radial-gradient(ellipse at top left,#1a2d5a 0%,transparent 45%),
+             radial-gradient(ellipse at bottom right,#231440 0%,transparent 40%),
+             var(--bg);
   color:var(--text);
-  font-family:'Inter','Noto Sans JP',sans-serif;
+  font-family:var(--font);
   min-height:100vh;
-  padding:20px;
-}
-
-.app{
-  max-width:1000px;
-  margin:auto;
-}
-
-.card,.header{
-  background:rgba(24,35,63,.9);
-  backdrop-filter:blur(10px);
-  border:1px solid var(--border);
-  border-radius:22px;
-  padding:24px;
-  margin-bottom:18px;
-  box-shadow:0 10px 35px rgba(0,0,0,.35);
-}
-
-h1{
-  font-size:32px;
-  margin-bottom:10px;
-}
-
-.muted{
-  color:var(--muted);
-}
-
-.mode-btn,
-.option-btn,
-.tab-btn{
-  border:none;
-  cursor:pointer;
-  transition:.2s;
-}
-
-.mode-btn{
-  width:100%;
-  padding:18px;
-  margin-bottom:12px;
-  border-radius:18px;
-  color:white;
-  background:linear-gradient(135deg,#243c74,#3658a8);
-  text-align:left;
-}
-
-.mode-btn:hover,
-.option-btn:hover,
-.tab-btn:hover{
-  transform:translateY(-2px);
-}
-
-.option-btn{
-  width:100%;
   padding:16px;
+}
+.app{max-width:720px;margin:0 auto;}
+.screen{display:none;}.screen.active{display:block;}
+
+/* ── HEADER ── */
+.header{
+  background:rgba(24,35,63,.85);
+  backdrop-filter:blur(12px);
+  border:1px solid var(--border);
+  border-radius:20px;
+  padding:22px 24px;
+  margin-bottom:14px;
+}
+h1{font-size:22px;font-weight:700;letter-spacing:.02em;margin-bottom:3px;}
+h2{font-size:15px;font-weight:500;margin-bottom:10px;}
+.muted{color:var(--muted);font-size:13px;}
+
+/* ── STAT GRID ── */
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;}
+.stat-card{
+  background:rgba(24,35,63,.7);
+  border:1px solid var(--border);
   border-radius:14px;
+  padding:12px 10px;
+  text-align:center;
+}
+.stat-num{font-size:21px;font-weight:700;color:var(--text);}
+.stat-lbl{font-size:10px;color:var(--muted);margin-top:3px;letter-spacing:.04em;}
+
+/* ── MODE BUTTONS ── */
+.mode-btn{
+  width:100%;text-align:left;
+  padding:14px 18px;
+  border-radius:16px;
+  border:1px solid var(--border);
+  background:rgba(24,35,63,.7);
+  color:var(--text);
+  cursor:pointer;
+  font-size:14px;
+  font-family:var(--font);
   margin-bottom:10px;
-  background:#203154;
-  color:white;
-  border:1px solid #30456f;
-  text-align:left;
+  transition:all .18s;
+  line-height:1.6;
 }
+.mode-btn:hover{background:var(--card2);border-color:#4a6aaa;transform:translateY(-1px);}
 
-.option-btn.correct{
-  background:rgba(25,195,125,.2);
-  border-color:#19c37d;
-}
-
-.option-btn.wrong{
-  background:rgba(255,95,115,.2);
-  border-color:#ff5f73;
-}
-
-.tab-btn{
-  background:#31497e;
-  color:white;
-  border-radius:12px;
-  padding:12px 18px;
-}
-
-.q-text{
-  font-size:20px;
-  line-height:2;
-}
-
-.passage-box{
-  background:#11192d;
-  border-left:5px solid #5aa9ff;
-  padding:20px;
+/* ── CARD ── */
+.card{
+  background:rgba(24,35,63,.85);
+  backdrop-filter:blur(8px);
+  border:1px solid var(--border);
   border-radius:18px;
-  line-height:2.2;
+  padding:18px 20px;
+  margin-bottom:12px;
 }
 
-.progress-grid{
-  display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(35px,1fr));
-  gap:8px;
+/* ── BADGE ── */
+.badge{
+  display:inline-block;
+  padding:3px 11px;
+  border-radius:99px;
+  font-size:11px;
+  font-weight:600;
+  letter-spacing:.03em;
 }
+.badge-moji{background:rgba(90,169,255,.18);color:#5aa9ff;border:1px solid rgba(90,169,255,.3);}
+.badge-bunpou{background:rgba(124,77,255,.18);color:#a87bff;border:1px solid rgba(124,77,255,.3);}
+.badge-dokkai{background:rgba(25,195,125,.18);color:#19c37d;border:1px solid rgba(25,195,125,.3);}
+.badge-type{background:rgba(255,255,255,.07);color:var(--muted);border:1px solid rgba(255,255,255,.1);}
 
+/* ── TIMER ── */
+.timer-bar{height:5px;background:rgba(255,255,255,.07);border-radius:99px;overflow:hidden;margin:10px 0 6px;}
+.timer-fill{height:100%;background:linear-gradient(90deg,#5aa9ff,#7c4dff);border-radius:99px;transition:width .5s linear;}
+.timer-fill.warn{background:linear-gradient(90deg,var(--warning),#f57c00);}
+.timer-fill.danger{background:linear-gradient(90deg,var(--danger),#c0392b);}
+
+/* ── PROGRESS ── */
+.progress-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(30px,1fr));gap:4px;margin-bottom:12px;}
 .prog-dot{
-  height:35px;
+  height:30px;border-radius:8px;
+  border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  font-size:10px;color:var(--muted);
+  cursor:pointer;transition:all .12s;
+  font-family:var(--mono);
+}
+.prog-dot:hover{border-color:#4a6aaa;}
+.prog-dot.current{border:2px solid var(--primary);color:var(--text);font-weight:600;}
+.prog-dot.correct{background:rgba(25,195,125,.25);border-color:var(--success);color:var(--success);}
+.prog-dot.wrong{background:rgba(255,95,115,.2);border-color:var(--danger);color:var(--danger);}
+
+/* ── PASSAGE ── */
+.passage-label{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;}
+.passage-box{
+  background:rgba(11,16,32,.6);
+  border-left:3px solid var(--primary);
+  border-radius:0 12px 12px 0;
+  padding:14px 18px;
+  font-size:13.5px;
+  line-height:2;
+  color:rgba(241,245,255,.85);
+}
+.passage-box p{margin-bottom:.5em;}
+.passage-box p:last-child{margin-bottom:0;}
+
+/* ── QUESTION ── */
+.q-text{font-size:15px;line-height:1.9;color:var(--text);margin-bottom:14px;}
+.q-text u{text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1.5px;text-decoration-color:var(--primary);}
+
+/* ── OPTIONS ── */
+.option-btn{
+  width:100%;text-align:left;
+  padding:11px 16px;
+  border-radius:12px;
+  border:1px solid var(--border);
+  background:rgba(18,26,47,.6);
+  color:var(--text);
+  cursor:pointer;
+  font-size:13.5px;
+  font-family:var(--font);
+  margin-bottom:7px;
+  transition:all .15s;
+  line-height:1.7;
+}
+.option-btn:hover:not(:disabled){background:var(--card2);border-color:#4a6aaa;}
+.option-btn.correct{background:rgba(25,195,125,.18);border-color:var(--success);color:#a0f5d3;}
+.option-btn.wrong{background:rgba(255,95,115,.15);border-color:var(--danger);color:#ffb3be;}
+.option-btn:disabled{cursor:default;}
+
+/* ── EXPLANATION ── */
+.explanation{
+  background:rgba(11,16,32,.5);
   border-radius:10px;
-  background:#1d2a4a;
-  display:flex;
-  align-items:center;
-  justify-content:center;
+  padding:10px 14px;
+  font-size:12.5px;
+  color:var(--muted);
+  margin-top:8px;
+  line-height:1.7;
+  border-left:2px solid var(--warning);
 }
 
-.timer-bar{
-  height:10px;
-  background:#11182d;
-  border-radius:999px;
-  overflow:hidden;
+/* ── ROW / NAV ── */
+.row{display:flex;align-items:center;gap:8px;margin-top:8px;}
+.spacer{flex:1;}
+.nav-btn{
+  padding:9px 20px;border-radius:11px;
+  border:1px solid var(--border);
+  background:rgba(24,35,63,.7);
+  color:var(--text);cursor:pointer;
+  font-size:13px;font-family:var(--font);
+  transition:all .15s;
 }
+.nav-btn:hover{background:var(--card2);}
+.nav-btn.finish{background:rgba(255,95,115,.18);border-color:var(--danger);color:var(--danger);}
+.nav-btn.finish:hover{background:rgba(255,95,115,.3);}
+.nav-btn:disabled{opacity:.35;cursor:not-allowed;}
 
-.timer-fill{
-  height:100%;
-  background:linear-gradient(90deg,#5aa9ff,#7c4dff);
-}
+/* ── RESULT ── */
+.pass-banner{border-radius:16px;padding:16px;text-align:center;margin:12px 0;}
+.pass-banner.pass{background:rgba(25,195,125,.18);border:1px solid rgba(25,195,125,.3);}
+.pass-banner.fail{background:rgba(255,95,115,.12);border:1px solid rgba(255,95,115,.25);}
+.section-result{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:13px;}
+.section-result:last-child{border-bottom:none;}
+.info-note{background:rgba(255,181,71,.07);border:1px solid rgba(255,181,71,.2);border-radius:12px;padding:10px 14px;font-size:12px;color:rgba(255,181,71,.8);margin-bottom:10px;}
 
-canvas{
-  position:fixed;
-  inset:0;
-  pointer-events:none;
-  z-index:-1;
-  opacity:.4;
-}
-
+/* ── CANVAS ── */
+canvas{position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.35;}
+.app{position:relative;z-index:1;}
 </style>
 </head>
-
 <body>
 
-<div class="app">
-
-<div class="header">
-<h1>JLPT N2 Premium UI</h1>
-<p class="muted">Modern UI Upgrade Pack</p>
-</div>
-
-
-<style>
-*{box-sizing:border-box;margin:0;padding:0}
-.app{max-width:680px;margin:0 auto;padding:1rem 0;font-family:var(--font-sans)}
-.screen{display:none}.screen.active{display:block}
-.header{background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1.25rem;margin-bottom:1rem}
-.badge{display:inline-block;padding:3px 10px;border-radius:var(--border-radius-md);font-size:12px;font-weight:500}
-.badge-info{background:var(--color-background-info);color:var(--color-text-info)}
-.badge-warn{background:var(--color-background-warning);color:var(--color-text-warning)}
-.badge-success{background:var(--color-background-success);color:var(--color-text-success)}
-.badge-danger{background:var(--color-background-danger);color:var(--color-text-danger)}
-.card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1.25rem;margin-bottom:0.75rem}
-.passage-box{background:var(--color-background-secondary);border-left:3px solid #378ADD;border-radius:0 var(--border-radius-md) var(--border-radius-md) 0;padding:1rem 1.25rem;margin-bottom:1rem;font-size:14px;line-height:1.9;color:var(--color-text-primary)}
-.passage-box p{margin-bottom:0.5rem}.passage-box p:last-child{margin-bottom:0}
-.passage-label{font-size:11px;font-weight:500;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
-.tab-btn{padding:6px 14px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:var(--color-background-primary);color:var(--color-text-secondary);cursor:pointer;font-size:13px;transition:all .15s}
-.tab-btn:hover{background:var(--color-background-secondary)}
-.mode-btn{width:100%;text-align:left;padding:12px 16px;border-radius:var(--border-radius-lg);border:0.5px solid var(--color-border-secondary);background:var(--color-background-primary);color:var(--color-text-primary);cursor:pointer;font-size:14px;margin-bottom:8px;transition:all .15s;line-height:1.5}
-.mode-btn:hover{background:var(--color-background-secondary)}
-.option-btn{width:100%;text-align:left;padding:10px 14px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:var(--color-background-primary);color:var(--color-text-primary);cursor:pointer;font-size:14px;margin-bottom:6px;transition:all .15s;line-height:1.6}
-.option-btn:hover:not(:disabled){background:var(--color-background-secondary)}
-.option-btn.correct{background:var(--color-background-success);border-color:var(--color-border-success);color:var(--color-text-success)}
-.option-btn.wrong{background:var(--color-background-danger);border-color:var(--color-border-danger);color:var(--color-text-danger)}
-.timer-bar{height:6px;background:var(--color-background-secondary);border-radius:3px;overflow:hidden;margin:8px 0}
-.timer-fill{height:100%;background:#378ADD;border-radius:3px;transition:width .5s linear}
-.timer-fill.warn{background:#BA7517}.timer-fill.danger{background:#E24B4A}
-.progress-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(28px,1fr));gap:4px;margin:8px 0}
-.prog-dot{height:28px;border-radius:4px;border:0.5px solid var(--color-border-tertiary);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--color-text-secondary);cursor:pointer;transition:all .15s}
-.prog-dot.answered.correct{background:var(--color-background-success);border-color:var(--color-border-success);color:var(--color-text-success)}
-.prog-dot.answered.wrong{background:var(--color-background-danger);border-color:var(--color-border-danger);color:var(--color-text-danger)}
-.prog-dot.current{border:2px solid #378ADD;color:var(--color-text-primary);font-weight:500}
-.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0}
-.stat-card{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:0.75rem;text-align:center}
-.stat-num{font-size:22px;font-weight:500;color:var(--color-text-primary)}
-.stat-lbl{font-size:11px;color:var(--color-text-secondary);margin-top:2px}
-.section-result{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:0.5px solid var(--color-border-tertiary);font-size:13px}
-.pass-banner{border-radius:var(--border-radius-lg);padding:1rem;text-align:center;margin:12px 0}
-.pass{background:var(--color-background-success)}.fail{background:var(--color-background-danger)}
-h1{font-size:22px;font-weight:500;color:var(--color-text-primary);margin-bottom:4px}
-h2{font-size:16px;font-weight:500;color:var(--color-text-primary);margin-bottom:8px}
-.q-text{font-size:15px;color:var(--color-text-primary);line-height:1.8;margin-bottom:1rem}
-.q-text u{text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1.5px}
-.muted{color:var(--color-text-secondary);font-size:13px}
-.row{display:flex;align-items:center;gap:10px}
-.spacer{flex:1}
-.explanation{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px 14px;font-size:13px;color:var(--color-text-secondary);margin-top:8px;line-height:1.6}
-</style>
+<canvas id="bg-canvas"></canvas>
 
 <div class="app">
+
+<!-- HOME -->
 <div id="home" class="screen active">
   <div class="header">
-    <h1>JLPT N2 — Juli 2012<span style="font-size:13px;color:var(--color-text-secondary);font-weight:400"></span></h1>
-    <p class="muted" style="margin-top:4px">75 soal asli · teks bacaan dokkai lengkap · kata yang ditanya digaris bawahi</p>
+    <h1>JLPT N2 — Juli 2011</h1>
+    <p class="muted" style="margin-top:4px">75 soal · 言語知識 (文字・語彙・文法) + 読解</p>
   </div>
   <div class="stat-grid">
     <div class="stat-card"><div class="stat-num">75</div><div class="stat-lbl">total soal</div></div>
@@ -239,51 +220,53 @@ h2{font-size:16px;font-weight:500;color:var(--color-text-primary);margin-bottom:
     <div class="stat-card"><div class="stat-num" id="hs-score">—</div><div class="stat-lbl">skor terakhir</div></div>
     <div class="stat-card"><div class="stat-num" id="hs-pred">—</div><div class="stat-lbl">prediksi</div></div>
   </div>
-  <button class="mode-btn" onclick="startMode('all')"><strong>🎯 Ujian Penuh</strong> — semua 75 soal, timer 105 menit</button>
-  <button class="mode-btn" onclick="startMode('moji')"><strong>📝 文字・語彙</strong> — 32 soal, timer 35 menit</button>
-  <button class="mode-btn" onclick="startMode('bunpou')"><strong>📐 文法</strong> — 17 soal, timer 25 menit</button>
-  <button class="mode-btn" onclick="startMode('dokkai')"><strong>📖 読解</strong> — 26 soal, timer 50 menit</button>
-  <div class="card" style="margin-top:4px"><p class="muted">Soal asli JLPT N2 Juli 2011 dari PDF. Prediksi kelulusan dihitung dari persentase jawaban benar per seksi.</p></div>
+  <div class="info-note">⚠️ Soal 聴解 (mendengarkan) tidak dimasukkan karena memerlukan audio. Total soal written: 75.</div>
+  <button class="mode-btn" onclick="startMode('all')"><strong>🎯 Ujian Penuh</strong><br><span style="font-size:12px;color:var(--muted)">Semua 75 soal · timer 105 menit</span></button>
+  <button class="mode-btn" onclick="startMode('moji')"><strong>📝 文字・語彙</strong><br><span style="font-size:12px;color:var(--muted)">35 soal · Masalah 1–5 · timer 35 menit</span></button>
+  <button class="mode-btn" onclick="startMode('bunpou')"><strong>📐 文法</strong><br><span style="font-size:12px;color:var(--muted)">23 soal · Masalah 1–3 · timer 25 menit</span></button>
+  <button class="mode-btn" onclick="startMode('dokkai')"><strong>📖 読解</strong><br><span style="font-size:12px;color:var(--muted)">17 soal · Masalah 4–7 · timer 50 menit</span></button>
 </div>
 
+<!-- QUIZ -->
 <div id="quiz" class="screen">
-  <div class="card" style="padding:1rem">
-    <div class="row">
-      <span class="badge badge-info" id="q-section">文字</span>
-      <span class="badge" id="q-type" style="background:var(--color-background-secondary);color:var(--color-text-secondary)">問題1</span>
+  <div class="card" style="padding:14px 18px;">
+    <div class="row" style="margin-top:0;">
+      <span class="badge" id="q-sec-badge">文字</span>
+      <span class="badge badge-type" id="q-type-badge">問題1</span>
       <div class="spacer"></div>
-      <span id="timer-text" style="font-size:14px;font-weight:500;color:var(--color-text-primary)">--:--</span>
+      <span id="timer-text" style="font-size:14px;font-weight:600;font-family:var(--mono)">--:--</span>
     </div>
     <div class="timer-bar"><div class="timer-fill" id="timer-fill" style="width:100%"></div></div>
-    <div class="row" style="margin-top:4px">
-      <span class="muted" id="q-num">問 1 / 75</span>
+    <div class="row" style="margin-top:2px;">
+      <span class="muted" id="q-num" style="font-family:var(--mono);font-size:12px;">問 1 / 75</span>
       <div class="spacer"></div>
-      <span class="muted" id="q-score-live">正解: 0</span>
+      <span class="muted" id="q-score-live" style="font-size:12px;">正解: 0</span>
     </div>
   </div>
   <div class="progress-grid" id="prog-grid"></div>
-  <div class="card" id="passage-card" style="display:none">
+  <div class="card" id="passage-card" style="display:none;">
     <div class="passage-label">📖 teks bacaan</div>
     <div class="passage-box" id="passage-text"></div>
   </div>
   <div class="card">
     <div class="q-text" id="q-text"></div>
     <div id="options"></div>
-    <div class="explanation" id="explanation" style="display:none"></div>
+    <div class="explanation" id="explanation" style="display:none;"></div>
   </div>
-  <div class="row" style="gap:8px">
-    <button class="tab-btn" onclick="prevQ()">← sebelumnya</button>
+  <div class="row">
+    <button class="nav-btn" onclick="prevQ()">← Back</button>
     <div class="spacer"></div>
-    <button class="tab-btn" id="next-btn" onclick="nextQ()" disabled>selanjutnya →</button>
-    <button class="tab-btn badge-danger" onclick="finishQuiz()">selesai</button>
+    <button class="nav-btn" id="next-btn" onclick="nextQ()" disabled>Next →</button>
+    <button class="nav-btn finish" onclick="finishQuiz()">Selesai</button>
   </div>
 </div>
 
+<!-- RESULT -->
 <div id="result" class="screen">
   <div class="header"><h1>Hasil Ujian</h1><p class="muted" id="res-date"></p></div>
   <div class="pass-banner" id="pass-banner">
-    <strong id="pass-text" style="font-size:18px"></strong>
-    <p id="pass-sub" style="font-size:13px;margin-top:4px"></p>
+    <strong id="pass-text" style="font-size:18px;"></strong>
+    <p id="pass-sub" style="font-size:13px;margin-top:6px;color:var(--muted);"></p>
   </div>
   <div class="stat-grid">
     <div class="stat-card"><div class="stat-num" id="r-correct"></div><div class="stat-lbl">benar</div></div>
@@ -292,15 +275,15 @@ h2{font-size:16px;font-weight:500;color:var(--color-text-primary);margin-bottom:
     <div class="stat-card"><div class="stat-num" id="r-time"></div><div class="stat-lbl">waktu</div></div>
   </div>
   <div class="card"><h2>Skor per seksi</h2><div id="section-results"></div></div>
-  <div class="card"><h2>Prediksi kelulusan JLPT Juli 2026</h2><div id="prediction-detail" style="font-size:14px;line-height:1.9;color:var(--color-text-secondary)"></div></div>
-  <div class="row" style="gap:8px;margin-top:8px">
-    <button class="tab-btn" onclick="reviewAnswers()">review jawaban</button>
+  <div class="card"><h2>Prediksi kelulusan JLPT</h2><div id="prediction-detail" style="font-size:13px;line-height:2;color:var(--muted);"></div></div>
+  <div class="row" style="gap:8px;margin-top:8px;">
+    <button class="nav-btn" onclick="reviewAnswers()">Review Jawaban</button>
     <div class="spacer"></div>
-    <button class="tab-btn" onclick="goHome()">kembali ke menu</button>
+    <button class="nav-btn" onclick="goHome()">Kembali ke Menu</button>
   </div>
 </div>
-</div>
 
+</div><!-- /app -->
 <script>
 const PASSAGES = {
   p9_tetsudo:`以下は、雑誌のコラムである。\n\n日本の鉄道ファン\n\n鉄道ファンとは、鉄道が好きで鉄道に関することを趣味にしている人たちのことだ。鉄道ファンは単に「鉄」と言われたりもする。日本では、これまでは「鉄」といえば男性だと思われていたが、近年は女性のファンが急増しているらしい。ところで、彼ら鉄道ファンたちは（50）趣味を楽しんでいるのだろうか。\n\n一言で鉄道ファンといってもその趣味の内容は多種多様だ。そして、電車に乗るのが好きな「鉄」は「乗り鉄」というように、それぞれその内容に対応した呼び名がある。\n\n「乗り鉄」（51）、写真を撮るのが好きな「撮り鉄」、車両や鉄道がある風景を描く「描き鉄」、鉄道の模型が好きな「模型鉄」などだ。\n\nある40代の「乗り鉄」の女性は鉄道の魅力を（52）語る。「窓の外の風景をながめていると旅の気分が味わえるし、車と違って座っているだけで目的地に着けるのがいい」。「模型鉄」である30代の男性は、模型の魅力について「車両の形を見ているだけでうっとり。本物は買えないけど模型なら買えるし」と説明する。\n\nまた、最近急増している女性ファンには「ママ鉄」も多い。電車を見たがる子どもを連れて電車を見に行くうち、自分も鉄道ファンになってしまったという人たちだ。（53）の特徴は、他の「鉄」とは異なり、ホームではなく、電車が見えるところにある公園やレストランなど、子どもと一緒にゆっくり過ごせる場所で電車を見るという点である。\n\n鉄道ファンにはいろいろなタイプがあり、楽しみ方も（54）。`,
@@ -422,92 +405,212 @@ const Q = [
   {id:75,sec:"読解",type:"問題14",passage:"p14_hikkoshi",q:'会社員の有田さんは3ヶ月後に海外支店に転勤することになった。一緒に行く家族は外国での生活が初めてなので、日本語で対応してもらえて、なるべく楽なプランを利用したいと思っている。有田さんはA、B両社のどのプランを検討したらいいか。',opts:["A社のプラン①とB社のプランⅢ","A社のプラン①とB社のプランⅣ","A社のプラン②とB社のプランⅢ","A社のプラン②とB社のプランⅣ"],ans:1,exp:"A社：家族で荷物多め→プラン①（荷物多い・手間かけたくない・日本語スタッフ対応）。B社：家族でのお引越→右ルート→海外生活はじめて→日本語スタッフ希望→プランIV。"}
 ];
 
-let currentQ=0,questions=[],answers={},startTime=null,timerInterval=null,totalSeconds=0,mode='all';
-function getQuestions(m){if(m==='all')return[...Q];if(m==='moji')return Q.filter(q=>q.sec==="文字・語彙");if(m==='bunpou')return Q.filter(q=>q.sec==="文法");if(m==='dokkai')return Q.filter(q=>q.sec==="読解");return[...Q];}
+// =========================================================
+// APP LOGIC
+// =========================================================
+let currentQ=0, questions=[], answers={}, startTime=null, timerInterval=null, totalSeconds=0, mode='all';
+
+function secBadgeClass(sec){
+  if(sec==="文字・語彙")return "badge badge-moji";
+  if(sec==="文法")return "badge badge-bunpou";
+  return "badge badge-dokkai";
+}
+
+function getQuestions(m){
+  if(m==='all')return[...Q];
+  if(m==='moji')return Q.filter(q=>q.sec==="文字・語彙");
+  if(m==='bunpou')return Q.filter(q=>q.sec==="文法");
+  if(m==='dokkai')return Q.filter(q=>q.sec==="読解");
+  return[...Q];
+}
 function getTimeLimit(m){return{all:6300,moji:2100,bunpou:1500,dokkai:3000}[m]||6300;}
-function startMode(m){mode=m;questions=getQuestions(m);answers={};currentQ=0;startTime=Date.now();totalSeconds=getTimeLimit(m);showScreen('quiz');buildProgressGrid();renderQuestion();startTimer();}
-function startTimer(){if(timerInterval)clearInterval(timerInterval);timerInterval=setInterval(()=>{const elapsed=Math.floor((Date.now()-startTime)/1000);const remaining=totalSeconds-elapsed;if(remaining<=0){clearInterval(timerInterval);finishQuiz();return;}const m=Math.floor(remaining/60),s=remaining%60;document.getElementById('timer-text').textContent=`${m}:${s.toString().padStart(2,'0')}`;const pct=(remaining/totalSeconds)*100;const fill=document.getElementById('timer-fill');fill.style.width=pct+'%';fill.className='timer-fill'+(pct<25?' danger':pct<50?' warn':'');},500);}
-function buildProgressGrid(){const g=document.getElementById('prog-grid');g.innerHTML='';questions.forEach((_,i)=>{const d=document.createElement('div');d.className='prog-dot'+(i===currentQ?' current':'');d.textContent=i+1;d.onclick=()=>goToQ(i);d.id='pd-'+i;g.appendChild(d);});}
+
+function startMode(m){
+  mode=m; questions=getQuestions(m); answers={}; currentQ=0;
+  startTime=Date.now(); totalSeconds=getTimeLimit(m);
+  showScreen('quiz'); buildProgressGrid(); renderQuestion(); startTimer();
+}
+
+function startTimer(){
+  if(timerInterval)clearInterval(timerInterval);
+  timerInterval=setInterval(()=>{
+    const elapsed=Math.floor((Date.now()-startTime)/1000);
+    const remaining=totalSeconds-elapsed;
+    if(remaining<=0){clearInterval(timerInterval);finishQuiz();return;}
+    const mm=Math.floor(remaining/60),ss=remaining%60;
+    document.getElementById('timer-text').textContent=`${mm}:${ss.toString().padStart(2,'0')}`;
+    const pct=(remaining/totalSeconds)*100;
+    const fill=document.getElementById('timer-fill');
+    fill.style.width=pct+'%';
+    fill.className='timer-fill'+(pct<25?' danger':pct<50?' warn':'');
+  },500);
+}
+
+function buildProgressGrid(){
+  const g=document.getElementById('prog-grid'); g.innerHTML='';
+  questions.forEach((_,i)=>{
+    const d=document.createElement('div');
+    d.className='prog-dot'+(i===currentQ?' current':'');
+    d.textContent=i+1; d.onclick=()=>goToQ(i); d.id='pd-'+i;
+    g.appendChild(d);
+  });
+}
+
 function goToQ(i){currentQ=i;renderQuestion();}
-function renderQuestion(){const q=questions[currentQ];document.getElementById('q-section').textContent=q.sec;document.getElementById('q-type').textContent=q.type;document.getElementById('q-num').textContent=`問 ${currentQ+1} / ${questions.length}`;const correct=Object.values(answers).filter(a=>a.correct).length;document.getElementById('q-score-live').textContent=`正解: ${correct}`;const pc=document.getElementById('passage-card');const pt=document.getElementById('passage-text');if(q.passage&&PASSAGES[q.passage]){pc.style.display='block';pt.innerHTML=PASSAGES[q.passage].split('\n').map(l=>l.trim()?`<p>${l}</p>`:'').join('');}else{pc.style.display='none';}document.getElementById('q-text').innerHTML=q.q;const opts=document.getElementById('options');opts.innerHTML='';q.opts.forEach((o,i)=>{const b=document.createElement('button');b.className='option-btn';b.textContent=(i+1)+'. '+o;const a=answers[currentQ];if(a){b.disabled=true;if(i===q.ans)b.classList.add('correct');else if(i===a.chosen)b.classList.add('wrong');}else{b.onclick=()=>selectAnswer(i);}opts.appendChild(b);});const exp=document.getElementById('explanation');if(answers[currentQ]){exp.style.display='block';exp.textContent='解説: '+q.exp;}else{exp.style.display='none';}document.getElementById('next-btn').disabled=!answers[currentQ];updateProgDots();}
-function selectAnswer(i){const q=questions[currentQ];answers[currentQ]={chosen:i,correct:i===q.ans};const pd=document.getElementById('pd-'+currentQ);if(pd){pd.classList.add('answered');pd.classList.add(i===q.ans?'correct':'wrong');}renderQuestion();document.getElementById('next-btn').disabled=false;}
-function updateProgDots(){questions.forEach((_,i)=>{const d=document.getElementById('pd-'+i);if(!d)return;d.className='prog-dot';if(answers[i])d.classList.add('answered',answers[i].correct?'correct':'wrong');if(i===currentQ)d.classList.add('current');});}
+
+function renderQuestion(){
+  const q=questions[currentQ];
+  const secBadge=document.getElementById('q-sec-badge');
+  secBadge.className=secBadgeClass(q.sec);
+  secBadge.textContent=q.sec;
+  document.getElementById('q-type-badge').textContent=q.type;
+  document.getElementById('q-num').textContent=`問 ${currentQ+1} / ${questions.length}`;
+  const correct=Object.values(answers).filter(a=>a.correct).length;
+  document.getElementById('q-score-live').textContent=`正解: ${correct}`;
+
+  const passageCard=document.getElementById('passage-card');
+  const passageText=document.getElementById('passage-text');
+  if(q.passage&&PASSAGES[q.passage]){
+    passageCard.style.display='block';
+    passageText.innerHTML=PASSAGES[q.passage].split('\n').map(line=>line.trim()?`<p>${line}</p>`:'').join('');
+  } else {
+    passageCard.style.display='none';
+  }
+
+  document.getElementById('q-text').innerHTML=q.q;
+  const opts=document.getElementById('options'); opts.innerHTML='';
+  q.opts.forEach((o,i)=>{
+    const b=document.createElement('button');
+    b.className='option-btn';
+    b.innerHTML=`<span style="font-family:var(--mono);color:var(--muted);margin-right:8px;">${i+1}.</span>${o}`;
+    const ans=answers[currentQ];
+    if(ans){
+      b.disabled=true;
+      if(i===q.ans)b.classList.add('correct');
+      else if(i===ans.chosen)b.classList.add('wrong');
+    } else {
+      b.onclick=()=>selectAnswer(i);
+    }
+    opts.appendChild(b);
+  });
+  const exp=document.getElementById('explanation');
+  if(answers[currentQ]){exp.style.display='block';exp.textContent='💡 解説: '+q.exp;}
+  else{exp.style.display='none';}
+  document.getElementById('next-btn').disabled=!answers[currentQ];
+  updateProgDots();
+}
+
+function selectAnswer(i){
+  const q=questions[currentQ];
+  answers[currentQ]={chosen:i,correct:i===q.ans};
+  const pd=document.getElementById('pd-'+currentQ);
+  if(pd){pd.classList.add('answered');pd.classList.add(i===q.ans?'correct':'wrong');}
+  renderQuestion();
+  document.getElementById('next-btn').disabled=false;
+}
+
+function updateProgDots(){
+  questions.forEach((_,i)=>{
+    const d=document.getElementById('pd-'+i); if(!d)return;
+    d.className='prog-dot';
+    if(answers[i])d.classList.add(answers[i].correct?'correct':'wrong');
+    if(i===currentQ)d.classList.add('current');
+  });
+}
+
 function nextQ(){if(currentQ<questions.length-1){currentQ++;renderQuestion();}}
 function prevQ(){if(currentQ>0){currentQ--;renderQuestion();}}
-function finishQuiz(){if(timerInterval)clearInterval(timerInterval);const elapsed=Math.floor((Date.now()-startTime)/1000);showScreen('result');const done=Object.keys(answers).length;const correct=Object.values(answers).filter(a=>a.correct).length;const wrong=done-correct;const pct=done>0?Math.round((correct/done)*100):0;const mm=Math.floor(elapsed/60),ss=elapsed%60;document.getElementById('r-correct').textContent=correct;document.getElementById('r-wrong').textContent=wrong;document.getElementById('r-pct').textContent=pct+'%';document.getElementById('r-time').textContent=mm+'m'+ss+'s';document.getElementById('res-date').textContent=new Date().toLocaleString('id-ID');const secMap={};questions.forEach((q,i)=>{if(!secMap[q.sec])secMap[q.sec]={correct:0,total:0};secMap[q.sec].total++;if(answers[i]&&answers[i].correct)secMap[q.sec].correct++;});let secHtml='';Object.entries(secMap).forEach(([sec,data])=>{const p=Math.round((data.correct/data.total)*100);const cl=p>=60?'badge-success':p>=40?'badge-warn':'badge-danger';secHtml+=`<div class="section-result"><span>${sec}</span><span>${data.correct}/${data.total}</span><span class="badge ${cl}">${p}%</span></div>`;});document.getElementById('section-results').innerHTML=secHtml;const passMoji=secMap['文字・語彙']?Math.round((secMap['文字・語彙'].correct/secMap['文字・語彙'].total)*100):0;const passBunpou=secMap['文法']?Math.round((secMap['文法'].correct/secMap['文法'].total)*100):0;const passDokkai=secMap['読解']?Math.round((secMap['読解'].correct/secMap['読解'].total)*100):0;const willPass=pct>=60&&passMoji>=50&&passBunpou>=50&&passDokkai>=50;document.getElementById('pass-banner').className='pass-banner '+(willPass?'pass':'fail');document.getElementById('pass-text').textContent=willPass?'✓ Prediksi: LULUS JLPT N2':'✗ Prediksi: Perlu latihan lebih';document.getElementById('pass-sub').textContent=`Akurasi keseluruhan: ${pct}% | Target: ≥60% per seksi & ≥60% total`;const daysLeft=Math.max(0,Math.floor((new Date('2026-07-06')-new Date())/86400000));let predHtml=`📝 文字・語彙: ${passMoji}% ${passMoji>=60?'✓ Baik':passMoji>=50?'△ Cukup':'✗ Kurang'}<br>📐 文法: ${passBunpou}% ${passBunpou>=60?'✓ Baik':passBunpou>=50?'△ Cukup':'✗ Kurang'}<br>📖 読解: ${passDokkai}% ${passDokkai>=60?'✓ Baik':passDokkai>=50?'△ Cukup':'✗ Kurang'}<br><br>⏰ Sisa waktu ke JLPT Juli 2026: <strong style="color:var(--color-text-primary)">${daysLeft} hari</strong><br>`;if(!willPass){const w=Object.entries(secMap).sort((a,b)=>(a[1].correct/a[1].total)-(b[1].correct/b[1].total))[0];predHtml+=`💡 Fokus latihan: <strong style="color:var(--color-text-primary)">${w[0]}</strong>`;}else{predHtml+=`🎉 Pertahankan! Coba soal dari tahun lain juga!`;}document.getElementById('prediction-detail').innerHTML=predHtml;document.getElementById('hs-done').textContent=done;document.getElementById('hs-score').textContent=pct+'%';document.getElementById('hs-pred').textContent=willPass?'LULUS':'GAGAL';}
+
+function finishQuiz(){
+  if(timerInterval)clearInterval(timerInterval);
+  const elapsed=Math.floor((Date.now()-startTime)/1000);
+  showScreen('result');
+  const done=Object.keys(answers).length;
+  const correct=Object.values(answers).filter(a=>a.correct).length;
+  const wrong=done-correct;
+  const pct=done>0?Math.round((correct/done)*100):0;
+  const mm=Math.floor(elapsed/60),ss=elapsed%60;
+  document.getElementById('r-correct').textContent=correct;
+  document.getElementById('r-wrong').textContent=wrong;
+  document.getElementById('r-pct').textContent=pct+'%';
+  document.getElementById('r-time').textContent=mm+'m'+ss+'s';
+  document.getElementById('res-date').textContent=new Date().toLocaleString('id-ID');
+
+  const secMap={};
+  questions.forEach((q,i)=>{
+    if(!secMap[q.sec])secMap[q.sec]={correct:0,total:0};
+    secMap[q.sec].total++;
+    if(answers[i]&&answers[i].correct)secMap[q.sec].correct++;
+  });
+
+  let secHtml='';
+  const secColors={'文字・語彙':'badge-moji','文法':'badge-bunpou','読解':'badge-dokkai'};
+  Object.entries(secMap).forEach(([sec,data])=>{
+    const p=data.total>0?Math.round((data.correct/data.total)*100):0;
+    const cl=p>=60?'badge-success':p>=40?'badge-warn':'badge-danger';
+    const bClass=secColors[sec]||'badge-type';
+    secHtml+=`<div class="section-result">
+      <span class="badge ${bClass}">${sec}</span>
+      <span style="color:var(--muted)">${data.correct} / ${data.total}</span>
+      <span class="badge ${cl}" style="background:${p>=60?'rgba(25,195,125,.18)':p>=40?'rgba(255,181,71,.18)':'rgba(255,95,115,.15)'};color:${p>=60?'var(--success)':p>=40?'var(--warning)':'var(--danger)'};border:1px solid ${p>=60?'rgba(25,195,125,.3)':p>=40?'rgba(255,181,71,.3)':'rgba(255,95,115,.25)'}">${p}%</span>
+    </div>`;
+  });
+  document.getElementById('section-results').innerHTML=secHtml;
+
+  const pm=secMap['文字・語彙']?Math.round((secMap['文字・語彙'].correct/secMap['文字・語彙'].total)*100):0;
+  const pb=secMap['文法']?Math.round((secMap['文法'].correct/secMap['文法'].total)*100):0;
+  const pd2=secMap['読解']?Math.round((secMap['読解'].correct/secMap['読解'].total)*100):0;
+  const willPass=pct>=60&&pm>=50&&pb>=50&&pd2>=50;
+  const banner=document.getElementById('pass-banner');
+  banner.className='pass-banner '+(willPass?'pass':'fail');
+  document.getElementById('pass-text').textContent=willPass?'✓ Prediksi: LULUS JLPT N2':'✗ Prediksi: Perlu latihan lebih';
+  document.getElementById('pass-sub').textContent=`Akurasi: ${pct}% | Target: ≥60% keseluruhan & ≥50% per seksi`;
+
+  const daysLeft=Math.max(0,Math.floor((new Date('2026-07-06')-new Date())/86400000));
+  let predHtml=`📝 文字・語彙: ${pm}% ${pm>=60?'✓ Baik':pm>=50?'△ Cukup':'✗ Perlu ditingkatkan'}<br>`;
+  predHtml+=`📐 文法: ${pb}% ${pb>=60?'✓ Baik':pb>=50?'△ Cukup':'✗ Perlu ditingkatkan'}<br>`;
+  predHtml+=`📖 読解: ${pd2}% ${pd2>=60?'✓ Baik':pd2>=50?'△ Cukup':'✗ Perlu ditingkatkan'}<br><br>`;
+  predHtml+=`⏰ Sisa ke JLPT Juli 2026: <strong style="color:var(--text)">${daysLeft} hari</strong><br>`;
+  if(!willPass){
+    const weakest=Object.entries(secMap).sort((a,b)=>(a[1].correct/a[1].total)-(b[1].correct/b[1].total))[0];
+    predHtml+=`💡 Fokus latihan: <strong style="color:var(--text)">${weakest[0]}</strong>`;
+  } else {
+    predHtml+='🎉 Pertahankan dan latihan soal tahun-tahun lain!';
+  }
+  document.getElementById('prediction-detail').innerHTML=predHtml;
+  document.getElementById('hs-done').textContent=done;
+  document.getElementById('hs-score').textContent=pct+'%';
+  document.getElementById('hs-pred').textContent=willPass?'LULUS':'GAGAL';
+}
+
 function reviewAnswers(){currentQ=0;showScreen('quiz');buildProgressGrid();renderQuestion();}
 function goHome(){showScreen('home');}
 function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
 </script>
 
-
-</div>
-
 <script>
-
-// =====================================
-// PARTICLE BACKGROUND
-// =====================================
-
-const canvas=document.createElement('canvas');
-document.body.appendChild(canvas);
-
+// Particle background
+const canvas=document.getElementById('bg-canvas');
 const ctx=canvas.getContext('2d');
-
-function resize(){
-
-canvas.width=window.innerWidth;
-canvas.height=window.innerHeight;
-
-}
-
+function resize(){canvas.width=window.innerWidth;canvas.height=window.innerHeight;}
 resize();
-
 window.addEventListener('resize',resize);
-
 const particles=[];
-
-for(let i=0;i<80;i++){
-
-particles.push({
-x:Math.random()*canvas.width,
-y:Math.random()*canvas.height,
-r:Math.random()*2+1,
-dx:(Math.random()-0.5)*0.4,
-dy:(Math.random()-0.5)*0.4
-});
-
+for(let i=0;i<70;i++){
+  particles.push({x:Math.random()*canvas.width,y:Math.random()*canvas.height,r:Math.random()*1.8+0.5,dx:(Math.random()-.5)*.35,dy:(Math.random()-.5)*.35});
 }
-
 function animate(){
-
-ctx.clearRect(0,0,canvas.width,canvas.height);
-
-particles.forEach(p=>{
-
-p.x+=p.dx;
-p.y+=p.dy;
-
-if(p.x<0||p.x>canvas.width)p.dx*=-1;
-if(p.y<0||p.y>canvas.height)p.dy*=-1;
-
-ctx.beginPath();
-ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
-ctx.fillStyle='rgba(120,170,255,.7)';
-ctx.fill();
-
-});
-
-requestAnimationFrame(animate);
-
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  particles.forEach(p=>{
+    p.x+=p.dx; p.y+=p.dy;
+    if(p.x<0||p.x>canvas.width)p.dx*=-1;
+    if(p.y<0||p.y>canvas.height)p.dy*=-1;
+    ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+    ctx.fillStyle='rgba(100,160,255,.6)';ctx.fill();
+  });
+  requestAnimationFrame(animate);
 }
-
 animate();
-
-// =====================================
-// PASTE SEMUA SCRIPT JLPT LAMA LU
-// =====================================
-
 </script>
 
 </body>
