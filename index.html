@@ -246,6 +246,54 @@ background:rgba(25,195,125,.18);
 color:#5ff0b0;
 }
 
+/* NEW UPDATE */
+
+.level-n1{
+background:rgba(255,95,115,.18);
+color:#ff9aaa;
+}
+
+.level-n2{
+background:rgba(90,169,255,.18);
+color:#7cc0ff;
+}
+
+.level-n3{
+background:rgba(124,77,255,.18);
+color:#b69cff;
+}
+
+.level-n4{
+background:rgba(25,195,125,.18);
+color:#5ff0b0;
+}
+
+.level-n5{
+background:rgba(255,181,71,.18);
+color:#ffd18a;
+}
+
+.hero-stats{
+display:flex;
+gap:15px;
+margin-top:25px;
+flex-wrap:wrap;
+}
+
+.hero-mini{
+padding:14px 18px;
+border-radius:16px;
+background:rgba(255,255,255,.04);
+border:1px solid var(--border);
+}
+
+.sticky-top{
+position:sticky;
+top:0;
+z-index:100;
+backdrop-filter:blur(15px);
+}
+
 .open-btn{
 
 display:flex;
@@ -337,19 +385,32 @@ font-size:15px;
 
 <div class="container">
 
-<div class="hero">
+<div class="hero sticky-top">
 
 <h1>JLPT EXAM HUB</h1>
 
 <p class="subtitle">
 Kumpulan latihan dan simulasi JLPT modern dengan tampilan premium.
 Akses soal Reading・Listening・Grammar・Vocabulary berdasarkan tahun ujian.
-
 </p>
 
 <div class="topbar">
 
 <input type="text" class="search-box" id="searchInput" placeholder="Search exam year...">
+
+<select class="search-box" id="levelFilter">
+<option value="all">All Levels</option>
+<option value="N1">N1</option>
+<option value="N2">N2</option>
+<option value="N3">N3</option>
+<option value="N4">N4</option>
+<option value="N5">N5</option>
+</select>
+
+<select class="search-box" id="sortFilter">
+<option value="newest">Newest</option>
+<option value="oldest">Oldest</option>
+</select>
 
 <button class="filter-btn" onclick="showAll()">
 Show All
@@ -362,12 +423,12 @@ Show All
 <div class="stats">
 
 <div class="stat-box">
-<div class="stat-num" id="totalExam">6</div>
+<div class="stat-num" id="totalExam">10</div>
 <div class="stat-label">Total Exams</div>
 </div>
 
 <div class="stat-box">
-<div class="stat-num">N2</div>
+<div class="stat-num">N5-N1</div>
 <div class="stat-label">JLPT Level</div>
 </div>
 
@@ -380,12 +441,31 @@ Show All
 
 <div class="grid" id="examGrid">
 
-<!-- ===================================== -->
-<!-- EXAM CARD -->
-<!-- DUPLICATE SESUAI FILE HTML LU -->
-<!-- ===================================== -->
+<div class="card" data-name="2024-07-jlpt" data-level="N1" data-year="2024">
 
-<div class="card" data-name="2010-07-jlpt">
+<div class="year">2024</div>
+
+<div class="exam-title">
+JLPT N1 July 2024
+</div>
+
+<div class="badges">
+<span class="badge level-n1">N1</span>
+<span class="badge badge-reading">Reading</span>
+<span class="badge badge-listening">Listening</span>
+</div>
+
+<div class="exam-desc">
+Latest premium JLPT N1 simulation with modern UI.
+</div>
+
+<a href="2024-07-n1.html" class="open-btn">
+OPEN EXAM
+</a>
+
+</div>
+
+<div class="card" data-name="2010-07-jlpt" data-level="N2" data-year="2010">
 
 <div class="year">2010</div>
 
@@ -394,7 +474,7 @@ JLPT N2 July 2010
 </div>
 
 <div class="badges">
-<span class="badge badge-n2">N2</span>
+<span class="badge level-n2">N2</span>
 <span class="badge badge-reading">Reading</span>
 <span class="badge badge-listening">Listening</span>
 </div>
@@ -410,7 +490,7 @@ OPEN EXAM
 
 </div>
 
-<div class="card" data-name="2010-12-jlpt">
+<div class="card" data-name="2010-12-jlpt" data-level="N2" data-year="2010">
 
 <div class="year">2010</div>
 
@@ -419,7 +499,7 @@ JLPT N2 December 2010
 </div>
 
 <div class="badges">
-<span class="badge badge-n2">N2</span>
+<span class="badge level-n2">N2</span>
 <span class="badge badge-reading">Reading</span>
 <span class="badge badge-listening">Listening</span>
 </div>
@@ -435,7 +515,7 @@ OPEN EXAM
 
 </div>
 
-<div class="card" data-name="2011-07-jlpt">
+<div class="card" data-name="2010-12-jlpt" data-level="N2" data-year="2010">
 
 <div class="year">2011</div>
 
@@ -444,86 +524,86 @@ JLPT N2 July 2011
 </div>
 
 <div class="badges">
-<span class="badge badge-n2">N2</span>
-<span class="badge badge-reading">Reading</span>
-</div>
-
-<div class="exam-desc">
-Simulasi JLPT modern dengan timer dan review jawaban.
-</div>
-
-<a href="2011-07-jlpt.html" class="open-btn">
-OPEN EXAM
-</a>
-
-</div>
-
-<div class="card" data-name="2011-12-jlpt">
-
-<div class="year">2011</div>
-
-<div class="exam-title">
-JLPT N2 December 2011
-</div>
-
-<div class="badges">
-<span class="badge badge-n2">N2</span>
-<span class="badge badge-reading">Reading</span>
-</div>
-
-<div class="exam-desc">
-Premium JLPT UI dengan efek modern dan responsive.
-</div>
-
-<a href="2011-12-jlpt.html" class="open-btn">
-OPEN EXAM
-</a>
-
-</div>
-
-<div class="card" data-name="2012-07-jlpt">
-
-<div class="year">2012</div>
-
-<div class="exam-title">
-JLPT N2 July 2012
-</div>
-
-<div class="badges">
-<span class="badge badge-n2">N2</span>
+<span class="badge level-n2">N2</span>
 <span class="badge badge-reading">Reading</span>
 <span class="badge badge-listening">Listening</span>
 </div>
 
 <div class="exam-desc">
-Latihan soal dengan tampilan cyber premium.
+Latihan lengkap JLPT N2 bulan Desember 2011.
+Tampilan modern dan simulasi seperti ujian asli.
 </div>
 
-<a href="2012-07-jlpt.html" class="open-btn">
+<a href="2010-12-jlpt.html" class="open-btn">
 OPEN EXAM
 </a>
 
 </div>
 
-<div class="card" data-name="2012-12-jlpt">
+<div class="card" data-name="2022-07-jlpt" data-level="N3" data-year="2022">
 
-<div class="year">2012</div>
+<div class="year">2022</div>
 
 <div class="exam-title">
-JLPT N2 December 2012
+JLPT N3 July 2022
 </div>
 
 <div class="badges">
-<span class="badge badge-n2">N2</span>
+<span class="badge level-n3">N3</span>
 <span class="badge badge-reading">Reading</span>
+</div>
+
+<div class="exam-desc">
+Interactive JLPT N3 reading and grammar practice.
+</div>
+
+<a href="2022-07-n3.html" class="open-btn">
+OPEN EXAM
+</a>
+
+</div>
+
+<div class="card" data-name="2021-12-jlpt" data-level="N4" data-year="2021">
+
+<div class="year">2021</div>
+
+<div class="exam-title">
+JLPT N4 December 2021
+</div>
+
+<div class="badges">
+<span class="badge level-n4">N4</span>
 <span class="badge badge-listening">Listening</span>
 </div>
 
 <div class="exam-desc">
-Mock test JLPT lengkap dengan review dan score system.
+JLPT beginner simulation with listening support.
 </div>
 
-<a href="2012-12-jlpt.html" class="open-btn">
+<a href="2021-12-n4.html" class="open-btn">
+OPEN EXAM
+</a>
+
+</div>
+
+<div class="card" data-name="2020-07-jlpt" data-level="N5" data-year="2020">
+
+<div class="year">2020</div>
+
+<div class="exam-title">
+JLPT N5 July 2020
+</div>
+
+<div class="badges">
+<span class="badge level-n5">N5</span>
+<span class="badge badge-reading">Reading</span>
+</div>
+
+<div class="exam-desc">
+Basic Japanese practice for N5 learners.
+</div>
+
+<a href="2020-07-n5.html" class="open-btn">
 OPEN EXAM
 </a>
 
@@ -573,6 +653,69 @@ card.style.display='block';
 searchInput.value='';
 
 }
+
+// =====================================
+// NEW UPDATE FILTER
+// =====================================
+
+const levelFilter=document.getElementById('levelFilter');
+const sortFilter=document.getElementById('sortFilter');
+
+function applyFilters(){
+
+const level=levelFilter.value;
+const search=searchInput.value.toLowerCase();
+
+cards.forEach(card=>{
+
+const name=card.dataset.name.toLowerCase();
+const cardLevel=card.dataset.level;
+
+let visible=true;
+
+if(level!=='all' && cardLevel!==level){
+visible=false;
+}
+
+if(!name.includes(search)){
+visible=false;
+}
+
+card.style.display=visible?'block':'none';
+
+});
+
+sortCards();
+
+}
+
+function sortCards(){
+
+const grid=document.getElementById('examGrid');
+
+const sorted=[...cards].sort((a,b)=>{
+
+const ay=parseInt(a.dataset.year);
+const by=parseInt(b.dataset.year);
+
+if(sortFilter.value==='newest'){
+return by-ay;
+}else{
+return ay-by;
+}
+
+});
+
+sorted.forEach(card=>{
+grid.appendChild(card);
+});
+
+}
+
+levelFilter.addEventListener('change',applyFilters);
+sortFilter.addEventListener('change',applyFilters);
+
+searchInput.addEventListener('input',applyFilters);
 
 // =====================================
 // PARTICLE BACKGROUND
