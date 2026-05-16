@@ -72,8 +72,17 @@ padding:40px;
 border-radius:30px;
 margin-bottom:30px;
 box-shadow:0 10px 35px rgba(0,0,0,.35);
-position:relative;
+
+position:sticky;
+top:15px;
+z-index:999;
+
 overflow:hidden;
+
+transition:
+transform .45s ease,
+opacity .35s ease,
+top .35s ease;
 
 }
 
@@ -87,6 +96,14 @@ border-radius:50%;
 background:rgba(255,255,255,.03);
 top:-160px;
 right:-120px;
+
+}
+
+.hero.hide{
+
+transform:translateY(-140%);
+opacity:0;
+pointer-events:none;
 
 }
 
@@ -802,6 +819,42 @@ fill:'forwards'
 
 });
 
+
+// =====================================
+// AUTO HIDE HERO ON SCROLL
+// =====================================
+
+const hero=document.querySelector('.hero');
+
+let lastScroll=0;
+
+window.addEventListener('scroll',()=>{
+
+const currentScroll=window.pageYOffset;
+
+if(currentScroll>120){
+
+// scroll down
+if(currentScroll>lastScroll){
+
+hero.classList.add('hide');
+
+}else{
+
+// scroll up
+hero.classList.remove('hide');
+
+}
+
+}else{
+
+hero.classList.remove('hide');
+
+}
+
+lastScroll=currentScroll;
+
+});
 </script>
 
 </body>
