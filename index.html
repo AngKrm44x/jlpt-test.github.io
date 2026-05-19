@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>JLPT Exam Hub</title>
+<title>Simulasi JLPT</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -52,7 +52,8 @@ position:fixed;
 inset:0;
 z-index:-1;
 pointer-events:none;
-opacity:.35;
+opacity:.18;
+transform:translateZ(0);
 }
 
 .container{
@@ -66,7 +67,9 @@ padding:30px;
 .hero{
 
 background:rgba(17,26,47,.85);
-backdrop-filter:blur(12px);
+backdrop-filter:blur(6px);
+will-change:transform,opacity;
+transform:translateZ(0);
 border:1px solid var(--border);
 padding:40px;
 border-radius:30px;
@@ -177,20 +180,23 @@ gap:22px;
 .card{
 
 background:rgba(22,33,62,.85);
-backdrop-filter:blur(10px);
+backdrop-filter:blur(4px);
+will-change:transform;
+transform:translateZ(0);
+contain:layout paint;
 border:1px solid var(--border);
 border-radius:24px;
 padding:24px;
 position:relative;
 overflow:hidden;
-transition:.3s;
+transition:transform .22s ease, box-shadow .22s ease;
 box-shadow:0 8px 25px rgba(0,0,0,.25);
 
 }
 
 .card:hover{
 
-transform:translateY(-6px) scale(1.02);
+transform:translate3d(0,-4px,0);
 box-shadow:0 15px 40px rgba(0,0,0,.4);
 
 }
@@ -258,10 +264,16 @@ background:rgba(124,77,255,.18);
 color:#b69cff;
 }
 
-.badge-listening{
-background:rgba(25,195,125,.18);
-color:#5ff0b0;
+.badge-grammar{
+background:rgba(124,77,255,.18);
+color:#b69fff;
 }
+
+.badge-vocabulary{
+background:rgba(124,77,255,.18);
+color:#b52cff;
+}
+
 
 /* NEW UPDATE */
 
@@ -308,7 +320,7 @@ border:1px solid var(--border);
 position:sticky;
 top:0;
 z-index:100;
-backdrop-filter:blur(15px);
+backdrop-filter:blur(6px);
 }
 
 .open-btn{
@@ -440,7 +452,7 @@ Show All
 <div class="stats">
 
 <div class="stat-box">
-<div class="stat-num" id="totalExam">10</div>
+<div class="stat-num" id="totalExam">7</div>
 <div class="stat-label">Total Exams</div>
 </div>
 
@@ -469,11 +481,12 @@ JLPT N1 July 2024
 <div class="badges">
 <span class="badge level-n1">N1</span>
 <span class="badge badge-reading">Reading</span>
-<span class="badge badge-listening">Listening</span>
+<span class="badge badge-grammar">Grammar</span>
+<span class="badge badge-vocabulary">Vocabulary</span>
 </div>
 
 <div class="exam-desc">
-Latest premium JLPT N1 simulation with modern UI.
+Simulasi ujian JLPT N1 Terbaru - Terlama.
 </div>
 
 <a href="2024-07-n1.html" class="open-btn">
@@ -493,12 +506,12 @@ JLPT N2 July 2010
 <div class="badges">
 <span class="badge level-n2">N2</span>
 <span class="badge badge-reading">Reading</span>
-<span class="badge badge-listening">Listening</span>
+<span class="badge badge-grammar">Grammar</span>
+<span class="badge badge-vocabulary">Vocabulary</span>
 </div>
 
 <div class="exam-desc">
-Latihan lengkap JLPT N2 bulan Juli 2010.
-Berisi dokkai, choukai, grammar, dan vocabulary.
+Simulasi ujian JLPT N2 Terbaru - Terlama.
 </div>
 
 <a href="2010-07-jlpt.html" class="open-btn">
@@ -518,12 +531,12 @@ JLPT N2 December 2010
 <div class="badges">
 <span class="badge level-n2">N2</span>
 <span class="badge badge-reading">Reading</span>
-<span class="badge badge-listening">Listening</span>
+<span class="badge badge-grammar">Grammar</span>
+<span class="badge badge-vocabulary">Vocabulary</span>
 </div>
 
 <div class="exam-desc">
-Latihan lengkap JLPT N2 bulan Desember 2010.
-Tampilan modern dan simulasi seperti ujian asli.
+Simulasi ujian JLPT N2 Terbaru - Terlama.
 </div>
 
 <a href="2010-12-jlpt.html" class="open-btn">
@@ -543,12 +556,12 @@ JLPT N2 July 2011
 <div class="badges">
 <span class="badge level-n2">N2</span>
 <span class="badge badge-reading">Reading</span>
-<span class="badge badge-listening">Listening</span>
+<span class="badge badge-grammar">Grammar</span>
+<span class="badge badge-vocabulary">Vocabulary</span>
 </div>
 
 <div class="exam-desc">
-Latihan lengkap JLPT N2 bulan Juli 2011.
-Tampilan modern dan simulasi seperti ujian asli.
+Simulasi ujian JLPT N2 Terbaru - Terlama.
 </div>
 
 <a href="2011-07-jlpt.html" class="open-btn">
@@ -568,10 +581,12 @@ JLPT N3 July 2010
 <div class="badges">
 <span class="badge level-n3">N3</span>
 <span class="badge badge-reading">Reading</span>
+<span class="badge badge-grammar">Grammar</span>
+<span class="badge badge-vocabulary">Vocabulary</span>
 </div>
 
 <div class="exam-desc">
-Interactive JLPT N3 reading and grammar practice.
+Simulasi ujian JLPT N3 Terbaru - Terlama.
 </div>
 
 <a href="2010-07-n3.html" class="open-btn">
@@ -591,10 +606,12 @@ JLPT N3 December 2025
 <div class="badges">
 <span class="badge level-n3">N3</span>
 <span class="badge badge-reading">Reading</span>
+<span class="badge badge-grammar">Grammar</span>
+<span class="badge badge-vocabulary">Vocabulary</span>
 </div>
 
 <div class="exam-desc">
-Interactive JLPT N3 reading and grammar practice.
+Simulasi ujian JLPT N3 Terbaru - Terlama.
 </div>
 
 <a href="2025-12-n3.html" class="open-btn">
@@ -613,11 +630,13 @@ JLPT N4 December 2021
 
 <div class="badges">
 <span class="badge level-n4">N4</span>
-<span class="badge badge-listening">Listening</span>
+<span class="badge badge-reading">Reading</span>
+<span class="badge badge-grammar">Grammar</span>
+<span class="badge badge-vocabulary">Vocabulary</span>
 </div>
 
 <div class="exam-desc">
-JLPT beginner simulation with listening support.
+Simulasi ujian JLPT N4 Terbaru - Terlama.
 </div>
 
 <a href="2021-12-n4.html" class="open-btn">
@@ -637,10 +656,12 @@ JLPT N5 July 2020
 <div class="badges">
 <span class="badge level-n5">N5</span>
 <span class="badge badge-reading">Reading</span>
+<span class="badge badge-grammar">Grammar</span>
+<span class="badge badge-vocabulary">Vocabulary</span>
 </div>
 
 <div class="exam-desc">
-Basic Japanese practice for N5 learners.
+Simulasi ujian JLPT N5 Terbaru - Terlama.
 </div>
 
 <a href="2020-07-n5.html" class="open-btn">
@@ -778,21 +799,34 @@ window.addEventListener('resize',resize);
 
 const particles=[];
 
-for(let i=0;i<100;i++){
+const particleCount=window.innerWidth<768?28:45;
+for(let i=0;i<particleCount;i++){
 
 particles.push({
 
 x:Math.random()*canvas.width,
 y:Math.random()*canvas.height,
 r:Math.random()*2+1,
-dx:(Math.random()-0.5)*0.4,
-dy:(Math.random()-0.5)*0.4
+dx:(Math.random()-0.5)*0.18,
+dy:(Math.random()-0.5)*0.18
 
 });
 
 }
 
-function animate(){
+let lastTime=0;
+const fps=30;
+const interval=1000/fps;
+
+function animate(timestamp){
+
+requestAnimationFrame(animate);
+
+const delta=timestamp-lastTime;
+
+if(delta<interval)return;
+
+lastTime=timestamp-(delta%interval);
 
 ctx.clearRect(0,0,canvas.width,canvas.height);
 
@@ -806,16 +840,14 @@ if(p.y<0||p.y>canvas.height)p.dy*=-1;
 
 ctx.beginPath();
 ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
-ctx.fillStyle='rgba(120,170,255,.7)';
+ctx.fillStyle='rgba(120,170,255,.45)';
 ctx.fill();
 
 });
 
-requestAnimationFrame(animate);
-
 }
 
-animate();
+requestAnimationFrame(animate);
 
 // =====================================
 // CARD APPEAR ANIMATION
@@ -851,33 +883,39 @@ const hero=document.querySelector('.hero');
 
 let lastScroll=0;
 
-window.addEventListener('scroll',()=>{
+let ticking=false;
+
+function updateHero(){
 
 const currentScroll=window.pageYOffset;
 
 if(currentScroll>120){
 
-// scroll down
 if(currentScroll>lastScroll){
-
 hero.classList.add('hide');
-
 }else{
-
-// scroll up
 hero.classList.remove('hide');
-
 }
 
 }else{
-
 hero.classList.remove('hide');
-
 }
 
 lastScroll=currentScroll;
+ticking=false;
 
-});
+}
+
+window.addEventListener('scroll',()=>{
+
+if(!ticking){
+
+requestAnimationFrame(updateHero);
+ticking=true;
+
+}
+
+},{passive:true});
 </script>
 
 </body>
