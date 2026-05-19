@@ -383,7 +383,7 @@ function getQuestions(m){
   if(m==='dokkai')return Q.filter(q=>q.sec==="読解");
   return[...Q];
 }
-function getTimeLimit(m){return{all:6000,moji:1800,bunpou:1200,dokkai:3000}[m]||6000;}
+function getTimeLimit(m){return{all:6300,moji:2100,bunpou:1500,dokkai:3000}[m]||6300;}
 
 function startMode(m){
   mode=m;questions=getQuestions(m);answers={};currentQ=0;
