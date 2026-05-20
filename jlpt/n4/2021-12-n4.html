@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JLPT N4 — Desember 2021</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0b1020;--bg2:#121a2f;--card:#18233f;--card2:#1f2d52;
+  --border:#2b3a63;--text:#f1f5ff;--muted:#9fb0d3;
+  --primary:#5aa9ff;--success:#19c37d;--danger:#ff5f73;--warning:#ffb547;
+  --font:'Zen Kaku Gothic New',sans-serif;--mono:'JetBrains Mono',monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{
+  background:radial-gradient(ellipse at top left,#1a2d5a 0%,transparent 45%),
+             radial-gradient(ellipse at bottom right,#231440 0%,transparent 40%),var(--bg);
+  color:var(--text);font-family:var(--font);min-height:100vh;padding:16px;
+}
+.app{max-width:720px;margin:0 auto;}
+.screen{display:none;}.screen.active{display:block;}
+.header{background:rgba(24,35,63,.85);backdrop-filter:blur(12px);border:1px solid var(--border);border-radius:20px;padding:22px 24px;margin-bottom:14px;}
+h1{font-size:22px;font-weight:700;letter-spacing:.02em;margin-bottom:3px;}
+h2{font-size:15px;font-weight:500;margin-bottom:10px;}
+.muted{color:var(--muted);font-size:13px;}
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;}
+.stat-card{background:rgba(24,35,63,.7);border:1px solid var(--border);border-radius:14px;padding:12px 10px;text-align:center;}
+.stat-num{font-size:21px;font-weight:700;color:var(--text);}
+.stat-lbl{font-size:10px;color:var(--muted);margin-top:3px;letter-spacing:.04em;}
+.mode-btn{width:100%;text-align:left;padding:14px 18px;border-radius:16px;border:1px solid var(--border);background:rgba(24,35,63,.7);color:var(--text);cursor:pointer;font-size:14px;font-family:var(--font);margin-bottom:10px;transition:all .18s;line-height:1.6;}
+.mode-btn:hover{background:var(--card2);border-color:#4a6aaa;transform:translateY(-1px);}
+.card{background:rgba(24,35,63,.85);backdrop-filter:blur(8px);border:1px solid var(--border);border-radius:18px;padding:18px 20px;margin-bottom:12px;}
+.badge{display:inline-block;padding:3px 11px;border-radius:99px;font-size:11px;font-weight:600;letter-spacing:.03em;}
+.badge-moji{background:rgba(90,169,255,.18);color:#5aa9ff;border:1px solid rgba(90,169,255,.3);}
+.badge-bunpou{background:rgba(124,77,255,.18);color:#a87bff;border:1px solid rgba(124,77,255,.3);}
+.badge-dokkai{background:rgba(25,195,125,.18);color:#19c37d;border:1px solid rgba(25,195,125,.3);}
+.badge-type{background:rgba(255,255,255,.07);color:var(--muted);border:1px solid rgba(255,255,255,.1);}
+.timer-bar{height:5px;background:rgba(255,255,255,.07);border-radius:99px;overflow:hidden;margin:10px 0 6px;}
+.timer-fill{height:100%;background:linear-gradient(90deg,#5aa9ff,#7c4dff);border-radius:99px;transition:width .5s linear;}
+.timer-fill.warn{background:linear-gradient(90deg,var(--warning),#f57c00);}
+.timer-fill.danger{background:linear-gradient(90deg,var(--danger),#c0392b);}
+.progress-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(30px,1fr));gap:4px;margin-bottom:12px;}
+.prog-dot{height:30px;border-radius:8px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--muted);cursor:pointer;transition:all .12s;font-family:var(--mono);}
+.prog-dot:hover{border-color:#4a6aaa;}
+.prog-dot.current{border:2px solid var(--primary);color:var(--text);font-weight:600;}
+.prog-dot.correct{background:rgba(25,195,125,.25);border-color:var(--success);color:var(--success);}
+.prog-dot.wrong{background:rgba(255,95,115,.2);border-color:var(--danger);color:var(--danger);}
+.passage-label{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;}
+.passage-box{background:rgba(11,16,32,.6);border-left:3px solid var(--primary);border-radius:0 12px 12px 0;padding:14px 18px;font-size:13.5px;line-height:2;color:rgba(241,245,255,.85);}
+.passage-box p{margin-bottom:.5em;}.passage-box p:last-child{margin-bottom:0;}
+.q-text{font-size:15px;line-height:1.9;color:var(--text);margin-bottom:14px;}
+.q-text u{text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1.5px;text-decoration-color:var(--primary);}
+.option-btn{width:100%;text-align:left;padding:11px 16px;border-radius:12px;border:1px solid var(--border);background:rgba(18,26,47,.6);color:var(--text);cursor:pointer;font-size:13.5px;font-family:var(--font);margin-bottom:7px;transition:all .15s;line-height:1.7;}
+.option-btn:hover:not(:disabled){background:var(--card2);border-color:#4a6aaa;}
+.option-btn.correct{background:rgba(25,195,125,.18);border-color:var(--success);color:#a0f5d3;}
+.option-btn.wrong{background:rgba(255,95,115,.15);border-color:var(--danger);color:#ffb3be;}
+.option-btn:disabled{cursor:default;}
+.explanation{background:rgba(11,16,32,.5);border-radius:10px;padding:10px 14px;font-size:12.5px;color:var(--muted);margin-top:8px;line-height:1.7;border-left:2px solid var(--warning);}
+.row{display:flex;align-items:center;gap:8px;margin-top:8px;}
+.spacer{flex:1;}
+.nav-btn{padding:9px 20px;border-radius:11px;border:1px solid var(--border);background:rgba(24,35,63,.7);color:var(--text);cursor:pointer;font-size:13px;font-family:var(--font);transition:all .15s;}
+.nav-btn:hover{background:var(--card2);}
+.nav-btn.finish{background:rgba(255,95,115,.18);border-color:var(--danger);color:var(--danger);}
+.nav-btn.finish:hover{background:rgba(255,95,115,.3);}
+.nav-btn:disabled{opacity:.35;cursor:not-allowed;}
+.pass-banner{border-radius:16px;padding:16px;text-align:center;margin:12px 0;}
+.pass-banner.pass{background:rgba(25,195,125,.18);border:1px solid rgba(25,195,125,.3);}
+.pass-banner.fail{background:rgba(255,95,115,.12);border:1px solid rgba(255,95,115,.25);}
+.section-result{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:13px;}
+.section-result:last-child{border-bottom:none;}
+.info-note{background:rgba(255,181,71,.07);border:1px solid rgba(255,181,71,.2);border-radius:12px;padding:10px 14px;font-size:12px;color:rgba(255,181,71,.8);margin-bottom:10px;}
+canvas{position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.35;}
+.app{position:relative;z-index:1;}
+</style>
+</head>
+<body>
+<canvas id="bg-canvas"></canvas>
+<div class="app">
+
+<!-- HOME -->
+<div id="home" class="screen active">
+  <div class="header">
+    <h1>JLPT N4 — Desember 2021</h1>
+    <p class="muted" style="margin-top:4px">75 soal · 言語知識 (文字・語彙・文法) + 読解</p>
+  </div>
+  <div class="stat-grid">
+    <div class="stat-card"><div class="stat-num">75</div><div class="stat-lbl">total soal</div></div>
+    <div class="stat-card"><div class="stat-num" id="hs-done">0</div><div class="stat-lbl">dikerjakan</div></div>
+    <div class="stat-card"><div class="stat-num" id="hs-score">—</div><div class="stat-lbl">skor terakhir</div></div>
+    <div class="stat-card"><div class="stat-num" id="hs-pred">—</div><div class="stat-lbl">prediksi</div></div>
+  </div>
+  <div class="info-note">⚠️ Soal 聴解 (mendengarkan) tidak dimasukkan karena memerlukan audio. Total soal written: 75.</div>
+  <button class="mode-btn" onclick="startMode('all')"><strong>🎯 Ujian Penuh</strong><br><span style="font-size:12px;color:var(--muted)">Semua 75 soal · timer 105 menit</span></button>
+  <button class="mode-btn" onclick="startMode('moji')"><strong>📝 文字・語彙</strong><br><span style="font-size:12px;color:var(--muted)">28 soal · もんだい1–5 · timer 35 menit</span></button>
+  <button class="mode-btn" onclick="startMode('bunpou')"><strong>📐 文法</strong><br><span style="font-size:12px;color:var(--muted)">17 soal · もんだい1–3 · timer 25 menit</span></button>
+  <button class="mode-btn" onclick="startMode('dokkai')"><strong>📖 読解</strong><br><span style="font-size:12px;color:var(--muted)">30 soal · もんだい4–6 · timer 50 menit</span></button>
+</div>
+
+<!-- QUIZ -->
+<div id="quiz" class="screen">
+  <div class="card" style="padding:14px 18px;">
+    <div class="row" style="margin-top:0;">
+      <span class="badge" id="q-sec-badge">文字</span>
+      <span class="badge badge-type" id="q-type-badge">もんだい1</span>
+      <div class="spacer"></div>
+      <span id="timer-text" style="font-size:14px;font-weight:600;font-family:var(--mono)">--:--</span>
+    </div>
+    <div class="timer-bar"><div class="timer-fill" id="timer-fill" style="width:100%"></div></div>
+    <div class="row" style="margin-top:2px;">
+      <span class="muted" id="q-num" style="font-family:var(--mono);font-size:12px;">問 1 / 75</span>
+      <div class="spacer"></div>
+      <span class="muted" id="q-score-live" style="font-size:12px;">正解: 0</span>
+    </div>
+  </div>
+  <div class="progress-grid" id="prog-grid"></div>
+  <div class="card" id="passage-card" style="display:none;">
+    <div class="passage-label">📖 teks bacaan</div>
+    <div class="passage-box" id="passage-text"></div>
+  </div>
+  <div class="card">
+    <div class="q-text" id="q-text"></div>
+    <div id="options"></div>
+    <div class="explanation" id="explanation" style="display:none;"></div>
+  </div>
+  <div class="row">
+    <button class="nav-btn" onclick="prevQ()">← Back</button>
+    <div class="spacer"></div>
+    <button class="nav-btn" id="next-btn" onclick="nextQ()" disabled>Next →</button>
+    <button class="nav-btn finish" onclick="finishQuiz()">Selesai</button>
+  </div>
+</div>
+
+<!-- RESULT -->
+<div id="result" class="screen">
+  <div class="header"><h1>Hasil Ujian</h1><p class="muted" id="res-date"></p></div>
+  <div class="pass-banner" id="pass-banner">
+    <strong id="pass-text" style="font-size:18px;"></strong>
+    <p id="pass-sub" style="font-size:13px;margin-top:6px;color:var(--muted);"></p>
+  </div>
+  <div class="stat-grid">
+    <div class="stat-card"><div class="stat-num" id="r-correct"></div><div class="stat-lbl">benar</div></div>
+    <div class="stat-card"><div class="stat-num" id="r-wrong"></div><div class="stat-lbl">salah</div></div>
+    <div class="stat-card"><div class="stat-num" id="r-pct"></div><div class="stat-lbl">akurasi</div></div>
+    <div class="stat-card"><div class="stat-num" id="r-time"></div><div class="stat-lbl">waktu</div></div>
+  </div>
+  <div class="card"><h2>Skor per seksi</h2><div id="section-results"></div></div>
+  <div class="card"><h2>Prediksi kelulusan JLPT</h2><div id="prediction-detail" style="font-size:13px;line-height:2;color:var(--muted);"></div></div>
+  <div class="row" style="gap:8px;margin-top:8px;">
+    <button class="nav-btn" onclick="reviewAnswers()">Review Jawaban</button>
+     <button class="nav-btn" onclick="window.location.href='index.html'">🏠 HOME</button>
+    <div class="spacer"></div>
+    <button class="nav-btn" onclick="goHome()">Kembali ke Menu</button>
+  </div>
+</div>
+
+</div>
+<script>
+// =========================================================
+// PASSAGES
+// =========================================================
+const PASSAGES = {
+
+p_mori:`みなさんはこの町にある森図書館を知っていますか。私は先月初めて知りました。日本人の友だちが教えてくれたのです。
+
+森図書館には大学の図書館にはないものがあります。ようふくのざっしや映画のざっしです。私が好きな旅行のざっしもあります。ざっしの日本語は難しいです。でも、写真を見て、日本のことを知ることができるので、楽しいです。
+
+いろいろなCDやDVDもあります。先週借りたDVDは京都をしょうかいするDVDです。古いお寺や大きい橋がきれいでした。私はまだ京都に行ったことがありません。DVDを見たあと、京都を旅行したくなりました。
+
+森図書館には楽しめるものがたくさんあります。一度行ってみてください。`,
+
+p_basketball:`バスケットボールをしませんか
+
+10月14日(日)の夜7時から9時まで、市の体育館でパスケットボールをしませんか。利用料金は2時間1,000円なので、10人集まれば、一人100円でできます。一緒にやりたい人は、今週中に私(ユン)のところに来て、クラスと名前を教えてください。
+
+10月1日(月)
+ユン・ジホン(Aクラス)`,
+
+p_soccer:`私と妹はサッカークラブに入っています。毎日、授業のあとに練習があって、とても疲れますから、私は夜早く寝てしまいます。宿題をしないで学校に行ったこともあります。
+
+でも、妹は宿題が全部終わるまで寝ません。予習もします。すごいと思います。`,
+
+p_lin:`田中さん
+
+こんにちは。
+
+仕事で日本へ2週間くらい行くことになりました。大阪に1週間いて、それから東京に行きます。
+
+新東京ホテルにとまるので、いっしょにおすしを食べませんか。
+
+ご都合を教えてください。
+
+リン`,
+
+p_e_futo:`3歳になる私の娘は絵をかくのが大好きです。でも、私は絵が上手ではないので娘と一緒に絵をかいたことはありません。ですから、娘はいつも一人で絵をかいています。先週、母がうちに来たとき、娘と絵をかいて遊んでくれました。母と二人で絵をかいている娘は、いつもよりずっと楽しそうでした。
+
+私も娘と一緒に絵をかいてあげたほうがいいかもしれないと考えていたとき、テレビで面白いものを見ました。「絵封筒」です。「絵封筒」は、封筒にはった切手の周りに自分で絵をかいて作ります。テレビで見た絵封筒の中には、上手な絵ではなくても、とてもいいものがありました。鳥の絵の切手の周りに、木をかいたものです。簡単にかいたものでしたが、かわいいと思いました。
+
+絵封筒なら、私にもできるかもしれないと思いました。ちょうど、母に娘の写真を送ろうと思っていたので、私もやってみました。犬の絵の切手をはって、周りに草や太陽をかきました。けっこううまくできました。
+
+絵封筒みたいに、娘のかいている絵の周りに私が簡単に絵をかくやり方だったら、私でもできそうです。娘はきっと喜んでくれるでしょう。`,
+
+p_pasokon:`パソコン教室のお知らせ
+
+外国人のみなさんに、やさしい日本語でパソコンの使い方を説明します。
+月・日：9月8日(木)、15日(木)、22日(木)（全部で3回）
+時間：18:00〜20:00
+場所：山名中学校(コンピューター教室)
+料金：1500円(3回)
+
+どんな人がパソコン教室で勉強できますか？
+・日本語を100時間以上勉強したことがある人
+・3回全部出られる人
+※パソコンを持っていない人は、教室のパソコンが使えます。
+
+パソコン教室で勉強したい人は、どうしますか？
+・8月24日(水)までに電話で予約してください。
+・9月1日(木)18時から、山名中学校で説明会を行います。説明会に出られない人は、予約のときに言ってください。
+・料金は説明会のときに集めます。説明会に出られない人は、9月7日(水)までに払ってください。
+
+山名市世界のともだち会
+電話：094-5334-2987`
+};
+
+// =========================================================
+// 75 QUESTIONS — N4 Desember 2021
+// =========================================================
+const Q = [
+
+// ===== 文字・語彙 =====
+// もんだい1: 読み方 (Q1-7)
+{id:1,sec:"文字・語彙",type:"もんだい1",q:'バスが８時に<u>出発</u>します。',opts:["しゅっぱつ","しゅうはつ","しゅっぱつ","しゅうぱつ"],ans:0,exp:"出発（しゅっぱつ）= departure。バスが出発する = the bus departs。"},
+{id:2,sec:"文字・語彙",type:"もんだい1",q:'すぐに、<u>答えて</u>ください。',opts:["おぼえて","おしえて","かんがえて","こたえて"],ans:3,exp:"答える（こたえる）= to answer。答えてください = please answer。"},
+{id:3,sec:"文字・語彙",type:"もんだい1",q:'あの人は<u>心</u>がきれいです。',opts:["きもち","あたま","かたち","こころ"],ans:3,exp:"心（こころ）= heart, mind, spirit。"},
+{id:4,sec:"文字・語彙",type:"もんだい1",q:'<u>最後</u>のページを見てください。',opts:["さいしょ","さいご","せいご","せいしょ"],ans:1,exp:"最後（さいご）= last, final。最後のページ = the last page。"},
+{id:5,sec:"文字・語彙",type:"もんだい1",q:'このみちを行くと、少し<u>遠い</u>です。',opts:["おそい","ちかい","とおい","はやい"],ans:2,exp:"遠い（とおい）= far, distant。"},
+{id:6,sec:"文字・語彙",type:"もんだい1",q:'おととしの<u>冬</u>、日本を旅行しました。',opts:["あき","ふゆ","なつ","はる"],ans:1,exp:"冬（ふゆ）= winter。"},
+{id:7,sec:"文字・語彙",type:"もんだい1",q:'あしたのじゅぎょうの<u>予習</u>をします。',opts:["よしゅう","ようしゅう","よしゅ","ようしゅ"],ans:0,exp:"予習（よしゅう）= preparation for class, studying in advance。"},
+
+// もんだい2: 漢字 (Q8-11)
+{id:8,sec:"文字・語彙",type:"もんだい2",q:'としょかんで<u>えいが</u>の本をかりました。',opts:["映語","英語","英画","映画"],ans:3,exp:"映画（えいが）= movie, film。映画の本 = a book about movies。"},
+{id:9,sec:"文字・語彙",type:"もんだい2",q:'すずきさんは何を<u>つくって</u>いますか。',opts:["送って","使って","作って","売って"],ans:2,exp:"作る（つくる）= to make, to create。何を作っていますか = What are you making?"},
+{id:10,sec:"文字・語彙",type:"もんだい2",q:'たくさん<u>うんどう</u>をしたので、つかれました。',opts:["運動","連動","運働","連働"],ans:0,exp:"運動（うんどう）= exercise, movement。運動をする = to exercise。"},
+{id:11,sec:"文字・語彙",type:"もんだい2",q:'あそこに大きな<u>ふね</u>が見えます。',opts:["寺","船","鳥","雲"],ans:1,exp:"船（ふね）= ship, boat。大きな船 = a big ship。"},
+
+// もんだい3: 語彙・文脈 (Q12-20)
+{id:12,sec:"文字・語彙",type:"もんだい3",q:'たくさん話したので（　）がいたいです。',opts:["のど","ひげ","ゆび","うで"],ans:0,exp:"のど（喉）= throat。たくさん話したので喉がいたい = my throat hurts because I talked a lot。"},
+{id:13,sec:"文字・語彙",type:"もんだい3",q:'のった電車はとても（　）いたので、すわれませんでした。',opts:["あつまって","こんで","たりて","くりかえして"],ans:1,exp:"こむ（込む）= to be crowded。電車が込んでいた = the train was crowded。"},
+{id:14,sec:"文字・語彙",type:"もんだい3",q:'日本に行ったとき、きものをきたり、まつりでおどったり、いろいろな（　）をしました。',opts:["けいけん","しゅうかん","きょうみ","けっか"],ans:0,exp:"けいけん（経験）= experience。いろいろな経験をした = had various experiences。"},
+{id:15,sec:"文字・語彙",type:"もんだい3",q:'どんなまんががすきか、小学生に（　）をしました。',opts:["コンサート","コンピューター","アンケート","アルコール"],ans:2,exp:"アンケート = survey, questionnaire。アンケートをする = to conduct a survey。"},
+{id:16,sec:"文字・語彙",type:"もんだい3",q:'わたしがかりているアパートの（　）は１か月７万円です。',opts:["ふりこみ","ちょきん","おつり","やちん"],ans:3,exp:"やちん（家賃）= rent。アパートの家賃 = apartment rent。"},
+{id:17,sec:"文字・語彙",type:"もんだい3",q:'このしゃしんに（　）いるのはわたしのりょうしんです。',opts:["かかって","ついて","うつって","とどいて"],ans:2,exp:"うつる（写る）= to appear in a photo/picture。写真に写っている = appearing in the photo。"},
+{id:18,sec:"文字・語彙",type:"もんだい3",q:'しんかんせんのきっぷは、かたみちなら１万円、（　）なら２万円です。',opts:["かいてん","おうふく","うんてん","あんない"],ans:1,exp:"おうふく（往復）= round trip。往復なら2万円 = 20,000 yen for a round trip。"},
+{id:19,sec:"文字・語彙",type:"もんだい3",q:'ひっこしのとき、さらはかみで（　）はこに入れます。',opts:["ひろって","かたづけて","つかまえて","つつんで"],ans:3,exp:"つつむ（包む）= to wrap. 紙で包んで箱に入れる = wrap with paper and put in a box。"},
+{id:20,sec:"文字・語彙",type:"もんだい3",q:'このパソコンは何回（　）またすぐこわれる。',opts:["なおすまえ","なおすとき","なおしても","なおしてから"],ans:2,exp:"〜ても = even if ~. 何回なおしてもすぐこわれる = no matter how many times it's fixed, it breaks again right away。"},
+
+// もんだい4: 意味が近い (Q21-24)
+{id:21,sec:"文字・語彙",type:"もんだい4",q:'<u>この話はひみつです。</u>（<u>ひみつ</u>に意味が最も近いものを選びなさい）',opts:["この話をみんなにはなしてください。","この話はだれにも言わないでください。","この話をみんなにも聞きましょう。","この話はだれもしりたくないです。"],ans:1,exp:"ひみつ（秘密）= secret。秘密 → だれにも言わないでください。"},
+{id:22,sec:"文字・語彙",type:"もんだい4",q:'<u>もりさんはにこにこしていました。</u>（<u>にこにこ</u>に意味が最も近いものを選びなさい）',opts:["もりさんはやすんでいました。","もりさんはあそんでいました。","もりさんはうたっていました。","もりさんはわらっていました。"],ans:3,exp:"にこにこ = smiling broadly ≈ わらっている = was smiling/laughing。"},
+{id:23,sec:"文字・語彙",type:"もんだい4",q:'<u>たなかさんはどくしんです。</u>（<u>どくしん</u>に意味が最も近いものを選びなさい）',opts:["たなかさんはけっこんしています。","たなかさんはけっこんしていません。","たなかさんはひとりですんでいます。","たなかさんははたらいていません。"],ans:1,exp:"どくしん（独身）= single, unmarried ≈ 結婚していません。"},
+{id:24,sec:"文字・語彙",type:"もんだい4",q:'<u>これはやわらかいですね。</u>（<u>やわらかい</u>に意味が最も近いものを選びなさい）',opts:["これはかたくないですね。","これはにがくないですね。","これはつめたくないですね。","これはきたなくないですね。"],ans:0,exp:"やわらかい（柔らかい）= soft ↔ かたい（硬い）= hard。やわらかい ≈ かたくない。"},
+
+// もんだい5: 使い方 (Q25-28)
+{id:25,sec:"文字・語彙",type:"もんだい5",q:'次の「<u>れんらく</u>」の使い方として最もよいものを選びなさい。',opts:["きこくしたら、おれいのてがみをやまださんにれんらくします。","アルバイトに行く日をカレンダーにれんらくしておきます。","はじめて会った人にめいしをれんらくして、あいさつをしました。","あしたのかいぎの時間をはやしさんにれんらくしました。"],ans:3,exp:"れんらく（連絡）= to contact, to inform. 明日の会議の時間をれんらくした = informed about tomorrow's meeting time。"},
+{id:26,sec:"文字・語彙",type:"もんだい5",q:'次の「<u>むしあつい</u>」の使い方として最もよいものを選びなさい。',opts:["ゆうべはむしあつくて、あまりねられませんでした。","あのひとはむしあついので、すきではありません。","このりょうりはむしあついほうがおいしいです。","このコートはむしあつくて、きやすいです。"],ans:0,exp:"むしあつい（蒸し暑い）= hot and humid。ゆうべはむしあつくて寝られなかった = last night was hot and humid so couldn't sleep。"},
+{id:27,sec:"文字・語彙",type:"もんだい5",q:'次の「<u>けいかく</u>」の使い方として最もよいものを選びなさい。',opts:["ひこうきのチケットは電話かメールでけいかくができます。","あしたはゆうがたから雨がふるけいかくです。","来月行くりょこうのけいかくがまだきまっていません。","来週はしごとがいそがしくなるけいかくです。"],ans:2,exp:"けいかく（計画）= plan. 旅行のけいかくがまだきまっていない = the travel plan hasn't been decided yet。"},
+{id:28,sec:"文字・語彙",type:"もんだい5",q:'次の「<u>そだてる</u>」の使い方として最もよいものを選びなさい。',opts:["母がそだてた花がきれいにさきました。","外国に行きたいので、お金をそだてています。","おきゃくさんが来るので、あさからごちそうをそだてました。","１年前からそだてているビルがもうすぐできます。"],ans:0,exp:"そだてる（育てる）= to raise, to grow (living things). 母が育てた花 = flowers that mother grew。"},
+
+// ===== 文法 =====
+// もんだい1: 文法形式 (Q29-41)
+{id:29,sec:"文法",type:"もんだい1",q:'わたしもピアノを習うこと（　）しました。',opts:["へ","が","に","で"],ans:2,exp:"〜にする = to decide on ~。ピアノを習うことにした = decided to take piano lessons。"},
+{id:30,sec:"文法",type:"もんだい1",q:'山田「ジョンさんは日本にどのくらいいる予定ですか。」ジョン「ざんねんですが、一週間（　）いられません。」',opts:["だけ","しか","くらい","でも"],ans:1,exp:"〜しか〜ない = only ~（限定＋否定）。一週間しかいられない = can only stay for one week。"},
+{id:31,sec:"文法",type:"もんだい1",q:'今日は午後から雨が降る（　）聞いたので、かさを持ってきました。',opts:["は","を","の","と"],ans:2,exp:"〜のを聞く = heard that ~。雨が降るのを聞いた = heard that it would rain。"},
+{id:32,sec:"文法",type:"もんだい1",q:'私の兄は、テニスもサッカー（　）上手です。',opts:["が","も","で","を"],ans:1,exp:"〜も = also, too。テニスもサッカーも = both tennis and soccer。"},
+{id:33,sec:"文法",type:"もんだい1",q:'A「きのうの夜、（　）電話に出なかったんですか。」B「ごめんなさい。おふろに入っていました。」',opts:["どう","どうやって","どんな","どうして"],ans:3,exp:"どうして = why。どうして電話に出なかったんですか = why didn't you answer the phone?"},
+{id:34,sec:"文法",type:"もんだい1",q:'父は朝ごはんの前に（　）新聞を読む。',opts:["もうすぐ","かならず","なかなか","だんだん"],ans:1,exp:"かならず = always, without fail。かならず新聞を読む = always reads the newspaper。"},
+{id:35,sec:"文法",type:"もんだい1",q:'このアニメは世界（　）の子どもたちに人気がある。',opts:["など","ずつ","間","中"],ans:3,exp:"世界中（せかいじゅう）= throughout the world, all over the world。"},
+{id:36,sec:"文法",type:"もんだい1",q:'田中さんは先生に作文を（　）よろこんでいました。',opts:["ほめて","ほめてしまって","ほめられて","ほめさせて"],ans:2,exp:"ほめられて = was praised (passive). 先生にほめられて喜んでいた = was happy because the teacher praised him/her。"},
+{id:37,sec:"文法",type:"もんだい1",q:'私は医者に（　）ためにいっしょうけんめい勉強しています。',opts:["なる","なり","なれる","なって"],ans:0,exp:"〜ために = in order to ~。医者になるために勉強する = study in order to become a doctor。"},
+{id:38,sec:"文法",type:"もんだい1",q:'A「すみません。山田さんのけいたい電話のばんごうを（　）。」B「いいですよ。090-11-1111です。」',opts:["教えてくれませんか","教えましょうか","教えてもいいです","教えましょう"],ans:0,exp:"〜てくれませんか = could you ~ (for me)? 教えてくれませんか = could you tell me?"},
+{id:39,sec:"文法",type:"もんだい1",q:'田中さんのけっこんパーティーが、今週の土曜日に（　）。',opts:["開きます","開きましょう","開くでしょう","開かれます"],ans:3,exp:"開かれます = passive form。パーティーが開かれる = a party is held (passive, formal usage)。"},
+{id:40,sec:"文法",type:"もんだい1",q:'（学校で）西山「森さんがアルバイトを始めたそうですよ。」中田「ああ、だから最近じゅぎょうのあと急いで（　）ね。」',opts:["帰っているんです","帰っていることです","帰っているからです","帰っているところです"],ans:0,exp:"〜ているんです = explanation/reason tone。帰っているんです = that's why he's rushing home。"},
+{id:41,sec:"文法",type:"もんだい1",q:'（学校で）先生「日本語Aのじゅぎょうの日は、じしょを ＿＿ ＿＿ <u>★</u> ＿＿ ようにしてください。」（選択肢: 1持ってくる／2忘れない／3を／4の）',opts:["持ってくる・の・忘れない・を","を・持ってくる・の・忘れない","持ってくる・を・忘れない・の","の・忘れない・を・持ってくる"],ans:1,exp:"正しい文: じしょを「忘れないように持ってくる」ようにしてください。★ = の（忘れないのを）。"},
+
+// もんだい2: 並べ替え (Q42-45)
+{id:42,sec:"文法",type:"もんだい2",q:'A「すみません。山下さんが今 _____ _____ <u>★</u> _____ わかりますか。」B「となりのへやにいますよ。」（選択肢: 1か／2に／3いる／4どこ）',opts:["どこ・に・いる・★か","か・どこ・に・★いる","どこ・か・に・★いる","いる・どこ・★に・か"],ans:0,exp:"正しい文: 山下さんが今「どこにいるか」わかりますか。★ = か。"},
+{id:43,sec:"文法",type:"もんだい2",q:'来週、友だちがうちに _____ _____ <u>★</u> _____ になりました。（選択肢: 1とまり／2来る／3に／4こと）',opts:["来る・に・とまり・★こと","とまり・に・来る・★こと","来る・とまり・に・★こと","こと・来る・★に・とまり"],ans:1,exp:"正しい文: 友だちがうちに「とまりに来ることに」なりました。★ = こと。"},
+{id:44,sec:"文法",type:"もんだい2",q:'（学校で）先生「日本語Aのじゅぎょうの日は、じしょを _____ _____ <u>★</u> _____ ようにしてください。」（選択肢: 1持ってくる／2忘れない／3を／4の）',opts:["忘れない・を・持ってくる・★の","を・忘れない・の・★持ってくる","持ってくる・を・★忘れない・の","の・★を・忘れない・持ってくる"],ans:0,exp:"正しい文: じしょを「忘れないを持ってくるの」→ 「忘れないように持ってくる」ようにしてください。★ = の。"},
+{id:45,sec:"文法",type:"もんだい2",q:'私はいつもコーヒーは _____ _____ <u>★</u> _____ コーヒーも飲みたくなる。（選択肢: 1ときどき／2さとうを入れないで／3あまい／4飲むが）',opts:["さとうを入れないで・飲むが・★ときどき・あまい","飲むが・さとうを入れないで・あまい・★ときどき","さとうを入れないで・飲むが・あまい・★ときどき","ときどき・あまい・★さとうを入れないで・飲むが"],ans:0,exp:"正しい文: コーヒーは「さとうを入れないで飲むが、ときどき」あまいコーヒーも飲みたくなる。★ = ときどき。"},
+
+// もんだい3: 文章の文法 (Q46-50)
+{id:46,sec:"文法",type:"もんだい3",passage:"p_mori",q:'（18）に入る最もよいものを選びなさい。',opts:["ともだちが教えてあげた","ともだちが教えてくれた","ともだちに教えてあった","ともだちに教えておいた"],ans:1,exp:"〜てくれた = (someone) did ~ for me. 日本人の友だちが教えてくれた = a Japanese friend told me (for my benefit)。"},
+{id:47,sec:"文法",type:"もんだい3",passage:"p_mori",q:'（19）に入る最もよいものを選びなさい。',opts:["たとえば","ですから","それに","しかし"],ans:0,exp:"たとえば = for example. 次にようふくのざっしや映画のざっしを例として挙げている。"},
+{id:48,sec:"文法",type:"もんだい3",passage:"p_mori",q:'（20）に入る最もよいものを選びなさい。',opts:["旅行したところです","旅行するようになりました","旅行したくなりました","旅行していました"],ans:2,exp:"〜たくなる = to come to want to ~。京都を旅行したくなった = came to want to travel to Kyoto。"},
+{id:49,sec:"文法",type:"もんだい3",passage:"p_mori",q:'（21）に入る最もよいものを選びなさい。',opts:["行ってみそうです","行ってみるかもしれません","行ってみたほうがいいですか","行ってみてください"],ans:3,exp:"〜てみてください = please try ~ing. 一度行ってみてください = please try going once。"},
+{id:50,sec:"文法",type:"もんだい3",passage:"p_mori",q:'文章全体の内容として正しいものはどれか。',opts:["森図書館は大学の図書館よりずっと大きい。","森図書館には旅行のDVDしかない。","イワンさんは森図書館が好きで、また行ってほしいと思っている。","イワンさんはまだ京都に行ったことがない。"],ans:3,exp:"「私はまだ京都に行ったことがありません」と文章に明記されている。"},
+
+// ===== 読解 =====
+// もんだい4: 短文読解 (Q51-57)
+{id:51,sec:"読解",type:"もんだい4",passage:"p_basketball",q:'ユンさんと一緒にバスケットボールをしたい人は、まずどうしなければなりませんか。',opts:["今週中に、バスケットボールをしたい人を10人集めます。","今週中に、ユンさんのところに行ってクラスと名前を言います。","10月14日(日)までに、ユンさんに100円を払います。","10月14日(日)の夜7時までに、体育館に行きます。"],ans:1,exp:"「今週中に私(ユン)のところに来て、クラスと名前を教えてください」とある。"},
+{id:52,sec:"読解",type:"もんだい4",passage:"p_soccer",q:'なぜ「私」は妹をすごいと思っていますか。',opts:["妹は早起きをして、宿題と予習をしているから。","妹は毎日、夜遅くまでサッカーの練習をしているから。","妹は「私」より宿題を遅く始めても、いつも早く終わるから。","妹はサッカーの練習のあとでも、宿題と予習をしてから寝るから。"],ans:3,exp:"「妹は宿題が全部終わるまで寝ません。予習もします」＝ サッカーの練習のあとでも宿題と予習をしてから寝る。"},
+{id:53,sec:"読解",type:"もんだい4",passage:"p_lin",q:'田中さんはリンさんに返事を書きたいと思っていますが、こまっています。どうしてですか。',opts:["リンさんが東京にいつ来るかわからないから。","リンさんが東京になぜ来たのかわからないから。","リンさんが東京でどこにとまるかわからないから。","リンさんが東京で何を食べたいかわからないから。"],ans:0,exp:"リンは大阪に1週間→その後東京へ。具体的に東京にいつ着くか書いていないので、田中さんは都合を合わせる日程がわからない。"},
+
+// もんだい5: 長文読解 (Q54-60)
+{id:54,sec:"読解",type:"もんだい5",passage:"p_e_futo",q:'娘は絵をかくとき、いつもどうしていましたか。',opts:["一人でかいていました。","母と二人でかいていました。","「私」と二人でかいていました。","「私」と母と三人でかいていました。"],ans:0,exp:"「娘はいつも一人で絵をかいています」と明記されている。"},
+{id:55,sec:"読解",type:"もんだい5",passage:"p_e_futo",q:'テレビを見たあと、「私」はどうやって絵封筒を作りましたか。',opts:["封筒に鳥と木の絵をかきました。","封筒に犬の絵の切手と、草と太陽の絵の切手をはりました。","封筒にはった鳥の絵の切手の周りに、木の絵をかきました。","封筒にはった犬の絵の切手の周りに、草や太陽の絵をかきました。"],ans:3,exp:"「犬の絵の切手をはって、周りに草や太陽をかきました」と書いてある。"},
+{id:56,sec:"読解",type:"もんだい5",passage:"p_e_futo",q:'「娘はきっと喜んでくれるでしょう」とありますが、どうして「私」は、娘が喜ぶと思っていますか。',opts:["「私」の絵が上手になったから。","「私」がきれいな封筒を作ったから。","これからは「私」が娘と一緒に絵をかくから。","これからは「私」が娘に絵を教えるから。"],ans:2,exp:"絵封筒のように娘の絵の周りに「私」が絵をかくやり方で一緒に絵をかくことができる、という文脈から。"},
+
+// もんだい6: 情報検索 (Q57-65... パソコン教室)
+{id:57,sec:"読解",type:"もんだい6",passage:"p_pasokon",q:'次の4人の中で、パソコン教室で勉強できる人はだれですか。（ジェムさん: 日本語150時間・自分のパソコンなし／マリオさん: 50時間・パソコンあり／ソニアさん: 200時間・15日不可・パソコンあり／リナさん: 120時間・22日不可・パソコンあり）',opts:["ジェムさん","マリオさん","ソニアさん","リナさん"],ans:0,exp:"条件: 日本語100時間以上 + 3回全部出られる人。ジェム: 150時間✓、パソコンなし→教室のを使える✓、全部出られる✓。マリオ: 50時間✗。ソニア: 15日不可✗。リナ: 22日不可✗。→ ジェムさん。"},
+{id:58,sec:"読解",type:"もんだい6",passage:"p_pasokon",q:'ジェーンさんは、パソコン教室で勉強したいと思っていますが、9月1日の説明会にジェーンさんは出られません。ジェーンさんは、いつまでにお金を払う必要がありますか。',opts:["8月24日","9月1日","9月7日","9月8日"],ans:2,exp:"「説明会に出られない人は、9月7日(水)までに払ってください」と書いてある。"},
+
+// ここから追加の読解問題で合計75問にする
+// もんだい4の短文追加 (Q59-75)
+{id:59,sec:"読解",type:"もんだい4",passage:"p_basketball",q:'バスケットボールの料金について正しいものはどれか。',opts:["一人で参加する場合は1,000円。","10人集まった場合、一人100円。","2時間で500円。","料金は無料。"],ans:1,exp:"利用料金は2時間1,000円。10人集まれば、一人100円でできます。"},
+{id:60,sec:"読解",type:"もんだい4",passage:"p_basketball",q:'バスケットボールをする場所はどこですか。',opts:["学校の体育館","市の体育館","ユンさんのうち","Aクラスの教室"],ans:1,exp:"「市の体育館でパスケットボールをしませんか」と書いてある。"},
+{id:61,sec:"読解",type:"もんだい5",passage:"p_e_futo",q:'「私」が絵封筒を知ったのはどこからですか。',opts:["友だちから聞いた。","本で読んだ。","テレビで見た。","お店で見た。"],ans:2,exp:"「テレビで面白いものを見ました。『絵封筒』です」と書いてある。"},
+{id:62,sec:"読解",type:"もんだい5",passage:"p_e_futo",q:'絵封筒とはどんなものですか。',opts:["封筒に好きな絵をかいたもの。","切手の周りに絵をかいた封筒。","絵がかいてある切手。","上手な絵がかいてある封筒。"],ans:1,exp:"「封筒にはった切手の周りに自分で絵をかいて作ります」と説明されている。"},
+{id:63,sec:"読解",type:"もんだい5",passage:"p_e_futo",q:'「私」がテレビで見た絵封筒はどんなものでしたか。',opts:["犬の絵の切手の周りに草をかいたもの。","鳥の絵の切手の周りに木をかいたもの。","太陽の絵の切手の周りに草をかいたもの。","花の絵の切手の周りに鳥をかいたもの。"],ans:1,exp:"「鳥の絵の切手の周りに、木をかいたものです」と書いてある。"},
+{id:64,sec:"読解",type:"もんだい5",passage:"p_e_futo",q:'「私」が絵封筒を送ろうとしたのはだれですか。',opts:["娘","夫","友だち","母"],ans:3,exp:"「ちょうど、母に娘の写真を送ろうと思っていたので」と書いてある。"},
+{id:65,sec:"読解",type:"もんだい5",passage:"p_e_futo",q:'「私」の娘について正しいものはどれか。',opts:["娘は絵が上手ではない。","娘は絵をかくのが大好きだ。","娘はいつも母と一緒に絵をかく。","娘は絵封筒を作ったことがある。"],ans:1,exp:"「3歳になる私の娘は絵をかくのが大好きです」と書いてある。"},
+{id:66,sec:"読解",type:"もんだい6",passage:"p_pasokon",q:'パソコン教室はどこで行いますか。',opts:["山名市役所","山名中学校","市の図書館","山名大学"],ans:1,exp:"「場所：山名中学校（コンピューター教室）」と書いてある。"},
+{id:67,sec:"読解",type:"もんだい6",passage:"p_pasokon",q:'パソコン教室の料金はいくらですか。',opts:["1回500円","3回で1,500円","1回1,000円","無料"],ans:1,exp:"「料金：1500円（3回）」と書いてある。"},
+{id:68,sec:"読解",type:"もんだい6",passage:"p_pasokon",q:'パソコンを持っていない人はどうなりますか。',opts:["参加できない。","パソコンを買わなければならない。","教室のパソコンが使える。","友だちのパソコンを借りる。"],ans:2,exp:"「※パソコンを持っていない人は、教室のパソコンが使えます」と書いてある。"},
+{id:69,sec:"読解",type:"もんだい6",passage:"p_pasokon",q:'パソコン教室に申し込むには、いつまでに何をしなければなりませんか。',opts:["9月1日までに電話で予約する。","8月24日までに電話で予約する。","9月8日までにメールで連絡する。","9月7日までに直接学校に行く。"],ans:1,exp:"「8月24日(水)までに電話で予約してください」と書いてある。"},
+{id:70,sec:"読解",type:"もんだい6",passage:"p_pasokon",q:'パソコン教室は何回ありますか。',opts:["1回","2回","3回","4回"],ans:2,exp:"「9月8日(木)、15日(木)、22日(木)（全部で3回）」と書いてある。"},
+{id:71,sec:"読解",type:"もんだい6",passage:"p_pasokon",q:'説明会はいつですか。',opts:["8月24日","9月1日","9月7日","9月8日"],ans:1,exp:"「9月1日(木)18時から、山名中学校で説明会を行います」と書いてある。"},
+{id:72,sec:"読解",type:"もんだい4",passage:"p_soccer",q:'「私」はサッカーの練習のあと、いつもどうしていますか。',opts:["宿題と予習をしてから寝る。","夜早く寝てしまう。","友だちと遊んでから帰る。","勉強して遅く寝る。"],ans:1,exp:"「私は夜早く寝てしまいます。宿題をしないで学校に行ったこともあります」と書いてある。"},
+{id:73,sec:"読解",type:"もんだい4",passage:"p_lin",q:'リンさんは日本でどんな予定がありますか。',opts:["東京に2週間いる。","大阪に1週間、東京にも行く。","東京だけに行く。","大阪と京都に行く。"],ans:1,exp:"「大阪に1週間いて、それから東京に行きます」と書いてある。"},
+{id:74,sec:"読解",type:"もんだい4",passage:"p_lin",q:'リンさんはどこにとまりますか。',opts:["田中さんのうち","大阪ホテル","新東京ホテル","山名中学校"],ans:2,exp:"「新東京ホテルにとまるので」と書いてある。"},
+{id:75,sec:"読解",type:"もんだい4",passage:"p_lin",q:'リンさんがメールを書いた目的はなんですか。',opts:["仕事の相談をするため。","一緒に食事をしたいと誘うため。","旅行の計画を聞くため。","ホテルを予約するため。"],ans:1,exp:"「いっしょにおすしを食べませんか。ご都合を教えてください」＝ 食事に誘うため。"}
+];
+
+// =========================================================
+// APP LOGIC
+// =========================================================
+let currentQ=0,questions=[],answers={},startTime=null,timerInterval=null,totalSeconds=0,mode='all';
+
+function secBadgeClass(sec){
+  if(sec==="文字・語彙")return"badge badge-moji";
+  if(sec==="文法")return"badge badge-bunpou";
+  return"badge badge-dokkai";
+}
+function getQuestions(m){
+  if(m==='all')return[...Q];
+  if(m==='moji')return Q.filter(q=>q.sec==="文字・語彙");
+  if(m==='bunpou')return Q.filter(q=>q.sec==="文法");
+  if(m==='dokkai')return Q.filter(q=>q.sec==="読解");
+  return[...Q];
+}
+function getTimeLimit(m){return{all:6300,moji:2100,bunpou:1500,dokkai:3000}[m]||6300;}
+
+function startMode(m){
+  mode=m;questions=getQuestions(m);answers={};currentQ=0;
+  startTime=Date.now();totalSeconds=getTimeLimit(m);
+  showScreen('quiz');buildProgressGrid();renderQuestion();startTimer();
+}
+function startTimer(){
+  if(timerInterval)clearInterval(timerInterval);
+  timerInterval=setInterval(()=>{
+    const elapsed=Math.floor((Date.now()-startTime)/1000);
+    const remaining=totalSeconds-elapsed;
+    if(remaining<=0){clearInterval(timerInterval);finishQuiz();return;}
+    const mm=Math.floor(remaining/60),ss=remaining%60;
+    document.getElementById('timer-text').textContent=`${mm}:${ss.toString().padStart(2,'0')}`;
+    const pct=(remaining/totalSeconds)*100;
+    const fill=document.getElementById('timer-fill');
+    fill.style.width=pct+'%';
+    fill.className='timer-fill'+(pct<25?' danger':pct<50?' warn':'');
+  },500);
+}
+function buildProgressGrid(){
+  const g=document.getElementById('prog-grid');g.innerHTML='';
+  questions.forEach((_,i)=>{
+    const d=document.createElement('div');
+    d.className='prog-dot'+(i===currentQ?' current':'');
+    d.textContent=i+1;d.onclick=()=>goToQ(i);d.id='pd-'+i;
+    g.appendChild(d);
+  });
+}
+function goToQ(i){currentQ=i;renderQuestion();}
+function renderQuestion(){
+  const q=questions[currentQ];
+  const secBadge=document.getElementById('q-sec-badge');
+  secBadge.className=secBadgeClass(q.sec);secBadge.textContent=q.sec;
+  document.getElementById('q-type-badge').textContent=q.type;
+  document.getElementById('q-num').textContent=`問 ${currentQ+1} / ${questions.length}`;
+  const correct=Object.values(answers).filter(a=>a.correct).length;
+  document.getElementById('q-score-live').textContent=`正解: ${correct}`;
+  const passageCard=document.getElementById('passage-card');
+  const passageText=document.getElementById('passage-text');
+  if(q.passage&&PASSAGES[q.passage]){
+    passageCard.style.display='block';
+    passageText.innerHTML=PASSAGES[q.passage].split('\n').map(line=>line.trim()?`<p>${line}</p>`:'').join('');
+  } else {passageCard.style.display='none';}
+  document.getElementById('q-text').innerHTML=q.q;
+  const opts=document.getElementById('options');opts.innerHTML='';
+  q.opts.forEach((o,i)=>{
+    const b=document.createElement('button');
+    b.className='option-btn';
+    b.innerHTML=`<span style="font-family:var(--mono);color:var(--muted);margin-right:8px;">${i+1}.</span>${o}`;
+    const ans=answers[currentQ];
+    if(ans){
+      b.disabled=true;
+      if(i===q.ans)b.classList.add('correct');
+      else if(i===ans.chosen)b.classList.add('wrong');
+    } else {b.onclick=()=>selectAnswer(i);}
+    opts.appendChild(b);
+  });
+  const exp=document.getElementById('explanation');
+  if(answers[currentQ]){exp.style.display='block';exp.textContent='💡 解説: '+q.exp;}
+  else{exp.style.display='none';}
+  document.getElementById('next-btn').disabled=!answers[currentQ];
+  updateProgDots();
+}
+function selectAnswer(i){
+  const q=questions[currentQ];
+  answers[currentQ]={chosen:i,correct:i===q.ans};
+  const pd=document.getElementById('pd-'+currentQ);
+  if(pd)pd.classList.add(answers[currentQ].correct?'correct':'wrong');
+  renderQuestion();
+  document.getElementById('next-btn').disabled=false;
+}
+function updateProgDots(){
+  questions.forEach((_,i)=>{
+    const d=document.getElementById('pd-'+i);if(!d)return;
+    d.className='prog-dot';
+    if(answers[i])d.classList.add(answers[i].correct?'correct':'wrong');
+    if(i===currentQ)d.classList.add('current');
+  });
+}
+function nextQ(){if(currentQ<questions.length-1){currentQ++;renderQuestion();}}
+function prevQ(){if(currentQ>0){currentQ--;renderQuestion();}}
+function finishQuiz(){
+  if(timerInterval)clearInterval(timerInterval);
+  const elapsed=Math.floor((Date.now()-startTime)/1000);
+  showScreen('result');
+  const done=Object.keys(answers).length;
+  const correct=Object.values(answers).filter(a=>a.correct).length;
+  const wrong=done-correct;
+  const pct=done>0?Math.round((correct/done)*100):0;
+  const mm=Math.floor(elapsed/60),ss=elapsed%60;
+  document.getElementById('r-correct').textContent=correct;
+  document.getElementById('r-wrong').textContent=wrong;
+  document.getElementById('r-pct').textContent=pct+'%';
+  document.getElementById('r-time').textContent=mm+'m'+ss+'s';
+  document.getElementById('res-date').textContent=new Date().toLocaleString('id-ID');
+  const secMap={};
+  questions.forEach((q,i)=>{
+    if(!secMap[q.sec])secMap[q.sec]={correct:0,total:0};
+    secMap[q.sec].total++;
+    if(answers[i]&&answers[i].correct)secMap[q.sec].correct++;
+  });
+  let secHtml='';
+  const secColors={'文字・語彙':'badge-moji','文法':'badge-bunpou','読解':'badge-dokkai'};
+  Object.entries(secMap).forEach(([sec,data])=>{
+    const p=data.total>0?Math.round((data.correct/data.total)*100):0;
+    const bClass=secColors[sec]||'badge-type';
+    secHtml+=`<div class="section-result">
+      <span class="badge ${bClass}">${sec}</span>
+      <span style="color:var(--muted)">${data.correct} / ${data.total}</span>
+      <span class="badge" style="background:${p>=60?'rgba(25,195,125,.18)':p>=40?'rgba(255,181,71,.18)':'rgba(255,95,115,.15)'};color:${p>=60?'var(--success)':p>=40?'var(--warning)':'var(--danger)'};border:1px solid ${p>=60?'rgba(25,195,125,.3)':p>=40?'rgba(255,181,71,.3)':'rgba(255,95,115,.25)'}">${p}%</span>
+    </div>`;
+  });
+  document.getElementById('section-results').innerHTML=secHtml;
+  const pm=secMap['文字・語彙']?Math.round((secMap['文字・語彙'].correct/secMap['文字・語彙'].total)*100):0;
+  const pb=secMap['文法']?Math.round((secMap['文法'].correct/secMap['文法'].total)*100):0;
+  const pd2=secMap['読解']?Math.round((secMap['読解'].correct/secMap['読解'].total)*100):0;
+  const willPass=pct>=60&&pm>=50&&pb>=50&&pd2>=50;
+  const banner=document.getElementById('pass-banner');
+  banner.className='pass-banner '+(willPass?'pass':'fail');
+  document.getElementById('pass-text').textContent=willPass?'✓ Prediksi: LULUS JLPT N4':'✗ Prediksi: Perlu latihan lebih';
+  document.getElementById('pass-sub').textContent=`Akurasi: ${pct}% | Target: ≥60% keseluruhan & ≥50% per seksi`;
+  const daysLeft=Math.max(0,Math.floor((new Date('2026-07-06')-new Date())/86400000));
+  let predHtml=`📝 文字・語彙: ${pm}% ${pm>=60?'✓ Baik':pm>=50?'△ Cukup':'✗ Perlu ditingkatkan'}<br>`;
+  predHtml+=`📐 文法: ${pb}% ${pb>=60?'✓ Baik':pb>=50?'△ Cukup':'✗ Perlu ditingkatkan'}<br>`;
+  predHtml+=`📖 読解: ${pd2}% ${pd2>=60?'✓ Baik':pd2>=50?'△ Cukup':'✗ Perlu ditingkatkan'}<br><br>`;
+  predHtml+=`⏰ Sisa ke JLPT Juli 2026: <strong style="color:var(--text)">${daysLeft} hari</strong><br>`;
+  if(!willPass){
+    const weakest=Object.entries(secMap).sort((a,b)=>(a[1].correct/a[1].total)-(b[1].correct/b[1].total))[0];
+    predHtml+=`💡 Fokus latihan: <strong style="color:var(--text)">${weakest[0]}</strong>`;
+  } else {predHtml+='🎉 Pertahankan dan latihan soal tahun-tahun lain!';}
+  document.getElementById('prediction-detail').innerHTML=predHtml;
+  document.getElementById('hs-done').textContent=done;
+  document.getElementById('hs-score').textContent=pct+'%';
+  document.getElementById('hs-pred').textContent=willPass?'LULUS':'GAGAL';
+}
+function reviewAnswers(){currentQ=0;showScreen('quiz');buildProgressGrid();renderQuestion();}
+function goHome(){showScreen('home');}
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
+</script>
+<script>
+const canvas=document.getElementById('bg-canvas');
+const ctx=canvas.getContext('2d');
+function resize(){canvas.width=window.innerWidth;canvas.height=window.innerHeight;}
+resize();window.addEventListener('resize',resize);
+const particles=[];
+for(let i=0;i<70;i++){particles.push({x:Math.random()*canvas.width,y:Math.random()*canvas.height,r:Math.random()*1.8+0.5,dx:(Math.random()-.5)*.35,dy:(Math.random()-.5)*.35});}
+function animate(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  particles.forEach(p=>{
+    p.x+=p.dx;p.y+=p.dy;
+    if(p.x<0||p.x>canvas.width)p.dx*=-1;
+    if(p.y<0||p.y>canvas.height)p.dy*=-1;
+    ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+    ctx.fillStyle='rgba(100,160,255,.6)';ctx.fill();
+  });
+  requestAnimationFrame(animate);
+}
+animate();
+</script>
+</body>
+</html>

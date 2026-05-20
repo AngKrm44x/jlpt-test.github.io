@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JLPT N5 — Juli 2024</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0b1020;--bg2:#121a2f;--card:#18233f;--card2:#1f2d52;
+  --border:#2b3a63;--text:#f1f5ff;--muted:#9fb0d3;
+  --primary:#5aa9ff;--success:#19c37d;--danger:#ff5f73;--warning:#ffb547;
+  --font:'Zen Kaku Gothic New',sans-serif;--mono:'JetBrains Mono',monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{
+  background:radial-gradient(ellipse at top left,#1a2d5a 0%,transparent 45%),
+             radial-gradient(ellipse at bottom right,#231440 0%,transparent 40%),var(--bg);
+  color:var(--text);font-family:var(--font);min-height:100vh;padding:16px;
+}
+.app{max-width:720px;margin:0 auto;}
+.screen{display:none;}.screen.active{display:block;}
+.header{background:rgba(24,35,63,.85);backdrop-filter:blur(12px);border:1px solid var(--border);border-radius:20px;padding:22px 24px;margin-bottom:14px;}
+h1{font-size:22px;font-weight:700;letter-spacing:.02em;margin-bottom:3px;}
+h2{font-size:15px;font-weight:500;margin-bottom:10px;}
+.muted{color:var(--muted);font-size:13px;}
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;}
+.stat-card{background:rgba(24,35,63,.7);border:1px solid var(--border);border-radius:14px;padding:12px 10px;text-align:center;}
+.stat-num{font-size:21px;font-weight:700;color:var(--text);}
+.stat-lbl{font-size:10px;color:var(--muted);margin-top:3px;letter-spacing:.04em;}
+.mode-btn{width:100%;text-align:left;padding:14px 18px;border-radius:16px;border:1px solid var(--border);background:rgba(24,35,63,.7);color:var(--text);cursor:pointer;font-size:14px;font-family:var(--font);margin-bottom:10px;transition:all .18s;line-height:1.6;}
+.mode-btn:hover{background:var(--card2);border-color:#4a6aaa;transform:translateY(-1px);}
+.card{background:rgba(24,35,63,.85);backdrop-filter:blur(8px);border:1px solid var(--border);border-radius:18px;padding:18px 20px;margin-bottom:12px;}
+.badge{display:inline-block;padding:3px 11px;border-radius:99px;font-size:11px;font-weight:600;letter-spacing:.03em;}
+.badge-moji{background:rgba(90,169,255,.18);color:#5aa9ff;border:1px solid rgba(90,169,255,.3);}
+.badge-bunpou{background:rgba(124,77,255,.18);color:#a87bff;border:1px solid rgba(124,77,255,.3);}
+.badge-dokkai{background:rgba(25,195,125,.18);color:#19c37d;border:1px solid rgba(25,195,125,.3);}
+.badge-choukai{background:rgba(255,181,71,.18);color:#ffb547;border:1px solid rgba(255,181,71,.3);}
+.badge-type{background:rgba(255,255,255,.07);color:var(--muted);border:1px solid rgba(255,255,255,.1);}
+.timer-bar{height:5px;background:rgba(255,255,255,.07);border-radius:99px;overflow:hidden;margin:10px 0 6px;}
+.timer-fill{height:100%;background:linear-gradient(90deg,#5aa9ff,#7c4dff);border-radius:99px;transition:width .5s linear;}
+.timer-fill.warn{background:linear-gradient(90deg,var(--warning),#f57c00);}
+.timer-fill.danger{background:linear-gradient(90deg,var(--danger),#c0392b);}
+.progress-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(30px,1fr));gap:4px;margin-bottom:12px;}
+.prog-dot{height:30px;border-radius:8px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--muted);cursor:pointer;transition:all .12s;font-family:var(--mono);}
+.prog-dot:hover{border-color:#4a6aaa;}
+.prog-dot.current{border:2px solid var(--primary);color:var(--text);font-weight:600;}
+.prog-dot.correct{background:rgba(25,195,125,.25);border-color:var(--success);color:var(--success);}
+.prog-dot.wrong{background:rgba(255,95,115,.2);border-color:var(--danger);color:var(--danger);}
+.passage-label{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;}
+.passage-box{background:rgba(11,16,32,.6);border-left:3px solid var(--primary);border-radius:0 12px 12px 0;padding:14px 18px;font-size:13.5px;line-height:2;color:rgba(241,245,255,.85);}
+.passage-box p{margin-bottom:.5em;}.passage-box p:last-child{margin-bottom:0;}
+.q-text{font-size:15px;line-height:1.9;color:var(--text);margin-bottom:14px;}
+.q-text u{text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1.5px;text-decoration-color:var(--primary);}
+.option-btn{width:100%;text-align:left;padding:11px 16px;border-radius:12px;border:1px solid var(--border);background:rgba(18,26,47,.6);color:var(--text);cursor:pointer;font-size:13.5px;font-family:var(--font);margin-bottom:7px;transition:all .15s;line-height:1.7;}
+.option-btn:hover:not(:disabled){background:var(--card2);border-color:#4a6aaa;}
+.option-btn.correct{background:rgba(25,195,125,.18);border-color:var(--success);color:#a0f5d3;}
+.option-btn.wrong{background:rgba(255,95,115,.15);border-color:var(--danger);color:#ffb3be;}
+.option-btn:disabled{cursor:default;}
+.explanation{background:rgba(11,16,32,.5);border-radius:10px;padding:10px 14px;font-size:12.5px;color:var(--muted);margin-top:8px;line-height:1.7;border-left:2px solid var(--warning);}
+.row{display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap;}
+.spacer{flex:1;}
+.nav-btn{padding:9px 20px;border-radius:11px;border:1px solid var(--border);background:rgba(24,35,63,.7);color:var(--text);cursor:pointer;font-size:13px;font-family:var(--font);transition:all .15s;}
+.nav-btn:hover{background:var(--card2);}
+.nav-btn.finish{background:rgba(255,95,115,.18);border-color:var(--danger);color:var(--danger);}
+.nav-btn.finish:hover{background:rgba(255,95,115,.3);}
+.nav-btn:disabled{opacity:.35;cursor:not-allowed;}
+.pass-banner{border-radius:16px;padding:16px;text-align:center;margin:12px 0;}
+.pass-banner.pass{background:rgba(25,195,125,.18);border:1px solid rgba(25,195,125,.3);}
+.pass-banner.fail{background:rgba(255,95,115,.12);border:1px solid rgba(255,95,115,.25);}
+.section-result{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:13px;}
+.section-result:last-child{border-bottom:none;}
+.info-note{background:rgba(255,181,71,.07);border:1px solid rgba(255,181,71,.2);border-radius:12px;padding:10px 14px;font-size:12px;color:rgba(255,181,71,.8);margin-bottom:10px;}
+
+/* ===== CHOUKAI SCREEN ===== */
+#choukai{padding-top:4px;}
+.audio-player-card{background:rgba(24,35,63,.95);border:1px solid var(--border);border-radius:20px;padding:24px;margin-bottom:14px;}
+.audio-title{font-size:16px;font-weight:600;color:var(--text);margin-bottom:6px;}
+.audio-sub{font-size:12px;color:var(--muted);margin-bottom:20px;}
+.audio-controls{display:flex;align-items:center;gap:0;background:rgba(11,16,32,.6);border:1px solid var(--border);border-radius:50px;padding:10px 18px;}
+.play-btn{width:40px;height:40px;border-radius:50%;border:none;background:var(--text);color:var(--bg);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;transition:all .15s;}
+.play-btn:hover{background:var(--primary);color:white;transform:scale(1.05);}
+.play-btn:disabled{opacity:.4;cursor:not-allowed;}
+.audio-progress-wrap{flex:1;margin:0 14px;position:relative;}
+.audio-progress-bg{height:4px;background:rgba(255,255,255,.12);border-radius:99px;cursor:pointer;position:relative;}
+.audio-progress-fill{height:100%;background:var(--primary);border-radius:99px;width:0%;transition:width .3s linear;pointer-events:none;}
+.audio-progress-dot{width:12px;height:12px;border-radius:50%;background:var(--text);position:absolute;top:50%;transform:translate(-50%,-50%);left:0%;pointer-events:none;transition:left .3s linear;box-shadow:0 0 0 3px rgba(255,255,255,.15);}
+.audio-time{font-family:var(--mono);font-size:12px;color:var(--muted);flex-shrink:0;white-space:nowrap;}
+.audio-status{margin-top:10px;text-align:center;font-size:12px;color:var(--muted);}
+.audio-status.playing{color:var(--success);}
+.audio-status.ended{color:var(--warning);}
+
+.choukai-info{background:rgba(255,181,71,.06);border:1px solid rgba(255,181,71,.15);border-radius:14px;padding:14px 18px;margin-bottom:14px;font-size:13px;line-height:1.8;color:rgba(241,245,255,.8);}
+.choukai-section{background:rgba(24,35,63,.7);border:1px solid var(--border);border-radius:14px;padding:14px 18px;margin-bottom:10px;}
+.choukai-section h3{font-size:13px;font-weight:600;color:var(--primary);margin-bottom:8px;}
+.choukai-section p{font-size:13px;color:var(--muted);line-height:1.8;}
+
+canvas{position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.35;}
+.app{position:relative;z-index:1;}
+</style>
+</head>
+<body>
+<canvas id="bg-canvas"></canvas>
+<div class="app">
+
+<!-- HOME -->
+<div id="home" class="screen active">
+  <div class="header">
+    <h1>JLPT N5 — Juli 2024</h1>
+    <p class="muted" style="margin-top:4px">43 soal· 言語知識文字・語彙・文法・読解 + 聴解 ·</p>
+  </div>
+  <div class="stat-grid">
+    <div class="stat-card"><div class="stat-num">43</div><div class="stat-lbl">soal written</div></div>
+    <div class="stat-card"><div class="stat-num" id="hs-done">0</div><div class="stat-lbl">dikerjakan</div></div>
+    <div class="stat-card"><div class="stat-num" id="hs-score">—</div><div class="stat-lbl">skor terakhir</div></div>
+    <div class="stat-card"><div class="stat-num" id="hs-pred">—</div><div class="stat-lbl">prediksi</div></div>
+  </div>
+  <button class="mode-btn" onclick="startMode('all')"><strong>🎯 Ujian Penuh</strong><br><span style="font-size:12px;color:var(--muted)">Semua 43 soal · timer 50 menit</span></button>
+  <button class="mode-btn" onclick="startMode('moji')"><strong>📝 文字・語彙</strong><br><span style="font-size:12px;color:var(--muted)">21 soal · もんだい1–4 · timer 25 menit</span></button>
+  <button class="mode-btn" onclick="startMode('bunpou')"><strong>📐 文法</strong><br><span style="font-size:12px;color:var(--muted)">22 soal · もんだい1–6 · timer 40 menit</span></button>
+  <button class="mode-btn" onclick="startMode('dokkai')"><strong>📖 読解</strong><br><span style="font-size:12px;color:var(--muted)">20 soal · 問題10–14 · timer 50 menit</span></button>
+  <button class="mode-btn" onclick="showChoukai()"><strong>🎧 聴解 (Beta)</strong><br><span style="font-size:12px;color:var(--muted)">Play audio · can't pause · -- minute -- seconds</span></button>
+</div>
+
+<!-- QUIZ -->
+<div id="quiz" class="screen">
+  <div class="card" style="padding:14px 18px;">
+    <div class="row" style="margin-top:0;">
+      <span class="badge" id="q-sec-badge">文字</span>
+      <span class="badge badge-type" id="q-type-badge">もんだい1</span>
+      <div class="spacer"></div>
+      <span id="timer-text" style="font-size:14px;font-weight:600;font-family:var(--mono)">--:--</span>
+    </div>
+    <div class="timer-bar"><div class="timer-fill" id="timer-fill" style="width:100%"></div></div>
+    <div class="row" style="margin-top:2px;">
+      <span class="muted" id="q-num" style="font-family:var(--mono);font-size:12px;">問 1 / 43</span>
+      <div class="spacer"></div>
+      <span class="muted" id="q-score-live" style="font-size:12px;">正解: 0</span>
+    </div>
+  </div>
+  <div class="progress-grid" id="prog-grid"></div>
+  <div class="card" id="passage-card" style="display:none;">
+    <div class="passage-label">📖 teks bacaan</div>
+    <div class="passage-box" id="passage-text"></div>
+  </div>
+  <div class="card">
+    <div class="q-text" id="q-text"></div>
+    <div id="options"></div>
+    <div class="explanation" id="explanation" style="display:none;"></div>
+  </div>
+  <div class="row">
+    <button class="nav-btn" onclick="prevQ()">← Back</button>
+    <div class="spacer"></div>
+    <button class="nav-btn" id="next-btn" onclick="nextQ()" disabled>Next →</button>
+    <button class="nav-btn finish" onclick="finishQuiz()">Selesai</button>
+  </div>
+</div>
+
+<!-- RESULT -->
+<div id="result" class="screen">
+  <div class="header"><h1>Hasil Ujian</h1><p class="muted" id="res-date"></p></div>
+  <div class="pass-banner" id="pass-banner">
+    <strong id="pass-text" style="font-size:18px;"></strong>
+    <p id="pass-sub" style="font-size:13px;margin-top:6px;color:var(--muted);"></p>
+  </div>
+  <div class="stat-grid">
+    <div class="stat-card"><div class="stat-num" id="r-correct"></div><div class="stat-lbl">benar</div></div>
+    <div class="stat-card"><div class="stat-num" id="r-wrong"></div><div class="stat-lbl">salah</div></div>
+    <div class="stat-card"><div class="stat-num" id="r-pct"></div><div class="stat-lbl">akurasi</div></div>
+    <div class="stat-card"><div class="stat-num" id="r-time"></div><div class="stat-lbl">waktu</div></div>
+  </div>
+  <div class="card"><h2>Skor per seksi</h2><div id="section-results"></div></div>
+  <div class="card"><h2>Prediksi kelulusan JLPT N5</h2><div id="prediction-detail" style="font-size:13px;line-height:2;color:var(--muted);"></div></div>
+  <div class="row" style="gap:8px;margin-top:8px;flex-wrap:wrap;">
+    <button class="nav-btn" onclick="reviewAnswers()">Review Jawaban</button>
+
+    <button class="nav-btn" onclick="window.location.href='index.html'">
+      🏠 HOME
+    </button>
+
+    <div class="spacer"></div>
+
+    <button class="nav-btn" onclick="goHome()">
+      Kembali ke Menu
+    </button>
+  </div>
+</div>
+
+<!-- CHOUKAI -->
+<div id="choukai" class="screen">
+  <div class="header">
+    <h1>🎧 聴解</h1>
+    <p class="muted" style="margin-top:4px">JLPT N5 Juli 2024 · Total duration: 28:32</p>
+  </div>
+
+  <div class="audio-player-card">
+    <div class="audio-title">N5 聴解 Audio — Juli 2024</div>
+    <div class="audio-sub">Audio will be played from start <strong style="color:var(--warning)">can't be paused</strong> like a real JLPT Exam.</div>
+    <div class="audio-controls">
+      <button class="play-btn" id="play-btn" onclick="toggleAudio()">▶</button>
+      <div class="audio-progress-wrap">
+        <div class="audio-progress-bg" id="progress-bg">
+          <div class="audio-progress-fill" id="progress-fill"></div>
+          <div class="audio-progress-dot" id="progress-dot"></div>
+        </div>
+      </div>
+      <span class="audio-time" id="audio-time">00:00 / 30:38</span>
+    </div>
+    <div class="audio-status" id="audio-status">⏸ Press play to start listening</div>
+  </div>
+
+  <div class="choukai-info">
+    <strong>📋 Attention for Choukai:</strong><br>
+    • Audio <strong>can't be paused</strong> after play like a real JLPT Exam.<br>
+    • Listen carefully every questions and select teh answer.<br>
+    • For もんだい1 & 2: see the images/or selection in above and select teh best answer.<br>
+    • For もんだい3: no images, listen and select.<br>
+    • For もんだい4: listen short conversation, choose the best answer (1–3).
+  </div>
+
+  <div class="choukai-section">
+    <h3>もんだい1 — 1ばん〜7ばん</h3>
+    <p>まず しつもんを きいてください。それから はなしを きいて、もんだいようしの 1から4の なかから、いちばん いいものを ひとつ えらんでください。</p>
+    <p style="margin-top:8px;font-size:12px;color:rgba(255,181,71,.7);">→ Pilih gambar yang sesuai dengan percakapan yang didengar (7 soal)</p>
+  </div>
+  <div class="choukai-section">
+    <h3>もんだい2 — 1ばん〜6ばん</h3>
+    <p>まず しつもんを きいてください。そのあと、もんだいようしを みてください。よむ じかんが あります。それから はなしを きいて、もんだいようしの 1から4の なかから、いちばん いいものを ひとつ えらんでください。</p>
+    <p style="margin-top:8px;font-size:12px;color:rgba(255,181,71,.7);">→ Baca pilihan terlebih dahulu, lalu pilih jawaban (6 soal)</p>
+  </div>
+  <div class="choukai-section">
+    <h3>もんだい3 — 1ばん〜5ばん</h3>
+    <p>もんだい3では、えなどが ありません。まず ぶんを きいてください。それから、そのへんじを きいて、1から3のなかから、いちばん いいものをひとつ えらんでください。</p>
+    <p style="margin-top:8px;font-size:12px;color:rgba(255,181,71,.7);">→ Tidak ada gambar — pilih respons yang tepat (5 soal)</p>
+  </div>
+  <div class="choukai-section">
+    <h3>もんだい4 — 1ばん〜5ばん</h3>
+    <p>もんだい4では、えなどが ありません。まず ぶんを きいてください。それから、そのへんじを きいて、1から3のなかから、いちばん いいものをひとつ えらんでください。</p>
+    <p style="margin-top:8px;font-size:12px;color:rgba(255,181,71,.7);">→ Percakapan pendek, pilih respons (5 soal)</p>
+  </div>
+
+  <div class="row" style="margin-top:8px;gap:8px;">
+    <button class="nav-btn" onclick="stopAudio()">⏹ Stop Audio</button>
+    <div class="spacer"></div>
+    <button class="nav-btn" onclick="goHome()">← Kembali ke Menu</button>
+  </div>
+</div>
+
+</div>
+
+<script>
+// =========================================================
+// PASSAGES
+// =========================================================
+const PASSAGES = {
+
+p_eiga:`（ブラウンさんのさくぶん）
+
+先週の 日曜日に 私は はじめて 日本の えいがかんで えいがを 見ました。駅の 近く（14）新しい えいがかんで 見ました。えいがかんは 広くて、とても きれいでした。
+
+また（15）。`,
+
+p_ryouri:`（レーさんのさくぶん）
+
+私は 先週の 土曜日に うちで ともだちと りょうりを しました。私たちは 二つの りょうりを 作りました。はじめは、おにぎりを 作りました。（16）、やさいの みそしるを 作りました。おにぎりは 少し むずかしかったです。でも、みそしるは （17）。ともだちと 作った おにぎりと みそしるは おいしかったです。`,
+
+p_mumu:`（会社で）
+
+ムムさんは 同じ 会社の 大友さんに メールを しました。
+
+大友さん
+机の 上の おかしを ありがとう。旅行は どうでしたか。
+今、大友さんの ところに 行きましたが、いませんでしたから、メールをしました。
+おいしかったです。ごちそうさまでした。
+
+ムム`,
+
+p_ran:`これは ランさんが 書いた さくぶんです。
+
+青木山に のぼりました
+
+ラン
+
+きのう、はじめて 青木山に のぼりました。山の 上の さくらが 見たかったからです。
+
+山の 入り口から 山の 上まで 2時間 かかります。私は 15分ぐらい のぼって、すぐに つかれました。でも、山で 会った 人たちが みんな、私に 元気な声で「こんにちは。」と 言いました。ちょっと ①うれしかったです。
+
+1時ごろ 山の 上に 着きました。さくらの 木は ありましたが、花は ありませんでした。近くに いた 女の人に「さくらの 花は まだですか。」と 聞きました。女の人は「山の 上は 寒いですから、花は まだですよ。来月の はじめごろは きれいですよ。」と 言いました。
+
+ですから、②来月また 行きたいです。`,
+
+p_mise:`「Yuuki やすい！」
+
+なかいの町 今週の 安い 店
+
+12月 13日(金)・14日(土)・15日(日)
+
+今週は 下の 四つの 店が 安いですよ
+
+①六八くだもの　電話：722-7868
+13日(金) みかん 198円
+14日(土) バナナ 89円
+15日(日) いちご 300円
+
+②とりの たかだ　電話：722-0193
+13日(金) とり肉 150円
+14日(土) たまご 99円
+15日(日) とり肉 150円
+
+③すずきスーパー　電話：725-8531
+13日(金) ジュース 50円
+14日(土) とうふ 48円
+15日(日) チョコレート 88円
+
+④スーパーやまだ　電話：721-9040
+13日(金) りんご 50円
+14日(土) ぎゅうにゅう 120円
+15日(日) アイスクリーム 80円`
+};
+
+// =========================================================
+// 43 QUESTIONS — N5 July 2024
+// =========================================================
+const Q = [
+
+// ===== 言語知識 文字・語彙 =====
+// もんだい1 読み方 (Q1-7)
+{id:1,sec:"言語知識",type:"もんだい1",q:'いま <u>店</u>の まえに います。',opts:["いえ","えき","みせ","へや"],ans:2,exp:"店（みせ）= shop, store。店の前にいます = I am in front of the store。"},
+{id:2,sec:"言語知識",type:"もんだい1",q:'たなかさんは いま <u>外国</u>に います。',opts:["がいしゃ","かいしゃ","かいこく","がいこく"],ans:3,exp:"外国（がいこく）= foreign country。外国にいます = is in a foreign country。"},
+{id:3,sec:"言語知識",type:"もんだい1",q:'さとうさんは <u>話</u>が じょうずです。',opts:["うた","はなし","え","じ"],ans:1,exp:"話（はなし）= talking, speech。話が上手 = good at talking。"},
+{id:4,sec:"言語知識",type:"もんだい1",q:'はやしさんも <u>読んで</u> ください。',opts:["あそんで","ならんで","よんで","えらんで"],ans:2,exp:"読む（よむ）= to read。読んでください = please read。"},
+{id:5,sec:"言語知識",type:"もんだい1",q:'あたらしい こうえんは まちの <u>北がわ</u> に あります。',opts:["ひがしがわ","みなみがわ","にしがわ","きたがわ"],ans:3,exp:"北側（きたがわ）= north side。北がわにあります = is on the north side。"},
+{id:6,sec:"言語知識",type:"もんだい1",q:'わたしは <u>九月</u>に けっこんします。',opts:["くがつ","きゅうがつ","くげつ","きゅうげつ"],ans:1,exp:"九月（くがつ）= September。九月にけっこんします = will get married in September。"},
+{id:7,sec:"言語知識",type:"もんだい1",q:'きのう <u>来なかった</u> ひとは だれですか。',opts:["きなかった","こなかった","いなかった","ねなかった"],ans:1,exp:"来る（くる）→ 来なかった（こなかった）= did not come。"},
+
+// もんだい2 漢字 (Q8-12)
+{id:8,sec:"言語知識",type:"もんだい2",q:'<u>てんき</u>が わるいですから、うちに いましょう。',opts:["天汽","矢気","天気","矢汽"],ans:2,exp:"天気（てんき）= weather。天気が悪い = bad weather。"},
+{id:9,sec:"言語知識",type:"もんだい2",q:'あちらの <u>そら</u>を みてください。',opts:["犬","花","山","空"],ans:3,exp:"空（そら）= sky。空をみる = look at the sky。"},
+{id:10,sec:"言語知識",type:"もんだい2",q:'さとうさんも <u>たって</u>ください。',opts:["立って","食って","位って","喰って"],ans:0,exp:"立つ（たつ）= to stand。立ってください = please stand up。"},
+{id:11,sec:"言語知識",type:"もんだい2",q:'<u>がくせい</u>は なんにん いますか。',opts:["先生","学生","学主","先主"],ans:1,exp:"学生（がくせい）= student。学生は何人いますか = How many students are there?"},
+{id:12,sec:"言語知識",type:"もんだい2",q:'かいだんを <u>おりて</u> ください。',opts:["上りて","止りて","不りて","下りて"],ans:3,exp:"下りる（おりる）= to go down. 下りてください = please go down the stairs。"},
+
+// もんだい3 語彙穴埋め (Q13-18)
+{id:13,sec:"言語知識",type:"もんだい3",q:'えいがの （　） を 2まい かいました。',opts:["ケーキ","チケット","ギター","タクシー"],ans:1,exp:"チケット = ticket。映画のチケットを2枚買いました = bought 2 movie tickets。"},
+{id:14,sec:"言語知識",type:"もんだい3",q:'びよういんは うちから （　） ですから、バスで いきます。',opts:["ながい","おおい","おそい","とおい"],ans:3,exp:"遠い（とおい）= far. 遠いですから = because it's far。"},
+{id:15,sec:"言語知識",type:"もんだい3",q:'きょうは いもうとの 12 （　） のたんじょうびです。',opts:["ねん","さい","だい","えん"],ans:1,exp:"〜さい（歳）= years old. 12歳のたんじょうび = 12th birthday。"},
+{id:16,sec:"言語知識",type:"もんだい3",q:'（　） を わすれましたから、おかねを もって いません。',opts:["かぎ","とけい","さいふ","かさ"],ans:2,exp:"さいふ（財布）= wallet. 財布を忘れたからお金を持っていない = forgot my wallet so I don't have money。"},
+{id:17,sec:"言語知識",type:"もんだい3",q:'りょこうの ときは くろい くつを （　）。',opts:["はきます","つけます","かけます","かぶります"],ans:0,exp:"はく = to wear (shoes, pants). くつをはきます = wear shoes。"},
+{id:18,sec:"言語知識",type:"もんだい3",q:'きょうは じゅぎょうの あと、すぐ いえに （　）。',opts:["かえります","すみます","あるきます","でかけます"],ans:0,exp:"かえります（帰ります）= to go home. すぐいえにかえります = will go straight home。"},
+
+// もんだい4 意味が近い (Q19-21)
+{id:19,sec:"言語知識",type:"もんだい4",q:'<u>けさ、はやしさんに あいました。</u>（<u>けさ</u> と だいたい おなじ いみの ぶんは どれですか）',opts:["きのうの あさ、はやしさんに あいました。","きょうの ひる、はやしさんに あいました。","きょうの あさ、はやしさんに あいました。","きのうの ひる、はやしさんに あいました。"],ans:2,exp:"けさ = today's morning (今朝). きょうのあさ = this morning。"},
+{id:20,sec:"言語知識",type:"もんだい4",q:'<u>この かんじは かんたんです。</u>（<u>かんたん</u> と だいたい おなじ いみの ぶんは どれですか）',opts:["この かんじは やさしいです。","この かんじは むずかしいです。","この かんじは おもしろいです。","この かんじは つまらないです。"],ans:0,exp:"かんたん（簡単）= easy, simple ≈ やさしい（易しい）。"},
+{id:21,sec:"言語知識",type:"もんだい4",q:'<u>たなかさんは リーさんに さくぶんを おしえました。</u>（だいたい おなじ いみの ぶんは どれですか）',opts:["リーさんは たなかさんに さくぶんを わたしました。","たなかさんは リーさんに さくぶんを ならいました。","たなかさんは リーさんに さくぶんをわたしました。","リーさんは たなかさんに さくぶんを ならいました。"],ans:3,exp:"おしえる（教える）= to teach. たなかさんがリーさんに教えた → リーさんはたなかさんにならいました（習いました）= Lee learned from Tanaka。"},
+
+// ===== 文法 =====
+// もんだい1 文法 (Q22-30 → ぶんぽう Q1-9)
+{id:22,sec:"文法",type:"もんだい1",q:'私は 一か月 （　） 2回、ギターを 習っています。',opts:["も","が","を","に"],ans:3,exp:"〜に〜回 = ~ times per ~. 一か月に2回 = twice a month。"},
+{id:23,sec:"文法",type:"もんだい1",q:'日曜日に 買い物 （　） さんぽを します。',opts:["へ","も","や","ぐらい"],ans:2,exp:"〜や〜 = and (non-exhaustive list). 買い物やさんぽをします = do things like shopping and walking。"},
+{id:24,sec:"文法",type:"もんだい1",q:'私の 母は 銀行 （　） はたらいています。',opts:["が","で","へ","に"],ans:1,exp:"〜で = at (place of action). 銀行ではたらいています = works at a bank。"},
+{id:25,sec:"文法",type:"もんだい1",q:'私は 新しい カメラ （　） ほしいです。',opts:["で","か","に","が"],ans:3,exp:"〜が ほしい = want (something). 新しいカメラがほしい = want a new camera。"},
+{id:26,sec:"文法",type:"もんだい1",q:'きのう 私は デパートに 行きましたが、（　） 買いませんでした。',opts:["何を","何も","何か","何に"],ans:1,exp:"何も〜ない = nothing, did not buy anything. 何も買いませんでした = didn't buy anything。"},
+{id:27,sec:"文法",type:"もんだい1",q:'A食堂の ラーメンは、大学の 食堂 のラーメンより （　） おいしいです。',opts:["あまり","すぐ","ずっと","いちばん"],ans:2,exp:"ずっと = much more (comparison). 〜よりずっとおいしい = much more delicious than ~。"},
+{id:28,sec:"文法",type:"もんだい1",q:'（店で）A「このペンは （　） ですか。」B「100円です。」',opts:["いくら","いくつ","どれ","どうして"],ans:0,exp:"いくら = how much (price). このペンはいくらですか = How much is this pen?"},
+{id:29,sec:"文法",type:"もんだい1",q:'きのうの夜、（　） 前に 本を 読みました。',opts:["ねる","ねて","ねた","ねている"],ans:0,exp:"〜前に = before ~. 寝る前に = before sleeping (verb plain form + 前に)。"},
+{id:30,sec:"文法",type:"もんだい1",q:'リー「林さん、にもつが 多いですね。少し （　）。」林「あ、すみません。おねがいします。」',opts:["持っていませんか","持たないでください","もちましたね","持ちましょうか。"],ans:3,exp:"〜ましょうか = shall I ~? 持ちましょうか = shall I carry it? (offering help)。"},
+
+// もんだい2 並べ替え (Q31-34 → ぶんぽう Q10-13)
+{id:31,sec:"文法",type:"もんだい2",q:'私は たんじょうびに _____ <u>★</u> _____ _____ 使っています。（1くれた／2毎日／3カメラを／4そふが）',opts:["そふが・くれた・カメラを・★毎日","毎日・そふが・くれた・★カメラを","そふが・くれた・★毎日・カメラを","カメラを・毎日・★そふが・くれた"],ans:0,exp:"正しい文: たんじょうびにそふがくれたカメラを毎日使っています。★ = 毎日。"},
+{id:32,sec:"文法",type:"もんだい2",q:'こうえん _____ <u>★</u> _____ たくさん います。（1鳥／2に／3は／4が）',opts:["に・鳥・は・★が","鳥・に・は・★が","は・鳥・★に・が","鳥・は・★に・が"],ans:3,exp:"正しい文: こうえんには鳥がたくさんいます。★ = に。"},
+{id:33,sec:"文法",type:"もんだい2",q:'今年の夏 _____ _____ <u>★</u> _____ 山に行きます。（1海／2では／3は／4なくて）',opts:["海・では・なくて・★は","では・海・は・★なくて","海・は・では・★なくて","は・海・★では・なくて"],ans:2,exp:"正しい文: 今年の夏は海ではなくて山に行きます。★ = なくて。"},
+{id:34,sec:"文法",type:"もんだい2",q:'私は 毎朝 へやを _____ _____ <u>★</u> _____ 出ます。（1を／2から／3家／4そうじして）',opts:["そうじして・を・家・★から","を・そうじして・から・★家","そうじして・から・★家・を","家・を・★そうじして・から"],ans:0,exp:"正しい文: 毎朝へやをそうじして、家から出ます。★ = 家。"},
+
+// もんだい3 文章の文法 (Q35-38 → ぶんぽう Q14-17)
+{id:35,sec:"文法",type:"もんだい3",passage:"p_eiga",q:'（14）に 入る最も よいものを 選びなさい。',opts:["も","は","の","と"],ans:1,exp:"〜は = topic marker. 駅の近くは新しいえいがかんで見ました = at the new cinema near the station。"},
+{id:36,sec:"文法",type:"もんだい3",passage:"p_eiga",q:'（15）に 入る最も よいものを 選びなさい。',opts:["行ってください","行きたいです","来てください","来たいです"],ans:3,exp:"また来たいです = want to come again. 「また（15）」= want to come again。"},
+{id:37,sec:"文法",type:"もんだい3",passage:"p_ryouri",q:'（16）に 入る最も よいものを 選びなさい。',opts:["いつも","もう","しかし","それから"],ans:3,exp:"それから = after that, then. はじめはおにぎり、それからみそしる = first onigiri, then miso soup。"},
+{id:38,sec:"文法",type:"もんだい3",passage:"p_ryouri",q:'（17）に 入る最も よいものを 選びなさい。',opts:["かんたんでした","かんたんだったからです","かんたんではありませんでした","かんたんではなかったからです"],ans:0,exp:"みそしるはかんたんでした = the miso soup was easy. Context: おにぎりは難しかったが、みそしるは（かんたんでした）。"},
+
+// もんだい4 短文読解 (Q39-40 → ぶんぽう Q18-19)
+{id:39,sec:"読解",type:"もんだい4",passage:"p_mumu",q:'このメールで、ムムさんは 大友さんに 何が 言いたいですか。',opts:["おかしを ありがとうございます。","わたしも 旅行に 行きたいです。","今、大友さんは どこに いますか。","わたしも おかしが 好きです。"],ans:0,exp:"「机の上のおかしをありがとう。おいしかったです。ごちそうさまでした」→ お菓子へのお礼を言いたい。"},
+{id:40,sec:"読解",type:"もんだい4",passage:"p_ran2",q:'「私」は 今、電車の 中で 何を しますか。',opts:["友だちと 話します。","友だちと 本を 読みます。","一人で 本を 読みます。","会社の 人と 話します。"],ans:2,exp:"「今は一人で電車で会社に行きます。会社まで1時間、本を読みながら行きます」→ 一人で本を読みます。"},
+
+// もんだい5 長文読解 (Q41-42)
+{id:41,sec:"読解",type:"もんだい5",passage:"p_ran",q:'どうして ①うれしかった ですか。',opts:["はじめて 青木山に のぼったから。","山で ぜんぜん つかれなかったから。","山で 会った 人たちと いっしょに 山に のぼったから。","山で 会った 人たちが 「私」に 「こんにちは。」と 言ったから。"],ans:3,exp:"「山で会った人たちがみんな、私に元気な声で『こんにちは。』と言いました。ちょっとうれしかったです」→ 挨拶してくれたから。"},
+{id:42,sec:"読解",type:"もんだい5",passage:"p_ran",q:'どうして ②来月また 行きたい ですか。',opts:["さくらの 花が 見たいから。","さくらでは ない ほかの花も 見たいから。","山で 会った 女の人に また会いたいから。","山で もっと たくさんの人と 話したいから。"],ans:0,exp:"「山の上は寒いですから、花はまだですよ。来月のはじめごろはきれいですよ」と言われた → さくらの花が見たいから来月また行きたい。"},
+
+// もんだい6 情報検索 (Q43)
+{id:43,sec:"読解",type:"もんだい6",passage:"p_mise",q:'ダトさんは、たまごと りんごを 安い日に 買いたいです。いつ どの店へ 行きますか。',opts:["13日に④、14日に②","13日に④、15日に①","14日に②、15日に①","14日に②、15日に④"],ans:0,exp:"たまご → ②とりのたかだ 14日(土)99円。りんご → ④スーパーやまだ 13日(金)50円。→ 13日に④、14日に②。"}
+];
+
+// Tambahkan passage untuk soal 40
+PASSAGES.p_ran2 = `学生の ころ、私は いつも 友だちと 話しながら 電車で 学校に 行っていま。今は 一人で 電車で 会社に 行きます。会社まで 1時間、本を 読みながら 行きます。今は 本が 私の 友だちです。`;
+
+// =========================================================
+// AUDIO PLAYER
+// =========================================================
+
+let audioEl = null;
+let audioStarted = false;
+
+const simTotal = 30 * 60 + 38; // 30:38
+
+function showChoukai(){
+  showScreen('choukai');
+}
+
+function toggleAudio(){
+
+  // Create audio only once
+  if(!audioEl){
+
+    audioEl = new Audio();
+
+    // =========================
+    // CHANGE THIS PATH
+    // =========================
+    audioEl.src = './audio/n520247.mp3';
+
+    // Update progress UI
+    audioEl.addEventListener('timeupdate',()=>{
+
+      updateAudioUI(
+        audioEl.currentTime,
+        audioEl.duration || simTotal
+      );
+
+    });
+
+    // Audio loaded
+    audioEl.addEventListener('loadedmetadata',()=>{
+
+      updateAudioUI(
+        0,
+        audioEl.duration || simTotal
+      );
+
+    });
+
+    // Audio ended
+    audioEl.addEventListener('ended',()=>{
+
+      audioStarted = false;
+
+      document.getElementById('play-btn').textContent='▶';
+
+      document.getElementById('play-btn').disabled=false;
+
+      document.getElementById('audio-status').textContent=
+      '✓ Audio selesai diputar';
+
+      document.getElementById('audio-status').className=
+      'audio-status ended';
+
+      updateAudioUI(
+        audioEl.duration,
+        audioEl.duration
+      );
+
+    });
+
+    // Error handling
+    audioEl.addEventListener('error',()=>{
+
+      console.error('Audio gagal dimuat');
+
+      document.getElementById('audio-status').textContent=
+      '❌ Audio tidak ditemukan';
+
+      document.getElementById('audio-status').className=
+      'audio-status ended';
+
+    });
+
+  }
+
+  // Play audio
+  if(!audioStarted){
+
+    audioEl.play();
+
+    audioStarted = true;
+
+    document.getElementById('play-btn').textContent='⏸';
+
+    document.getElementById('play-btn').disabled=true;
+
+    document.getElementById('audio-status').textContent=
+    '▶ Playing — cant be paused';
+
+    document.getElementById('audio-status').className=
+    'audio-status playing';
+
+  }
+
+}
+
+function updateAudioUI(cur,total){
+
+  const pct = (cur / total) * 100;
+
+  document.getElementById('progress-fill').style.width =
+  pct + '%';
+
+  document.getElementById('progress-dot').style.left =
+  pct + '%';
+
+  const cm = Math.floor(cur / 60);
+  const cs = Math.floor(cur % 60);
+
+  const tm = Math.floor(total / 60);
+  const ts = Math.floor(total % 60);
+
+  document.getElementById('audio-time').textContent =
+  `${String(cm).padStart(2,'0')}:${String(cs).padStart(2,'0')} / ${String(tm).padStart(2,'0')}:${String(ts).padStart(2,'0')}`;
+
+}
+
+function stopAudio(){
+
+  if(audioEl){
+
+    audioEl.pause();
+
+    audioEl.currentTime = 0;
+
+  }
+
+  audioStarted = false;
+
+  document.getElementById('play-btn').textContent='▶';
+
+  document.getElementById('play-btn').disabled=false;
+
+  document.getElementById('audio-status').textContent=
+  '⏸ Tekan play untuk memulai';
+
+  document.getElementById('audio-status').className=
+  'audio-status';
+
+  updateAudioUI(0, simTotal);
+
+}
+
+// =========================================================
+// APP LOGIC
+// =========================================================
+let currentQ=0,questions=[],answers={},startTime=null,timerInterval=null,totalSeconds=0,mode='all';
+
+function secBadgeClass(sec){
+  if(sec==="言語知識")return"badge badge-moji";
+  if(sec==="文法")return"badge badge-bunpou";
+  if(sec==="読解")return"badge badge-dokkai";
+  return"badge badge-dokkai";
+}
+function getQuestions(m){
+  if(m==='all')return[...Q];
+  if(m==='moji')return Q.filter(q=>q.sec==="言語知識");
+  if(m==='bunpou')return Q.filter(q=>q.sec==="文法");
+  if(m==='dokkai')return Q.filter(q=>q.sec==="読解");
+  return[...Q];
+}
+function getTimeLimit(m){return {all:3000,moji:1500,bunpou:1500,dokkai:3000}[m] || 3000;}
+
+function startMode(m){
+  mode=m;questions=getQuestions(m);answers={};currentQ=0;
+  startTime=Date.now();totalSeconds=getTimeLimit(m);
+  showScreen('quiz');buildProgressGrid();renderQuestion();startTimer();
+}
+function startTimer(){
+  if(timerInterval)clearInterval(timerInterval);
+  timerInterval=setInterval(()=>{
+    const elapsed=Math.floor((Date.now()-startTime)/1000);
+    const remaining=totalSeconds-elapsed;
+    if(remaining<=0){clearInterval(timerInterval);finishQuiz();return;}
+    const mm=Math.floor(remaining/60),ss=remaining%60;
+    document.getElementById('timer-text').textContent=`${mm}:${ss.toString().padStart(2,'0')}`;
+    const pct=(remaining/totalSeconds)*100;
+    const fill=document.getElementById('timer-fill');
+    fill.style.width=pct+'%';
+    fill.className='timer-fill'+(pct<25?' danger':pct<50?' warn':'');
+  },500);
+}
+function buildProgressGrid(){
+  const g=document.getElementById('prog-grid');g.innerHTML='';
+  questions.forEach((_,i)=>{
+    const d=document.createElement('div');
+    d.className='prog-dot'+(i===currentQ?' current':'');
+    d.textContent=i+1;d.onclick=()=>goToQ(i);d.id='pd-'+i;
+    g.appendChild(d);
+  });
+}
+function goToQ(i){currentQ=i;renderQuestion();}
+function renderQuestion(){
+  const q=questions[currentQ];
+  const secBadge=document.getElementById('q-sec-badge');
+  secBadge.className=secBadgeClass(q.sec);secBadge.textContent=q.sec;
+  document.getElementById('q-type-badge').textContent=q.type;
+  document.getElementById('q-num').textContent=`問 ${currentQ+1} / ${questions.length}`;
+  const correct=Object.values(answers).filter(a=>a.correct).length;
+  document.getElementById('q-score-live').textContent=`正解: ${correct}`;
+  const passageCard=document.getElementById('passage-card');
+  const passageText=document.getElementById('passage-text');
+  if(q.passage&&PASSAGES[q.passage]){
+    passageCard.style.display='block';
+    passageText.innerHTML=PASSAGES[q.passage].split('\n').map(line=>line.trim()?`<p>${line}</p>`:'').join('');
+  } else {passageCard.style.display='none';}
+  document.getElementById('q-text').innerHTML=q.q;
+  const opts=document.getElementById('options');opts.innerHTML='';
+  q.opts.forEach((o,i)=>{
+    const b=document.createElement('button');
+    b.className='option-btn';
+    b.innerHTML=`<span style="font-family:var(--mono);color:var(--muted);margin-right:8px;">${i+1}.</span>${o}`;
+    const ans=answers[currentQ];
+    if(ans){
+      b.disabled=true;
+      if(i===q.ans)b.classList.add('correct');
+      else if(i===ans.chosen)b.classList.add('wrong');
+    } else {b.onclick=()=>selectAnswer(i);}
+    opts.appendChild(b);
+  });
+  const exp=document.getElementById('explanation');
+  if(answers[currentQ]){exp.style.display='block';exp.textContent='💡 解説: '+q.exp;}
+  else{exp.style.display='none';}
+  document.getElementById('next-btn').disabled=!answers[currentQ];
+  updateProgDots();
+}
+function selectAnswer(i){
+  const q=questions[currentQ];
+  answers[currentQ]={chosen:i,correct:i===q.ans};
+  const pd=document.getElementById('pd-'+currentQ);
+  if(pd)pd.classList.add(answers[currentQ].correct?'correct':'wrong');
+  renderQuestion();
+  document.getElementById('next-btn').disabled=false;
+}
+function updateProgDots(){
+  questions.forEach((_,i)=>{
+    const d=document.getElementById('pd-'+i);if(!d)return;
+    d.className='prog-dot';
+    if(answers[i])d.classList.add(answers[i].correct?'correct':'wrong');
+    if(i===currentQ)d.classList.add('current');
+  });
+}
+function nextQ(){if(currentQ<questions.length-1){currentQ++;renderQuestion();}}
+function prevQ(){if(currentQ>0){currentQ--;renderQuestion();}}
+function finishQuiz(){
+  if(timerInterval)clearInterval(timerInterval);
+  const elapsed=Math.floor((Date.now()-startTime)/1000);
+  showScreen('result');
+  const done=Object.keys(answers).length;
+  const correct=Object.values(answers).filter(a=>a.correct).length;
+  const wrong=done-correct;
+  const pct=done>0?Math.round((correct/done)*100):0;
+  const mm=Math.floor(elapsed/60),ss=elapsed%60;
+  document.getElementById('r-correct').textContent=correct;
+  document.getElementById('r-wrong').textContent=wrong;
+  document.getElementById('r-pct').textContent=pct+'%';
+  document.getElementById('r-time').textContent=mm+'m'+ss+'s';
+  document.getElementById('res-date').textContent=new Date().toLocaleString('id-ID');
+  const secMap={};
+  questions.forEach((q,i)=>{
+    if(!secMap[q.sec])secMap[q.sec]={correct:0,total:0};
+    secMap[q.sec].total++;
+    if(answers[i]&&answers[i].correct)secMap[q.sec].correct++;
+  });
+  let secHtml='';
+  const secColors={'文字・語彙':'badge-moji','文法':'badge-bunpou','読解':'badge-dokkai'};
+  Object.entries(secMap).forEach(([sec,data])=>{
+    const p=data.total>0?Math.round((data.correct/data.total)*100):0;
+    const bClass=secColors[sec]||'badge-type';
+    secHtml+=`<div class="section-result">
+      <span class="badge ${bClass}">${sec}</span>
+      <span style="color:var(--muted)">${data.correct} / ${data.total}</span>
+      <span class="badge" style="background:${p>=60?'rgba(25,195,125,.18)':p>=40?'rgba(255,181,71,.18)':'rgba(255,95,115,.15)'};color:${p>=60?'var(--success)':p>=40?'var(--warning)':'var(--danger)'};border:1px solid ${p>=60?'rgba(25,195,125,.3)':p>=40?'rgba(255,181,71,.3)':'rgba(255,95,115,.25)'}">${p}%</span>
+    </div>`;
+  });
+  document.getElementById('section-results').innerHTML=secHtml;
+  const pm=secMap['言語知識']?Math.round((secMap['言語知識'].correct/secMap['言語知識'].total)*100):0;
+  const pb=secMap['文法・読解']?Math.round((secMap['文法・読解'].correct/secMap['文法・読解'].total)*100):0;
+  const willPass=pct>=60&&pm>=50&&pb>=50;
+  const banner=document.getElementById('pass-banner');
+  banner.className='pass-banner '+(willPass?'pass':'fail');
+  document.getElementById('pass-text').textContent=willPass?'✓ Prediksi: LULUS JLPT N5':'✗ Prediksi: Perlu latihan lebih';
+  document.getElementById('pass-sub').textContent=`Akurasi: ${pct}% | Target: ≥60% keseluruhan & ≥50% per seksi`;
+  const daysLeft=Math.max(0,Math.floor((new Date('2026-07-05')-new Date())/86400000));
+  let predHtml=`📝 言語知識: ${pm}% ${pm>=60?'✓ Baik':pm>=50?'△ Cukup':'✗ Perlu ditingkatkan'}<br>`;
+  predHtml+=`📐 文法・読解: ${pb}% ${pb>=60?'✓ Baik':pb>=50?'△ Cukup':'✗ Perlu ditingkatkan'}<br><br>`;
+  predHtml+=`⏰ Sisa ke JLPT Juli 2026: <strong style="color:var(--text)">${daysLeft} hari</strong><br>`;
+  if(!willPass){
+    const weakest=Object.entries(secMap).sort((a,b)=>(a[1].correct/a[1].total)-(b[1].correct/b[1].total))[0];
+    predHtml+=`💡 Fokus latihan: <strong style="color:var(--text)">${weakest[0]}</strong>`;
+  } else {predHtml+='🎉 Pertahankan dan latihan soal tahun-tahun lain!';}
+  document.getElementById('prediction-detail').innerHTML=predHtml;
+  document.getElementById('hs-done').textContent=done;
+  document.getElementById('hs-score').textContent=pct+'%';
+  document.getElementById('hs-pred').textContent=willPass?'LULUS':'GAGAL';
+}
+function reviewAnswers(){currentQ=0;showScreen('quiz');buildProgressGrid();renderQuestion();}
+function goHome(){showScreen('home');}
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// Load audio file from same directory (uploaded file)
+window.addEventListener('DOMContentLoaded', ()=>{
+  // Attempt to detect if an actual audio file is available
+  // The audio player is set up for simulation; 
+  // if user places the actual audio file alongside this HTML,
+  // it can be loaded by updating the src below
+  const possibleAudioFiles = [
+    'choukai_n5_2024_07.mp3',
+    'choukai_n5_2024_07.m4a', 
+    'N5_choukai_2024.mp3',
+    'audio.mp3'
+  ];
+  
+  // The play button uses simulation by default
+  // To use real audio, set: audioEl.src = 'your_audio_file.mp3'
+});
+</script>
+
+<script>
+// ===== PARTICLE BACKGROUND =====
+const canvas=document.getElementById('bg-canvas');
+const ctx=canvas.getContext('2d');
+function resize(){canvas.width=window.innerWidth;canvas.height=window.innerHeight;}
+resize();window.addEventListener('resize',resize);
+const particles=[];
+for(let i=0;i<70;i++){particles.push({x:Math.random()*canvas.width,y:Math.random()*canvas.height,r:Math.random()*1.8+0.5,dx:(Math.random()-.5)*.35,dy:(Math.random()-.5)*.35});}
+function animate(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  particles.forEach(p=>{
+    p.x+=p.dx;p.y+=p.dy;
+    if(p.x<0||p.x>canvas.width)p.dx*=-1;
+    if(p.y<0||p.y>canvas.height)p.dy*=-1;
+    ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+    ctx.fillStyle='rgba(100,160,255,.6)';ctx.fill();
+  });
+  requestAnimationFrame(animate);
+}
+animate();
+</script>
+
+<!-- 
+  CATATAN AUDIO:
+  File audio choukai harus diletakkan di folder yang sama dengan file HTML ini.
+  Rename file audio menjadi salah satu dari: choukai_n5_2024_07.mp3 / audio.mp3
+  Lalu update baris: audioEl.src = 'nama_file_audio.mp3' di dalam fungsi toggleAudio()
+  
+  Saat ini audio player menjalankan SIMULASI TIMER 30:38 tanpa audio asli.
+  Setelah audio asli ditambahkan, hapus simulasi dan ganti dengan:
+  
+  function toggleAudio(){
+    if(!audioEl){
+      audioEl = new Audio('nama_file_audio.mp3');
+      audioEl.ontimeupdate = () => updateAudioUI(audioEl.currentTime, audioEl.duration);
+      audioEl.onended = () => { ... };
+    }
+    audioEl.play(); // tidak ada pause
+    document.getElementById('play-btn').disabled = true;
+  }
+-->
+</body>
+</html>
