@@ -9,71 +9,220 @@
 <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#080d1a;--bg2:#0e1525;--card:#111c38;--card2:#172247;
-  --border:#1e2f58;--text:#eef2ff;--muted:#8ba0cc;
-  --primary:#6c9dff;--success:#1acc85;--danger:#ff4f68;--warning:#ffb84a;
+  --bg:#0b1020;--bg2:#121a2f;--card:#18233f;--card2:#1f2d52;
+  --border:#2b3a63;--text:#f1f5ff;--muted:#9fb0d3;
+  --primary:#5aa9ff;--success:#19c37d;--danger:#ff5f73;--warning:#ffb547;
   --font:'Zen Kaku Gothic New',sans-serif;--mono:'JetBrains Mono',monospace;
 }
 *{margin:0;padding:0;box-sizing:border-box;}
 body{
-  background:radial-gradient(ellipse at top left,#0f2450 0%,transparent 50%),
-             radial-gradient(ellipse at bottom right,#1a0d38 0%,transparent 45%),var(--bg);
+  background:radial-gradient(ellipse at top left,#1a2d5a 0%,transparent 45%),
+             radial-gradient(ellipse at bottom right,#231440 0%,transparent 40%),var(--bg);
   color:var(--text);font-family:var(--font);min-height:100vh;padding:16px;
 }
-.app{max-width:720px;margin:0 auto;position:relative;z-index:1;}
+.app{max-width:720px;margin:0 auto;}
 .screen{display:none;}.screen.active{display:block;}
-.header{background:rgba(17,28,56,.9);backdrop-filter:blur(14px);border:1px solid var(--border);border-radius:20px;padding:22px 24px;margin-bottom:14px;}
+.header{background:rgba(24,35,63,.85);backdrop-filter:blur(12px);border:1px solid var(--border);border-radius:20px;padding:22px 24px;margin-bottom:14px;}
 h1{font-size:22px;font-weight:700;letter-spacing:.02em;margin-bottom:3px;}
 h2{font-size:15px;font-weight:500;margin-bottom:10px;}
 .muted{color:var(--muted);font-size:13px;}
 .stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;}
-.stat-card{background:rgba(17,28,56,.7);border:1px solid var(--border);border-radius:14px;padding:12px 10px;text-align:center;}
+.stat-card{background:rgba(24,35,63,.7);border:1px solid var(--border);border-radius:14px;padding:12px 10px;text-align:center;}
 .stat-num{font-size:21px;font-weight:700;color:var(--text);}
 .stat-lbl{font-size:10px;color:var(--muted);margin-top:3px;letter-spacing:.04em;}
-.mode-btn{width:100%;text-align:left;padding:14px 18px;border-radius:16px;border:1px solid var(--border);background:rgba(17,28,56,.7);color:var(--text);cursor:pointer;font-size:14px;font-family:var(--font);margin-bottom:10px;transition:all .18s;line-height:1.6;}
-.mode-btn:hover{background:var(--card2);border-color:#4060aa;transform:translateY(-1px);}
-.card{background:rgba(17,28,56,.88);backdrop-filter:blur(8px);border:1px solid var(--border);border-radius:18px;padding:18px 20px;margin-bottom:12px;}
+.mode-btn{width:100%;text-align:left;padding:14px 18px;border-radius:16px;border:1px solid var(--border);background:rgba(24,35,63,.7);color:var(--text);cursor:pointer;font-size:14px;font-family:var(--font);margin-bottom:10px;transition:all .18s;line-height:1.6;}
+.mode-btn:hover{background:var(--card2);border-color:#4a6aaa;transform:translateY(-1px);}
+.card{background:rgba(24,35,63,.85);backdrop-filter:blur(8px);border:1px solid var(--border);border-radius:18px;padding:18px 20px;margin-bottom:12px;}
 .badge{display:inline-block;padding:3px 11px;border-radius:99px;font-size:11px;font-weight:600;letter-spacing:.03em;}
-.badge-moji{background:rgba(108,157,255,.18);color:#6c9dff;border:1px solid rgba(108,157,255,.3);}
-.badge-bunpou{background:rgba(160,100,255,.18);color:#b87dff;border:1px solid rgba(160,100,255,.3);}
-.badge-dokkai{background:rgba(26,204,133,.18);color:#1acc85;border:1px solid rgba(26,204,133,.3);}
+.badge-moji{background:rgba(90,169,255,.18);color:#5aa9ff;border:1px solid rgba(90,169,255,.3);}
+.badge-bunpou{background:rgba(124,77,255,.18);color:#a87bff;border:1px solid rgba(124,77,255,.3);}
+.badge-dokkai{background:rgba(25,195,125,.18);color:#19c37d;border:1px solid rgba(25,195,125,.3);}
 .badge-type{background:rgba(255,255,255,.07);color:var(--muted);border:1px solid rgba(255,255,255,.1);}
-.badge-n1{background:linear-gradient(135deg,rgba(255,184,74,.2),rgba(255,100,80,.15));color:#ffb84a;border:1px solid rgba(255,184,74,.3);font-size:12px;padding:4px 14px;}
 .timer-bar{height:5px;background:rgba(255,255,255,.07);border-radius:99px;overflow:hidden;margin:10px 0 6px;}
-.timer-fill{height:100%;background:linear-gradient(90deg,#6c9dff,#b87dff);border-radius:99px;transition:width .5s linear;}
-.timer-fill.warn{background:linear-gradient(90deg,var(--warning),#e07000);}
-.timer-fill.danger{background:linear-gradient(90deg,var(--danger),#a00020);}
+.timer-fill{height:100%;background:linear-gradient(90deg,#5aa9ff,#7c4dff);border-radius:99px;transition:width .5s linear;}
+.timer-fill.warn{background:linear-gradient(90deg,var(--warning),#f57c00);}
+.timer-fill.danger{background:linear-gradient(90deg,var(--danger),#c0392b);}
 .progress-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(30px,1fr));gap:4px;margin-bottom:12px;}
 .prog-dot{height:30px;border-radius:8px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--muted);cursor:pointer;transition:all .12s;font-family:var(--mono);}
-.prog-dot:hover{border-color:#4060aa;}
+.prog-dot:hover{border-color:#4a6aaa;}
 .prog-dot.current{border:2px solid var(--primary);color:var(--text);font-weight:600;}
-.prog-dot.correct{background:rgba(26,204,133,.25);border-color:var(--success);color:var(--success);}
-.prog-dot.wrong{background:rgba(255,79,104,.2);border-color:var(--danger);color:var(--danger);}
+.prog-dot.correct{background:rgba(25,195,125,.25);border-color:var(--success);color:var(--success);}
+.prog-dot.wrong{background:rgba(255,95,115,.2);border-color:var(--danger);color:var(--danger);}
 .passage-label{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;}
-.passage-box{background:rgba(8,13,26,.65);border-left:3px solid var(--primary);border-radius:0 12px 12px 0;padding:14px 18px;font-size:13.5px;line-height:2;color:rgba(238,242,255,.85);}
+.passage-box{background:rgba(11,16,32,.6);border-left:3px solid var(--primary);border-radius:0 12px 12px 0;padding:14px 18px;font-size:13.5px;line-height:2;color:rgba(241,245,255,.85);}
 .passage-box p{margin-bottom:.5em;}.passage-box p:last-child{margin-bottom:0;}
 .q-text{font-size:15px;line-height:1.9;color:var(--text);margin-bottom:14px;}
 .q-text u{text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1.5px;text-decoration-color:var(--primary);}
-.option-btn{width:100%;text-align:left;padding:11px 16px;border-radius:12px;border:1px solid var(--border);background:rgba(14,21,37,.6);color:var(--text);cursor:pointer;font-size:13.5px;font-family:var(--font);margin-bottom:7px;transition:all .15s;line-height:1.7;}
-.option-btn:hover:not(:disabled){background:var(--card2);border-color:#4060aa;}
-.option-btn.correct{background:rgba(26,204,133,.18);border-color:var(--success);color:#90f0c8;}
-.option-btn.wrong{background:rgba(255,79,104,.15);border-color:var(--danger);color:#ffaab8;}
+.option-btn{width:100%;text-align:left;padding:11px 16px;border-radius:12px;border:1px solid var(--border);background:rgba(18,26,47,.6);color:var(--text);cursor:pointer;font-size:13.5px;font-family:var(--font);margin-bottom:7px;transition:all .15s;line-height:1.7;}
+.option-btn:hover:not(:disabled){background:var(--card2);border-color:#4a6aaa;}
+.option-btn.correct{background:rgba(25,195,125,.18);border-color:var(--success);color:#a0f5d3;}
+.option-btn.wrong{background:rgba(255,95,115,.15);border-color:var(--danger);color:#ffb3be;}
 .option-btn:disabled{cursor:default;}
-.explanation{background:rgba(8,13,26,.5);border-radius:10px;padding:10px 14px;font-size:12.5px;color:var(--muted);margin-top:8px;line-height:1.7;border-left:2px solid var(--warning);}
+.explanation{background:rgba(11,16,32,.5);border-radius:10px;padding:10px 14px;font-size:12.5px;color:var(--muted);margin-top:8px;line-height:1.7;border-left:2px solid var(--warning);}
 .row{display:flex;align-items:center;gap:8px;margin-top:8px;}
 .spacer{flex:1;}
-.nav-btn{padding:9px 20px;border-radius:11px;border:1px solid var(--border);background:rgba(17,28,56,.7);color:var(--text);cursor:pointer;font-size:13px;font-family:var(--font);transition:all .15s;}
+.nav-btn{padding:9px 20px;border-radius:11px;border:1px solid var(--border);background:rgba(24,35,63,.7);color:var(--text);cursor:pointer;font-size:13px;font-family:var(--font);transition:all .15s;}
 .nav-btn:hover{background:var(--card2);}
-.nav-btn.finish{background:rgba(255,79,104,.18);border-color:var(--danger);color:var(--danger);}
-.nav-btn.finish:hover{background:rgba(255,79,104,.3);}
+.nav-btn.finish{background:rgba(255,95,115,.18);border-color:var(--danger);color:var(--danger);}
+.nav-btn.finish:hover{background:rgba(255,95,115,.3);}
 .nav-btn:disabled{opacity:.35;cursor:not-allowed;}
 .pass-banner{border-radius:16px;padding:16px;text-align:center;margin:12px 0;}
-.pass-banner.pass{background:rgba(26,204,133,.15);border:1px solid rgba(26,204,133,.3);}
-.pass-banner.fail{background:rgba(255,79,104,.1);border:1px solid rgba(255,79,104,.22);}
-.section-result{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:13px;}
+.pass-banner.pass{background:rgba(25,195,125,.18);border:1px solid rgba(25,195,125,.3);}
+.pass-banner.fail{background:rgba(255,95,115,.12);border:1px solid rgba(255,95,115,.25);}
+.section-result{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:13px;}
 .section-result:last-child{border-bottom:none;}
-.info-note{background:rgba(255,184,74,.07);border:1px solid rgba(255,184,74,.2);border-radius:12px;padding:10px 14px;font-size:12px;color:rgba(255,184,74,.8);margin-bottom:10px;}
-canvas{position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.3;}
+.info-note{background:rgba(255,181,71,.07);border:1px solid rgba(255,181,71,.2);border-radius:12px;padding:10px 14px;font-size:12px;color:rgba(255,181,71,.8);margin-bottom:10px;}
+canvas{position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.35;}
+.app{position:relative;z-index:1;}
+
+.section-percentages{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+    gap:15px;
+    margin-top:20px;
+}
+
+.section-box{
+    background:#16213e;
+    border:1px solid #2e4a7d;
+    border-radius:14px;
+    padding:18px;
+    text-align:center;
+}
+
+.section-title{
+    font-size:18px;
+    margin-bottom:10px;
+}
+
+.section-percent{
+    font-size:34px;
+    font-weight:bold;
+    color:#60a5fa;
+}
+
+.section-score{
+    margin-top:8px;
+    color:#cbd5e1;
+}
+
+@media print{
+
+    body{
+        background:white !important;
+        color:black !important;
+    }
+
+    #home,
+    .floating-btn,
+    .nav-btn{
+        display:none !important;
+    }
+
+    .result-card,
+    .section-box{
+        break-inside:avoid;
+    }
+}
+
+
+
+#print-pdf-btn{
+    position:fixed;
+    right:24px;
+    bottom:24px;
+    border:1px solid rgba(96,165,250,.22);
+    border-radius:18px;
+    background:#142349;
+    color:white;
+    padding:14px 18px;
+    display:none;
+    align-items:center;
+    gap:12px;
+    cursor:pointer;
+    z-index:999999;
+    box-shadow:0 10px 30px rgba(0,0,0,.25);
+    font-weight:700;
+    font-size:15px;
+    transition:.2s ease;
+}
+
+#print-pdf-btn:hover{
+    transform:translateY(-2px);
+    background:#1a2d5d;
+}
+
+#print-pdf-btn.show{
+    display:flex;
+}
+
+.pdf-svg{
+    width:22px;
+    height:22px;
+    opacity:.95;
+}
+
+.pdf-text{
+    letter-spacing:.2px;
+}
+
+@media print{
+    #print-pdf-btn{
+        display:none !important;
+    }
+}
+
+}
+
+
+
+#print-pdf-btn{
+    position:fixed;
+    right:24px;
+    bottom:24px;
+    border:1px solid rgba(96,165,250,.22);
+    border-radius:18px;
+    background:#142349;
+    color:white;
+    padding:14px 18px;
+    display:none;
+    align-items:center;
+    gap:12px;
+    cursor:pointer;
+    z-index:999999;
+    box-shadow:0 10px 30px rgba(0,0,0,.25);
+    font-weight:700;
+    font-size:15px;
+    transition:.2s ease;
+}
+
+#print-pdf-btn:hover{
+    transform:translateY(-2px);
+    background:#1a2d5d;
+}
+
+#print-pdf-btn.show{
+    display:flex;
+}
+
+.pdf-svg{
+    width:22px;
+    height:22px;
+    opacity:.95;
+}
+
+.pdf-text{
+    letter-spacing:.2px;
+}
+
+@media print{
+    #print-pdf-btn{
+        display:none !important;
+    }
+}
+
+}
+
 </style>
 </head>
 <body>
@@ -130,6 +279,12 @@ canvas{position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.3;}
   </div>
   <div class="row">
     <button class="nav-btn" onclick="prevQ()">← Back</button>
+	
+	 <button class="nav-btn" onclick="saveSessionManual()">💾 Save</button>
+
+    <button class="nav-btn" onclick="loadSessionManual()">📂 Load</button>
+
+    <button class="nav-btn" onclick="deleteSessionManual()">🗑 Delete</button>
     <div class="spacer"></div>
     <button class="nav-btn" id="next-btn" onclick="nextQ()" disabled>Next →</button>
     <button class="nav-btn finish" onclick="finishQuiz()">Selesai</button>
@@ -565,6 +720,640 @@ function animate(){
   requestAnimationFrame(animate);
 }
 animate();
+
+
+
+// =========================================================
+// SESSION SAVE SYSTEM
+// =========================================================
+const SESSION_KEY = "jlpt_exam_session";
+
+function saveSession(){
+
+  try{
+
+    const data = {
+      mode,
+      current,
+      answers,
+      score,
+      remaining,
+      reviewMode
+    };
+
+    localStorage.setItem(
+      SESSION_KEY,
+      JSON.stringify(data)
+    );
+
+  }catch(err){
+    console.error(err);
+  }
+}
+
+function loadSession(){
+
+  try{
+
+    const raw =
+      localStorage.getItem(
+        SESSION_KEY
+      );
+
+    if(!raw) return false;
+
+    const data =
+      JSON.parse(raw);
+
+    if(data.mode) mode = data.mode;
+    if(data.current !== undefined) current = data.current;
+    if(data.answers) answers = data.answers;
+    if(data.score !== undefined) score = data.score;
+    if(data.remaining !== undefined) remaining = data.remaining;
+    if(data.reviewMode !== undefined) reviewMode = data.reviewMode;
+
+    if(typeof buildCurrentQuestions === "function"){
+      buildCurrentQuestions();
+    }
+
+    if(typeof showScreen === "function"){
+      showScreen("quiz");
+    }else{
+      const home = document.getElementById("home");
+      const quiz = document.getElementById("quiz");
+
+      if(home) home.classList.remove("active");
+      if(quiz) quiz.classList.add("active");
+    }
+
+    if(typeof renderQuestion === "function"){
+      renderQuestion();
+    }
+
+    if(typeof startTimer === "function"){
+      startTimer();
+    }
+
+    alert("Session berhasil dimuat dari halaman terakhir!");
+
+    return true;
+
+  }catch(err){
+
+    console.error(err);
+
+    return false;
+  }
+}
+
+function clearSession(){
+
+  localStorage.removeItem(
+    SESSION_KEY
+  );
+}
+
+function saveSessionManual(){
+
+  saveSession();
+
+  alert(
+    "Progress berhasil disimpan!"
+  );
+}
+
+function loadSessionManual(){
+
+  const ok =
+    loadSession();
+
+  if(!ok){
+
+    alert(
+      "Tidak ada session tersimpan."
+    );
+  }
+}
+
+function deleteSessionManual(){
+
+  const yes =
+    confirm(
+      "Hapus session tersimpan?"
+    );
+
+  if(!yes) return;
+
+  clearSession();
+
+  alert(
+    "Session berhasil dihapus."
+  );
+}
+
+window.addEventListener(
+  "beforeunload",
+  () => {
+
+    saveSession();
+  }
+);
+
+window.addEventListener(
+  "load",
+  () => {
+
+    const hasSession =
+      localStorage.getItem(
+        SESSION_KEY
+      );
+
+    if(!hasSession) return;
+
+    setTimeout(() => {
+
+      const restore =
+        confirm(
+          "Lanjutkan ujian terakhir?"
+        );
+
+      if(restore){
+
+        loadSession();
+
+        setTimeout(() => {
+
+          if(typeof renderQuestion === "function"){
+            renderQuestion();
+          }
+
+        }, 200);
+      }
+
+    }, 500);
+
+  }
+);
+
+
+// =========================================================
+// PRINT RESULT PDF
+// =========================================================
+function printResultPDF(){
+
+    window.print();
+}
+
+// =========================================================
+// SECTION PERCENTAGES
+// =========================================================
+function calculateSectionPercentages(){
+
+    try{
+
+        const resultEl =
+            document.getElementById(
+                "section-percentages"
+            );
+
+        if(!resultEl) return;
+
+        let html = "";
+
+        const sections = [
+            {
+                name: "文字・語彙",
+                correct: typeof vocabCorrect !== "undefined" ? vocabCorrect : 0,
+                total: typeof vocabTotal !== "undefined" ? vocabTotal : 35
+            },
+            {
+                name: "文法",
+                correct: typeof grammarCorrect !== "undefined" ? grammarCorrect : 0,
+                total: typeof grammarTotal !== "undefined" ? grammarTotal : 18
+            },
+            {
+                name: "読解",
+                correct: typeof readingCorrect !== "undefined" ? readingCorrect : 0,
+                total: typeof readingTotal !== "undefined" ? readingTotal : 20
+            }
+        ];
+
+        sections.forEach(sec => {
+
+            const percent =
+                sec.total > 0
+                ? Math.round(
+                    (sec.correct / sec.total) * 100
+                  )
+                : 0;
+
+            html += `
+                <div class="section-box">
+                    <div class="section-title">
+                        ${sec.name}
+                    </div>
+
+                    <div class="section-percent">
+                        ${percent}%
+                    </div>
+
+                    <div class="section-score">
+                        ${sec.correct} / ${sec.total}
+                    </div>
+                </div>
+            `;
+        });
+
+        resultEl.innerHTML = html;
+
+    }catch(err){
+
+        console.error(err);
+    }
+}
+
 </script>
+<script>
+const canvas=document.getElementById('bg-canvas');
+const ctx=canvas.getContext('2d');
+function resize(){canvas.width=window.innerWidth;canvas.height=window.innerHeight;}
+resize();window.addEventListener('resize',resize);
+const particles=[];
+for(let i=0;i<70;i++){particles.push({x:Math.random()*canvas.width,y:Math.random()*canvas.height,r:Math.random()*1.8+0.5,dx:(Math.random()-.5)*.35,dy:(Math.random()-.5)*.35});}
+function animate(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  particles.forEach(p=>{
+    p.x+=p.dx;p.y+=p.dy;
+    if(p.x<0||p.x>canvas.width)p.dx*=-1;
+    if(p.y<0||p.y>canvas.height)p.dy*=-1;
+    ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+    ctx.fillStyle='rgba(100,160,255,.6)';ctx.fill();
+  });
+  requestAnimationFrame(animate);
+}
+animate();
+
+// =========================================================
+// SESSION SAVE SYSTEM
+// =========================================================
+const SESSION_KEY = "jlpt_exam_session";
+
+function saveSession(){
+
+  try{
+
+    const data = {
+      mode,
+      current,
+      answers,
+      score,
+      remaining,
+      reviewMode
+    };
+
+    localStorage.setItem(
+      SESSION_KEY,
+      JSON.stringify(data)
+    );
+
+  }catch(err){
+    console.error(err);
+  }
+}
+
+function loadSession(){
+
+  try{
+
+    const raw =
+      localStorage.getItem(
+        SESSION_KEY
+      );
+
+    if(!raw) return false;
+
+    const data =
+      JSON.parse(raw);
+
+    if(data.mode) mode = data.mode;
+    if(data.current !== undefined) current = data.current;
+    if(data.answers) answers = data.answers;
+    if(data.score !== undefined) score = data.score;
+    if(data.remaining !== undefined) remaining = data.remaining;
+    if(data.reviewMode !== undefined) reviewMode = data.reviewMode;
+
+    if(typeof buildCurrentQuestions === "function"){
+      buildCurrentQuestions();
+    }
+
+    if(typeof showScreen === "function"){
+      showScreen("quiz");
+    }else{
+      const home = document.getElementById("home");
+      const quiz = document.getElementById("quiz");
+
+      if(home) home.classList.remove("active");
+      if(quiz) quiz.classList.add("active");
+    }
+
+    if(typeof renderQuestion === "function"){
+      renderQuestion();
+    }
+
+    if(typeof startTimer === "function"){
+      startTimer();
+    }
+
+    alert("Session berhasil dimuat dari halaman terakhir!");
+
+    return true;
+
+  }catch(err){
+
+    console.error(err);
+
+    return false;
+  }
+}
+
+function clearSession(){
+
+  localStorage.removeItem(
+    SESSION_KEY
+  );
+}
+
+function saveSessionManual(){
+
+  saveSession();
+
+  alert(
+    "Progress berhasil disimpan!"
+  );
+}
+
+function loadSessionManual(){
+
+  const ok =
+    loadSession();
+
+  if(!ok){
+
+    alert(
+      "Tidak ada session tersimpan."
+    );
+  }
+}
+
+function deleteSessionManual(){
+
+  const yes =
+    confirm(
+      "Hapus session tersimpan?"
+    );
+
+  if(!yes) return;
+
+  clearSession();
+
+  alert(
+    "Session berhasil dihapus."
+  );
+}
+
+window.addEventListener(
+  "beforeunload",
+  () => {
+
+    saveSession();
+  }
+);
+
+window.addEventListener(
+  "load",
+  () => {
+
+    const hasSession =
+      localStorage.getItem(
+        SESSION_KEY
+      );
+
+    if(!hasSession) return;
+
+    setTimeout(() => {
+
+      const restore =
+        confirm(
+          "Lanjutkan ujian terakhir?"
+        );
+
+      if(restore){
+
+        loadSession();
+
+        setTimeout(() => {
+
+          if(typeof renderQuestion === "function"){
+            renderQuestion();
+          }
+
+        }, 200);
+      }
+
+    }, 500);
+
+  }
+);
+
+
+// =========================================================
+// PRINT RESULT PDF
+// =========================================================
+function printResultPDF(){
+
+    window.print();
+}
+
+// =========================================================
+// SECTION PERCENTAGES
+// =========================================================
+function calculateSectionPercentages(){
+
+    try{
+
+        const resultEl =
+            document.getElementById(
+                "section-percentages"
+            );
+
+        if(!resultEl) return;
+
+        let html = "";
+
+        const sections = [
+            {
+                name: "文字・語彙",
+                correct: typeof vocabCorrect !== "undefined" ? vocabCorrect : 0,
+                total: typeof vocabTotal !== "undefined" ? vocabTotal : 35
+            },
+            {
+                name: "文法",
+                correct: typeof grammarCorrect !== "undefined" ? grammarCorrect : 0,
+                total: typeof grammarTotal !== "undefined" ? grammarTotal : 18
+            },
+            {
+                name: "読解",
+                correct: typeof readingCorrect !== "undefined" ? readingCorrect : 0,
+                total: typeof readingTotal !== "undefined" ? readingTotal : 20
+            }
+        ];
+
+        sections.forEach(sec => {
+
+            const percent =
+                sec.total > 0
+                ? Math.round(
+                    (sec.correct / sec.total) * 100
+                  )
+                : 0;
+
+            html += `
+                <div class="section-box">
+                    <div class="section-title">
+                        ${sec.name}
+                    </div>
+
+                    <div class="section-percent">
+                        ${percent}%
+                    </div>
+
+                    <div class="section-score">
+                        ${sec.correct} / ${sec.total}
+                    </div>
+                </div>
+            `;
+        });
+
+        resultEl.innerHTML = html;
+
+    }catch(err){
+
+        console.error(err);
+    }
+}
+
+</script>
+
+
+<button id="print-pdf-btn" onclick="printResultPDF()">
+
+    <svg
+        class="pdf-svg"
+        xmlns="http://www.w3.org/2000/svg"
+        width="22"
+        height="22"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+    >
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="7 10 12 15 17 10"/>
+        <line x1="12" y1="15" x2="12" y2="3"/>
+    </svg>
+
+    <span class="pdf-text">
+        Save PDF
+    </span>
+
+</button>
+
+
+
+<script>
+(function(){
+const originalShowScreen = window.showScreen;
+
+window.showScreen = function(id){
+    if(originalShowScreen){
+        originalShowScreen(id);
+    }else{
+        document.querySelectorAll('.screen').forEach(el=>el.classList.remove('active'));
+        document.getElementById(id)?.classList.add('active');
+    }
+
+    const btn = document.getElementById('print-pdf-btn');
+    if(btn){
+        if(id === 'result'){
+            btn.classList.add('show');
+        }else{
+            btn.classList.remove('show');
+        }
+    }
+};
+})();
+</script>
+
+</body>
+</html>
+<script>
+document.addEventListener("DOMContentLoaded",()=>{
+
+    const oldStartExam = window.startMode || window.startExam;
+
+    function hidePdfButton(){
+        const btn = document.getElementById("print-pdf-btn");
+        if(btn){
+            btn.classList.remove("show");
+        }
+    }
+
+    hidePdfButton();
+
+    document.addEventListener("click",(e)=>{
+
+        if(
+            e.target.closest(".mode-btn") ||
+            e.target.closest(".nav-btn")
+        ){
+            if(
+                !e.target.innerText.includes("Selesai")
+            ){
+                hidePdfButton();
+            }
+        }
+
+    });
+
+});
+
+</script>
+
+<script>
+(function(){
+const originalShowScreen = window.showScreen;
+
+window.showScreen = function(id){
+    if(originalShowScreen){
+        originalShowScreen(id);
+    }else{
+        document.querySelectorAll('.screen').forEach(el=>el.classList.remove('active'));
+        document.getElementById(id)?.classList.add('active');
+    }
+
+    const btn = document.getElementById('print-pdf-btn');
+    if(btn){
+        if(id === 'result'){
+            btn.classList.add('show');
+        }else{
+            btn.classList.remove('show');
+        }
+    }
+};
+})();
+</script>
+
 </body>
 </html>

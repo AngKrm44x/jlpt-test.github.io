@@ -75,6 +75,46 @@ h2{font-size:15px;font-weight:500;margin-bottom:10px;}
 canvas{position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.35;}
 .app{position:relative;z-index:1;}
 </style>
+
+<style>
+#print-pdf-btn{
+    position:fixed;
+    right:24px;
+    bottom:24px;
+    border:1px solid rgba(96,165,250,.22);
+    border-radius:18px;
+    background:#142349;
+    color:white;
+    padding:14px 18px;
+    display:none;
+    align-items:center;
+    gap:12px;
+    cursor:pointer;
+    z-index:999999;
+    box-shadow:0 10px 30px rgba(0,0,0,.25);
+    font-weight:700;
+    font-size:15px;
+    transition:.2s ease;
+}
+#print-pdf-btn:hover{
+    transform:translateY(-2px);
+    background:#1a2d5d;
+}
+#print-pdf-btn.show{
+    display:flex;
+}
+.pdf-svg{
+    width:22px;
+    height:22px;
+    opacity:.95;
+}
+@media print{
+    #print-pdf-btn{
+        display:none !important;
+    }
+}
+</style>
+
 </head>
 <body>
 <canvas id="bg-canvas"></canvas>
@@ -127,6 +167,13 @@ canvas{position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.35;}
   </div>
   <div class="row">
     <button class="nav-btn" onclick="prevQ()">← Back</button>
+
+    <button class="nav-btn" onclick="saveSessionManual()">💾 Save</button>
+
+    <button class="nav-btn" onclick="loadSessionManual()">📂 Load</button>
+
+    <button class="nav-btn" onclick="deleteSessionManual()">🗑 Delete</button>
+
     <div class="spacer"></div>
     <button class="nav-btn" id="next-btn" onclick="nextQ()" disabled>Next →</button>
     <button class="nav-btn finish" onclick="finishQuiz()">Selesai</button>
@@ -527,5 +574,90 @@ function animate(){
 }
 animate();
 </script>
+
+<script>
+// ===== SESSION SAVE SYSTEM =====
+const SESSION_KEY = location.pathname + "_session";
+
+function saveSessionManual(){
+    try{
+        const data = {
+            current: current,
+            answers: answers,
+            mode: currentMode,
+            remaining: remainingSec,
+            timestamp: Date.now()
+        };
+        localStorage.setItem(SESSION_KEY, JSON.stringify(data));
+        alert("Session berhasil disimpan!");
+    }catch(e){
+        alert("Gagal menyimpan session.");
+    }
+}
+
+function loadSessionManual(){
+    try{
+        const raw = localStorage.getItem(SESSION_KEY);
+        if(!raw){
+            alert("Tidak ada session tersimpan.");
+            return;
+        }
+
+        const data = JSON.parse(raw);
+
+        if(data.answers) answers = data.answers;
+        if(typeof data.current === "number") current = data.current;
+        if(data.mode) currentMode = data.mode;
+        if(typeof data.remaining === "number") remainingSec = data.remaining;
+
+        showScreen('quiz');
+        renderProgress();
+        renderQ();
+        startTimer();
+
+        alert("Session berhasil dimuat!");
+    }catch(e){
+        alert("Gagal memuat session.");
+    }
+}
+
+function deleteSessionManual(){
+    localStorage.removeItem(SESSION_KEY);
+    alert("Session dihapus.");
+}
+</script>
+
+
+<button id="print-pdf-btn" onclick="window.print()">
+<svg class="pdf-svg" viewBox="0 0 24 24" fill="none">
+<path d="M7 3H14L19 8V21H7V3Z" stroke="currentColor" stroke-width="1.8"/>
+<path d="M14 3V8H19" stroke="currentColor" stroke-width="1.8"/>
+<path d="M8 13H16M8 17H13" stroke="currentColor" stroke-width="1.8"/>
+</svg>
+<span class="pdf-text">Save PDF</span>
+</button>
+
+
+<script>
+(function(){
+const originalShowScreen = window.showScreen;
+
+window.showScreen = function(id){
+    if(originalShowScreen){
+        originalShowScreen(id);
+    }
+
+    const btn = document.getElementById('print-pdf-btn');
+    if(btn){
+        if(id === 'result'){
+            btn.classList.add('show');
+        }else{
+            btn.classList.remove('show');
+        }
+    }
+};
+})();
+</script>
+
 </body>
 </html>
