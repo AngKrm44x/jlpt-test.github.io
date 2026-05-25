@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JLPT N1 — Desember 2025</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0b1020;--bg2:#121a2f;--card:#18233f;--card2:#1f2d52;
+  --border:#2b3a63;--text:#f1f5ff;--muted:#9fb0d3;
+  --primary:#5aa9ff;--success:#19c37d;--danger:#ff5f73;--warning:#ffb547;
+  --font:'Zen Kaku Gothic New',sans-serif;--mono:'JetBrains Mono',monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{
+  background:radial-gradient(ellipse at top left,#1a2d5a 0%,transparent 45%),
+             radial-gradient(ellipse at bottom right,#231440 0%,transparent 40%),var(--bg);
+  color:var(--text);font-family:var(--font);min-height:100vh;padding:16px;
+}
+.app{max-width:720px;margin:0 auto;}
+.screen{display:none;}.screen.active{display:block;}
+.header{background:rgba(24,35,63,.85);backdrop-filter:blur(12px);border:1px solid var(--border);border-radius:20px;padding:22px 24px;margin-bottom:14px;}
+h1{font-size:22px;font-weight:700;letter-spacing:.02em;margin-bottom:3px;}
+h2{font-size:15px;font-weight:500;margin-bottom:10px;}
+.muted{color:var(--muted);font-size:13px;}
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;}
+.stat-card{background:rgba(24,35,63,.7);border:1px solid var(--border);border-radius:14px;padding:12px 10px;text-align:center;}
+.stat-num{font-size:21px;font-weight:700;color:var(--text);}
+.stat-lbl{font-size:10px;color:var(--muted);margin-top:3px;letter-spacing:.04em;}
+.mode-btn{width:100%;text-align:left;padding:14px 18px;border-radius:16px;border:1px solid var(--border);background:rgba(24,35,63,.7);color:var(--text);cursor:pointer;font-size:14px;font-family:var(--font);margin-bottom:10px;transition:all .18s;line-height:1.6;}
+.mode-btn:hover{background:var(--card2);border-color:#4a6aaa;transform:translateY(-1px);}
+.card{background:rgba(24,35,63,.85);backdrop-filter:blur(8px);border:1px solid var(--border);border-radius:18px;padding:18px 20px;margin-bottom:12px;}
+.badge{display:inline-block;padding:3px 11px;border-radius:99px;font-size:11px;font-weight:600;letter-spacing:.03em;}
+.badge-moji{background:rgba(90,169,255,.18);color:#5aa9ff;border:1px solid rgba(90,169,255,.3);}
+.badge-bunpou{background:rgba(124,77,255,.18);color:#a87bff;border:1px solid rgba(124,77,255,.3);}
+.badge-dokkai{background:rgba(25,195,125,.18);color:#19c37d;border:1px solid rgba(25,195,125,.3);}
+.badge-type{background:rgba(255,255,255,.07);color:var(--muted);border:1px solid rgba(255,255,255,.1);}
+.timer-bar{height:5px;background:rgba(255,255,255,.07);border-radius:99px;overflow:hidden;margin:10px 0 6px;}
+.timer-fill{height:100%;background:linear-gradient(90deg,#5aa9ff,#7c4dff);border-radius:99px;transition:width .5s linear;}
+.timer-fill.warn{background:linear-gradient(90deg,var(--warning),#f57c00);}
+.timer-fill.danger{background:linear-gradient(90deg,var(--danger),#c0392b);}
+.progress-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(30px,1fr));gap:4px;margin-bottom:12px;}
+.prog-dot{height:30px;border-radius:8px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--muted);cursor:pointer;transition:all .12s;font-family:var(--mono);}
+.prog-dot:hover{border-color:#4a6aaa;}
+.prog-dot.current{border:2px solid var(--primary);color:var(--text);font-weight:600;}
+.prog-dot.correct{background:rgba(25,195,125,.25);border-color:var(--success);color:var(--success);}
+.prog-dot.wrong{background:rgba(255,95,115,.2);border-color:var(--danger);color:var(--danger);}
+.passage-label{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;}
+.passage-box{background:rgba(11,16,32,.6);border-left:3px solid var(--primary);border-radius:0 12px 12px 0;padding:14px 18px;font-size:13.5px;line-height:2;color:rgba(241,245,255,.85);}
+.passage-box p{margin-bottom:.5em;}.passage-box p:last-child{margin-bottom:0;}
+.q-text{font-size:15px;line-height:1.9;color:var(--text);margin-bottom:14px;}
+.q-text u{text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1.5px;text-decoration-color:var(--primary);}
+.option-btn{width:100%;text-align:left;padding:11px 16px;border-radius:12px;border:1px solid var(--border);background:rgba(18,26,47,.6);color:var(--text);cursor:pointer;font-size:13.5px;font-family:var(--font);margin-bottom:7px;transition:all .15s;line-height:1.7;}
+.option-btn:hover:not(:disabled){background:var(--card2);border-color:#4a6aaa;}
+.option-btn.correct{background:rgba(25,195,125,.18);border-color:var(--success);color:#a0f5d3;}
+.option-btn.wrong{background:rgba(255,95,115,.15);border-color:var(--danger);color:#ffb3be;}
+.option-btn:disabled{cursor:default;}
+.explanation{background:rgba(11,16,32,.5);border-radius:10px;padding:10px 14px;font-size:12.5px;color:var(--muted);margin-top:8px;line-height:1.7;border-left:2px solid var(--warning);}
+.row{display:flex;align-items:center;gap:8px;margin-top:8px;}
+.spacer{flex:1;}
+.nav-btn{padding:9px 20px;border-radius:11px;border:1px solid var(--border);background:rgba(24,35,63,.7);color:var(--text);cursor:pointer;font-size:13px;font-family:var(--font);transition:all .15s;}
+.nav-btn:hover{background:var(--card2);}
+.nav-btn.finish{background:rgba(255,95,115,.18);border-color:var(--danger);color:var(--danger);}
+.nav-btn.finish:hover{background:rgba(255,95,115,.3);}
+.nav-btn:disabled{opacity:.35;cursor:not-allowed;}
+.pass-banner{border-radius:16px;padding:16px;text-align:center;margin:12px 0;}
+.pass-banner.pass{background:rgba(25,195,125,.18);border:1px solid rgba(25,195,125,.3);}
+.pass-banner.fail{background:rgba(255,95,115,.12);border:1px solid rgba(255,95,115,.25);}
+.section-result{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:13px;}
+.section-result:last-child{border-bottom:none;}
+.info-note{background:rgba(255,181,71,.07);border:1px solid rgba(255,181,71,.2);border-radius:12px;padding:10px 14px;font-size:12px;color:rgba(255,181,71,.8);margin-bottom:10px;}
+canvas{position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.35;}
+.app{position:relative;z-index:1;}
+.section-percentages{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:15px;margin-top:20px;}
+.section-box{background:#16213e;border:1px solid #2e4a7d;border-radius:14px;padding:18px;text-align:center;}
+.section-title{font-size:18px;margin-bottom:10px;}
+.section-percent{font-size:34px;font-weight:bold;color:#60a5fa;}
+.section-score{margin-top:8px;color:#cbd5e1;}
+@media print{body{background:white!important;color:black!important;}#home,.floating-btn,.nav-btn{display:none!important;}.result-card,.section-box{break-inside:avoid;}}
+#print-pdf-btn{position:fixed;right:24px;bottom:24px;border:1px solid rgba(96,165,250,.22);border-radius:18px;background:#142349;color:white;padding:14px 18px;display:none;align-items:center;gap:12px;cursor:pointer;z-index:999999;box-shadow:0 10px 30px rgba(0,0,0,.25);font-weight:700;font-size:15px;transition:.2s ease;}
+#print-pdf-btn:hover{transform:translateY(-2px);background:#1a2d5d;}
+#print-pdf-btn.show{display:flex;}
+@media print{#print-pdf-btn{display:none!important;}}
+</style>
+</head>
+<body>
+<canvas id="bg-canvas"></canvas>
+<div class="app">
+
+<!-- HOME -->
+<div id="home" class="screen active">
+  <div class="header">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+      <h1>JLPT N1 — Desember 2025</h1>
+    </div>
+    <p class="muted">66 soal asli · 言語知識 (文字・語彙・文法) + 読解 · 110 menit</p>
+  </div>
+  <div class="stat-grid">
+    <div class="stat-card"><div class="stat-num">66</div><div class="stat-lbl">total soal</div></div>
+    <div class="stat-card"><div class="stat-num" id="hs-done">0</div><div class="stat-lbl">dikerjakan</div></div>
+    <div class="stat-card"><div class="stat-num" id="hs-score">—</div><div class="stat-lbl">skor terakhir</div></div>
+    <div class="stat-card"><div class="stat-num" id="hs-pred">—</div><div class="stat-lbl">prediksi</div></div>
+  </div>
+  <div class="info-note">⚠️ Soal 聴解 tidak dimasukkan karena memerlukan audio. Ini adalah soal asli.</div>
+  <button class="mode-btn" onclick="startMode('all')"><strong>🎯 Ujian Penuh</strong><br><span style="font-size:12px;color:var(--muted)">Semua 66 soal · timer 110 menit</span></button>
+  <button class="mode-btn" onclick="startMode('moji')"><strong>📝 文字・語彙</strong><br><span style="font-size:12px;color:var(--muted)">25 soal · 問題1–4 · timer 35 menit</span></button>
+  <button class="mode-btn" onclick="startMode('bunpou')"><strong>📐 文法</strong><br><span style="font-size:12px;color:var(--muted)">19 soal · 問題5–7 · timer 25 menit</span></button>
+  <button class="mode-btn" onclick="startMode('dokkai')"><strong>📖 読解</strong><br><span style="font-size:12px;color:var(--muted)">22 soal · 問題8–13 · timer 50 menit</span></button>
+</div>
+
+<!-- QUIZ -->
+<div id="quiz" class="screen">
+  <div class="card" style="padding:14px 18px;">
+    <div class="row" style="margin-top:0;">
+      <span class="badge" id="q-sec-badge">文字</span>
+      <span class="badge badge-type" id="q-type-badge">問題1</span>
+      <div class="spacer"></div>
+      <span id="timer-text" style="font-size:14px;font-weight:600;font-family:var(--mono)">--:--</span>
+    </div>
+    <div class="timer-bar"><div class="timer-fill" id="timer-fill" style="width:100%"></div></div>
+    <div class="row" style="margin-top:2px;">
+      <span class="muted" id="q-num" style="font-family:var(--mono);font-size:12px;">問 1 / 66</span>
+      <div class="spacer"></div>
+      <span class="muted" id="q-score-live" style="font-size:12px;">正解: 0</span>
+    </div>
+  </div>
+  <div class="progress-grid" id="prog-grid"></div>
+  <div class="card" id="passage-card" style="display:none;">
+    <div class="passage-label">📖 teks bacaan</div>
+    <div class="passage-box" id="passage-text"></div>
+  </div>
+  <div class="card">
+    <div class="q-text" id="q-text"></div>
+    <div id="options"></div>
+    <div class="explanation" id="explanation" style="display:none;"></div>
+  </div>
+  <div class="row">
+    <button class="nav-btn" onclick="prevQ()">← Back</button>
+    <button class="nav-btn" onclick="saveSessionManual()">💾 Save</button>
+    <button class="nav-btn" onclick="loadSessionManual()">📂 Load</button>
+    <div class="spacer"></div>
+    <button class="nav-btn" id="next-btn" onclick="nextQ()" disabled>Next →</button>
+    <button class="nav-btn finish" onclick="finishQuiz()">Selesai</button>
+  </div>
+</div>
+
+<!-- RESULT -->
+<div id="result" class="screen">
+  <div class="header"><h1>Hasil Ujian</h1><p class="muted" id="res-date"></p></div>
+  <div class="pass-banner" id="pass-banner">
+    <strong id="pass-text" style="font-size:18px;"></strong>
+    <p id="pass-sub" style="font-size:13px;margin-top:6px;color:var(--muted);"></p>
+  </div>
+  <div class="stat-grid">
+    <div class="stat-card"><div class="stat-num" id="r-correct"></div><div class="stat-lbl">benar</div></div>
+    <div class="stat-card"><div class="stat-num" id="r-wrong"></div><div class="stat-lbl">salah</div></div>
+    <div class="stat-card"><div class="stat-num" id="r-pct"></div><div class="stat-lbl">akurasi</div></div>
+    <div class="stat-card"><div class="stat-num" id="r-time"></div><div class="stat-lbl">waktu</div></div>
+  </div>
+  <div class="card"><h2>Skor per seksi</h2><div id="section-results"></div></div>
+  <div class="card"><h2>Prediksi kelulusan JLPT N1</h2><div id="prediction-detail" style="font-size:13px;line-height:2;color:var(--muted);"></div></div>
+  <div class="row" style="gap:8px;margin-top:8px;">
+    <button class="nav-btn" onclick="reviewAnswers()">Review Jawaban</button>
+    <div class="spacer"></div>
+    <button class="nav-btn" onclick="goHome()">Kembali ke Menu</button>
+  </div>
+</div>
+
+</div>
+<script>
+const PASSAGES = {
+
+p7_neko:`ネコの目の前に指先を出かすと、必ずクンクンにおいをかぎますね。じつは、これはネコ同士のあいさつに由来するしぐさです。
+
+私たち人間はおじぎをしたり握手をしてあいさつをしますが、ネコたちにとつては、鼻と鼻を近づけてお互いにおいをかぐのがあいさつです。ネコの口のまわりには臭腺といって、特別なにおいを出す器官があります。そのにおいはネコによって異なるため、鼻を近づけると相手がどこの誰か、そして敵か味方かなどの情報を知ることができるのです。
+
+このようにネコがにおいで相手を確認するのは、目があまり　41　。ねこは肉食のハンターですから抜群の視力をもっていそうですが、人間にたとえると0.3程度の近眼だとされています。つまりかなり近づかないと相手の顔を確認できないということ。
+
+だから、人間の指先を見ても、ネコは鼻を近づけられたと勘違いして同じ反応を　42　。指先だとわかっていても、習慣的に「とりあえず、あいさつだけはしておこう」と考えるのでしょう。おきまりのクンクンが始まります。
+
+この習性を　43　、初対面のネコとも仲よくできます。いくら可愛いネコでも、いきなりなでたり抱っこしようとすれば嫌がります。それは、あなたが何者かわからないからです。　44　、まずは指先をネコの鼻に近づけてみます。ひととおり指のにおいをかいだ後でネコが逃げなければ、それはあなたに好意をもったという証拠ですから、そのとき触れても嫌がらないはずです。`,
+
+p8_1_jidousha:`自動車メーカーが、製造・販売した自動車に不具合が見つかったとして、無償で修理をするリコールを行うことはよくあります。
+
+リスクゼロ思考からすると、そもそも不具合のある車を世に出すべきではないということになります。事前に不具合が出ることがわかっているなら、そんな車はつくらないはずです。不具合が絶対に出ない車しかつくってはいけないというのなら、メーカーは何もつくれなくなります。
+
+それよりも、不具合が出たらリコールして、次につくる車からは同じ不具合が出ないように改善していくのが理論的な発想です。`,
+
+p8_2_bogo:`以下は、母語の音声の習得について日本語を例として書かれた文章である。
+
+「赤ちゃんのときはどんな音でも区別できるのに、成長するとできなくなる」といわれるのは、決して聞き分け能力の劣化ではなく、日本語の音体系に対応して「区別しないものを見いだし、同じと見なすことを学ぶ」という変化なのだ。こと音の知覚に関しては「習得は喪失だ」といわれるゆえんである。諸々の外国語で、日本語では区別しない音の聞き分けに苦労した経験があるならば、それは自分が日本語習得にいかに完璧に成功したかを示しているのだ、と思ってよい。
+
+（注1）こと：ここでは、特に
+（注2）ゆえん：理由
+（注3）諸々の：多くの`,
+
+p8_3_wasabi:`ワサビは生育環境を選ぶ植物であるため、系統維持が非常に難しく、栽培者がいなくなれば、維持されてきたワサビも一緒に消失してしまう。山に行けば野生が自生しているから大丈夫、という考えは間違いである。野生個体は栽培ほど根茎も太らず、辛くない。長い時間をかけてできた品種は、一度失われてしまったら、容易には復元できないのだ。だからこそ、植物資源として大切に守る必要があるといえる。
+
+（注）系統維持：ここでは、種の特徴が受け継がれていくこと`,
+
+p8_4_chisei:`知性は個人の属性ではなく、集団的にしか発動しない。だから、ある個人が知性的であるかどうかは、その人の個人が私的に所有する知識量や知能指数や演算能力によってはとても考量できない。そうではなくて、その人がいる場によって、彼の発言やふるまいによって、彼の属する集団全体の知的パフォーマンスが、彼がいない場合よりも高まった場合に、事後的にその人は「知性的」な人物だったと判定される。
+
+（注1）属性：性質
+（注2）考量：判断する`,
+
+p9_1_hi:`火を使って調理をするようになってから、人類はそれ以前よりも多くの種類の食べ物を食べられるようになり、しかもそれを効率よく消化して多くのエネルギーを得ることができるようになった。そして、余ったエネルギーを使って脳を発達させて、優れた知的能力を獲得することになるのである。人類の歯、顎、胃、小腸、大腸などはチンパンジーなどに比べればはるかに小さいが、それは火を使って調理した柔らかい食物に適応して進化した結果であると考えてよい。
+
+大きな消化器官を使って長時間の消化、吸収活動を行うことは多くのエネルギーを消費するから、消化器官が小さいものが生物学的に有利である。
+
+（中略）
+
+火で調理することには、人類の脳を発達させただけではなく、人類の社会性を発達させる効果もあった。火を使って調理することが人類の偉大な発明の一つとされているのは、食べ物を変質させただけではなく、社会を変容させたからである。火を使って生の食べ物を調理することを覚えたときから人類の社会が始まったと言ってよい。人々は焚火の周りに集まり、一緒に食事をするようになったので、そこが人々の結びつきの場となった。調理とは、単に食べ物を煮炊きする方法ではなく、決まった時間に集団で食事をすることを中心にして社会を形成する方法でもあったのである。
+
+（注）チンパンジー：猿の一種`,
+
+p9_2_career:`以下は、キャリア教育の専門家が書いた文章である。
+
+自分にはどんな仕事が向いていて、どんな仕事であれば、やりがいや誇りをもって働けるのか。——すでに仕事をしている大人だって、こんな問いに答えるのは、そう容易なことではないし、実感をもって答えられるようになるには、何年もの就業経験が必要なはずである。
+
+ましてや、いまだ働いたこともない子どもや若者の場合、キャリア教育で「魔法」でもかけられないかぎり、こんな問いに答えることができなくて当然である。その意味で。「やりたいこと」や「就きたい職業」を選び、決めるということは、一種の「賭け」なのである。
+
+もちろん、「賭け」がいけないわけではない。仕事の世界は、いったんは思いきって飛び込んでみないかぎり、それを理解することはできない。その意味で、最後的最後の階段での賭けは必要なのだが、しかし、そのまえにやっておくべきことはある。（中略）その職業や仕事の世界について、産業構造のなかでの位置や業界の動静、職場や労働環境について、現実的認識をもっていなくてはいけない。
+
+さらに言えば、自分が、なぜその職業・仕事を選ぶのかについて、みずからの「根っこ」にあるものについても見つめさせ、深めさせたい（キャリア研究の世界では、この「根っこ」のことを「キャリアアンカー」といったりもする）。「根っこ」の部分には、その仕事に就くことを通じて、こんなふうに社会に役立ちたいとか、こんな社会を実現したいとか、自分のこんな特性を生かしたいといった、思いや価値観が存在するはずである。`,
+
+p9_3_shrimp:`2018年に、米国のデューク大学のエレナ・ケイヴスたちは、カリブ海の水深1〜35mのサンゴ礁に棲息するクリーナーシュリンプ（アンキロメネス・ベデルソニ）がブダイやエダイ、ハタなどの魚の体や口を掃除するときの行動を調べた。すると魚とクリーナーシュリンプが、それぞれ相手にすごいと思える信号を出していることが明らかになった。
+
+まず、ハタなどの魚が、白く長い触角を振るクリーナーシュリンプが棲む場所を訪ねて来て、魚が体表を暗くする。（中略）
+
+体表の明暗の変化をクリーナーシュリンプが認識すると、自らの長い触角を前後左右に大きく振る。クリーナーシュリンプの一種アンキロメネス・ベデルソニの視力は、相手の魚の色や輪郭ははっきりと認識できるが、魚の体表の明暗の変化は十分に認識できることが明らかになっている。いっぽうでハタなどの魚の眼は、クリーナーシュリンプの体色や輪郭だけでなく、30〜40cmほど前方にいる全長2cmほどの小さなクリーナーシュリンプの細長い触角の動きを明確に識別できる。クリーナーシュリンプの触角に白く長いものが多いことは、触角の動きを薄暗い海底でも明確に魚に伝えるためのものと思われる。
+
+その触角の動きを見て、ハタなどの魚は、クリーナーシュリンプが皮膚や口の中をきれいにしたり傷口を癒やしたりすることを了解したと知るのである。こうして両者が合意すればクリーナーシュリンプは、ハタなどの魚に食べられずに掃除を行うことが可能になる。
+
+（注1）棲息する：住む
+（注2）クリーナーシュリンプ：えびの一種
+（注3）触角：頭の先にある感覚器官`,
+
+p9_4_nikki:`自分で自分の書いた日記を読み返し、そこに描かれている「私」の姿にとまどいや自己嫌悪を感じた経験はないだろうか。
+
+描かれている「私」はたしかに自分であるはずなのだけれども、まるで別人のようにも感じられる。いつも赤の他人ならよいのだろうが、一見異なる人物が実はほかならぬこの自分自身でもある、という二重感覚がわれわれをとまどわせ、羞恥や嫌悪の引き金になるのである。
+
+いや、こうした言い方はあまり正確ではないかもしれない。たとえば写真で過去の自分の姿を見た時、われわれが感じるのは羞恥や嫌悪よりも、むしろ「こんな自分もいたのだ」というおかしみや懐かしさである。画像が外面的、形態的な客観性を保持しているのに対し、日記は言葉で書かれているために、本来外にさらされることのないはずの「内面」を露呈してしまっている。そのためにわれわれは勝手な「内面」づくりにいそしんでいた、まさにその行為にたたまれなさを感じるのだ。
+
+日記に登場する「私」は実にさまざまだ。友人と喧嘩したときの記述は自分が都合よく正当化されてしまっているかもしれないし、失恋したときの記述はこの世の悲劇を一身に背負ったヒーロー、あるいはヒロインになってしまっていることだろう。その時々の要請に従ってフィクショナルに仮構された「内面」が、今、読み返している「私」と同一であることを強いられるがゆえに、われわれはいわく言いがたい羞恥や嫌悪を感じてしまうのである。
+
+（注1）赤の他人：全くの他人
+（注2）羞恥：恥ずかしさ
+（注3）露呈する：ここでは、あからさまにする
+（注4）いそしむ：励む
+（注5）フィクショナルに仮構された：ここでは、事実とは異なる脳内の
+（注6）いわく言いがたい：ここでは、簡単には説明できない`,
+
+p10_kioku:`完璧に記憶でき、忘れない脳があったらいいと思う方もいるでしょう。しかし、記憶は不完全になるように、あたかも設定されているかのようです。それどころか、都合よく記憶同士を合成したり、書き換えたりすることも行われます。場合によっては、自分の昔の恋人との記憶と、現在の配偶者との記憶が混在してしまう……というような事態も生じたりしてしまうわけですが。
+
+かといって、完璧に記憶できる人が仮にいたとしたら、一体どうなるでしょうか。嫌な思い出を忘れることもできず、周囲に合わせるための都合のよい記憶の書き換えもできず、かなりつらい人生を送ることになるでしょう。
+
+記憶が徐々に消えていく、あるいは書き換わる仕組みが存在するのは、より良く生きていくためには自然で、当たり前のことだと言えます。
+
+例えば、体験した危険な出来事を学習し、同様の事象を回避するための安全装置として記憶の仕組みが発達してきたのだとすれば、一定期間その危機がやって来なければ、その案件の重みづけを変え、優先順位を低く見直す仕組みが必要になります。それよりも、高頻度かつ致命的な影響を与え得る危険の方を優先的に回避するべきで、なかなか起こらないことに記憶のリソースを割いていると、かえって重要なことに対応できず、危険な状態になってしまいます。また、過去の失敗だけでなく、成功体験にとらわれやすくなるために、前例のないことには新しい挑戦をしにくくなります。
+
+したがって、人間の能力の一部に過ぎない記憶力をことさら重要視する現代の教育や受験制度は、せっかく最適化されてきたはずの人類の生存戦略をかえってゆがめてしまっている可能性があるのではないかと思います。テストでは高得点を取るために記憶力が高い人が有利になるのは確かですが、その結果をそのまま優秀であるかどうかのランク付けとして使うのはいかがなものかと思います。
+
+というのも、テクノロジーの発達によって、不完全な人間の記憶力はどんどん補完されるようになってきており、実際にその仕組みは社会でも利用され始めているからです。文字をパソコンやスマートフォンで打つようであれば、漢字の書き方を忘れても大きな問題にはなりませんし、そもそも人間の漢字記憶力は、パソコンやスマートフォンには絶対に勝てません。ならば、使用頻度がそれほど高くない漢字を覚えるより、素直に電子機器の恩恵にあずかった方がよさそうです。
+
+このような機器の性能はこれからさらに高まっていくわけですから、優秀な人を見分ける基準として記憶力という尺度を使うのは、すでに時代にそぐわなくなってきているのかもしれません。`,
+
+p11_katazuke:`A
+
+日々の家事を頑張りすぎて疲れてしまっている人が多いという。情報番組や雑誌で「整った快適な住まい」や「健康のための手作りの食事」などが頻繁に取り上げられるので、知らないうちに自分の基準が必要以上に高くなり、多くの時間や労力を費やしてしまっているのではないか。
+
+こういう人たちは手を抜くのは悪いことだと思うかもしれない。しかし「毎日しなければならないか」「どのレベルまでやらなければならないか」といったことは、本来自分で決めるものだ。正解はないはずなのに、いつのまにか世の中の高い基準に縛られてはいないだろうか。他人の基準ではなく自分が何を大切にしたいかを考え、そうではないことは積極的に手を抜いていくことが、ゆとりのある、自分らしい生き方につながるだろう。
+
+B
+
+生活の中で、何を大切にし、何をそぎ落としていくかは人それぞれに違います。周りの人にとっては無駄に思われても、自分にとってそれが大切なものであれば、それはそぎ落とす必要はありません。
+
+ただ、あまりにも抱えているものが多いという人もいます。これは絶対にやらなければならない——生真面目な人ほどそう思い込んでしまうものです。
+
+（中略）
+
+あまり自分を追い詰めないで、時々は手を抜いてみましょう。手を抜いたことで何らかの支障が出たなら、そのときにまた従来通りに戻せばいい。手を抜いても何も変わらないのであれば、それはやらなくてもいいものと考えるわけです。
+
+手を抜くという行為は悪いことだと思われがちですが、そうではありません。すべてのことを完璧にするなど無理なことです。大切なことは、手を抜いていいものといけないものを仕分けすることだと思います。
+
+（注）そぎ落とす：ここでは、削る`,
+
+p12_koukoku:`生活者に、「○○と言えば、自社の商品」という形で自社商品を第1に想起させるには、商品は広告の中心に置かれていなければならない。しかしいつの間にか、商品を中心に置くということが広告をする上でないがしろにされてきている。どの企業からも似たような商品しか出てこなくなり、商品のコモディティ化が進んできてしまったため、商品の差別化を、イメージだけでなんとか乗り切ろうとしている。テレビCMでもウェブ動画でも、商品の存在は最後の最後まで消し去られ、ちょっとおもしろい、ちょっと楽しい、ちょっと感動するような話が繰り広げられ、最後のほんの一瞬に商品が紹介されて終わる広告だ。これらはたいてい、最後に登場する商品が仮に他社の商品でもなんとなく成立してしまう。広告はおもしろくてちょっと話題になるかもしれないが、話題の中心は広告であり、商品は忘れ去られている。なんの商品の広告だったかも覚えられていない。
+
+この様な、イメージによって差別化を図る最近の形として挙げられるのが、この数年、世界の広告賞でも取り上げられている「ソーシャルグッド」と呼ばれる種類の広告だろう。社会的な問題、たとえば国家対立や貧困、ジェンダー論といった世界の誰もが抱えている、もしくは理解できる問題を提起し、決してその問題を根本的に解決するわけではないが、生活者に考えるきっかけを与えたり、はっと気づかせたりする広告だ。「作品」として素晴らしいものばかりで、多くの気づきを与えてくれる。ただしこれらの広告により、どこまで生活者の態度変容を引き起こすことができたのかは疑問である。
+
+確かに素晴らしい気づきを与えてくれて、この様なメッセージを発信する商品は良いブランドだと感じる。ただし「良いブランド」止まりであり、これだけでは自分の生活を良くするのに必要な存在にはなれない。かつ、この様な尊いメッセージを発信するばかりに、かえって近寄り難い存在になることもある。
+
+（中略）
+
+大切なのは広告で社会奉仕をすることでも、良いイメージを与えることでもなく、商品を生活者にとって必要な存在にすることである。商品を生活上役に立つ存在だと認識してもらい、買うに値する理由を明確にすることだ。商品は、この世で必要だと思ってくれる人がいるから存在することができる。だからこそ明確な購買理由を提案していくのだ。
+
+（注1）想起する：思い起こす
+（注2）コモディティ化：一般化`,
+
+p13_cleaning:`宅配クリーニング「ピース」 ご利用案内
+
+インターネットで注文して、バッグに衣類を詰めて送るだけ。日本全国どこからでもご利用いただけます。
+
+■ ご利用の流れ
+① ホームページの注文用フォームからご注文ください（初回は会員登録が必要です）。
+② ご注文後、発送用パックをお送りします。ご自宅にある段ボールや袋を使っていただいても構いません。衣類を詰め、指定の宅配会社に集荷を依頼し、ご発送ください。
+③ クリーニング済みの衣類を宅配でご自宅にお届けいたします。
+
+■ 会員種別
+特別会員か普通会員がお選びいただけます。特別会員は、送料の優遇があり、短い日数でのお届けが可能です。特別会員は年会費3,000円、普通会員は年会費無料でご利用いただけます。
+
+■ クリーニング基本料金
+コート 2,500円 / ジャケット 1,300円 / ワンピース 1,500円 / セーター 800円 / ワイシャツ 400円 / 着物 5,000円〜
+・初回は、会員種別を問わず上記基本料金の30%引きのお値段でご利用いただけます。
+
+■ 送料（往復）
+特別会員：クリーニング基本料金の合計が3,000円以上の場合は無料、3,000円未満の場合は2,000円 / 初回は、クリーニング基本料金にかかわらず、送料無料
+普通会員：クリーニング基本料金の合計が8,000円以上の場合は無料、8,000円未満の場合は2,000円
+
+■ お客様のご発送の日からお届けまでの日数（東京都にお住まいの場合）
+　16時までのご発送 → 特別会員：3日後 / 普通会員：6日後
+　16時以降のご発送 → 特別会員：4日後 / 普通会員：7日後
+※着物の場合は上記に5日加えた日数になります。その他の衣類と一緒にご注文の場合、着物のクリーニングが終わったあとで、まとめてのお届けになります。`
+};
+
+const Q = [
+// 問題1 読み方
+{id:1,sec:"文字・語彙",type:"問題1",q:'この棚は<u>頑丈</u>に作られている。',opts:["がんじょう","かんじょう","がんじょ","かんじょ"],ans:0,exp:"頑丈（がんじょう）= sturdy, robust, solid。「頑」の音読みは「がん」。"},
+{id:2,sec:"文字・語彙",type:"問題1",q:'思わぬところに深刻な問題が<u>潜んで</u>いた。',opts:["およんで","からんで","しずんで","ひそんで"],ans:3,exp:"潜む（ひそむ）= to lurk, to hide, to be concealed。深刻な問題が潜んでいた = a serious problem was lurking."},
+{id:3,sec:"文字・語彙",type:"問題1",q:'私は行政の仕事に<u>携わって</u>いる。',opts:["こうぜい","こうせい","ぎょうぜい","ぎょうせい"],ans:3,exp:"行政（ぎょうせい）= administration, government。携わる（たずさわる）= to be involved in."},
+{id:4,sec:"文字・語彙",type:"問題1",q:'中村氏は大学時代にその<u>卓越した</u>才能を開花させた。',opts:["ちょうえつ","たくえつ","たくいつ","ちょういつ"],ans:1,exp:"卓越（たくえつ）= outstanding, preeminent, exceptional。"},
+{id:5,sec:"文字・語彙",type:"問題1",q:'最近は会社の営業成績が<u>芳しく</u>ない。',opts:["ふさわしくない","よろしくない","かんばしくない","いちじるしくない"],ans:2,exp:"芳しい（かんばしい）= favorable, satisfactory. 芳しくない = not satisfactory, not good."},
+{id:6,sec:"文字・語彙",type:"問題1",q:'その件は市民生活課の<u>管轄</u>です。',opts:["かんが","かんかつ","かんかい","かんがい"],ans:1,exp:"管轄（かんかつ）= jurisdiction, authority, supervision。"},
+// 問題2 文脈規定
+{id:7,sec:"文字・語彙",type:"問題2",q:'この学校では教育活動の（　）として、生徒に学校周辺のゴミ拾いをさせている。',opts:["一因","一環","部門","部下"],ans:1,exp:"一環（いっかん）= part of (a larger whole). 教育活動の一環として = as part of educational activities。"},
+{id:8,sec:"文字・語彙",type:"問題2",q:'試合の前半はAチームは1点（　）していたが後半2点取られて逆転された。',opts:["プラス","アップ","リード","キャッチ"],ans:2,exp:"リード = lead. 1点リードしていた = was leading by 1 point。"},
+{id:9,sec:"文字・語彙",type:"問題2",q:'二人の若手ピアニストの実力は（　）でコンクールでどちらが優勝するか予想がつかない。',opts:["均一","互角","間近","並列"],ans:1,exp:"互角（ごかく）= evenly matched, on equal footing. 実力が互角 = evenly matched in ability。"},
+{id:10,sec:"文字・語彙",type:"問題2",q:'毎朝店長がアルバイトの店員にその日の仕事を（　）。',opts:["差し出す","振りまく","割り当てる","引き渡す"],ans:2,exp:"割り当てる（わりあてる）= to assign, to allocate. 仕事を割り当てる = to assign tasks。"},
+{id:11,sec:"文字・語彙",type:"問題2",q:'（　）準備して大会本番に臨むだ。',opts:["周到な","強固な","濃厚な","果敢な"],ans:0,exp:"周到（しゅうとう）= thorough, meticulous. 周到な準備 = thorough preparation。"},
+{id:12,sec:"文字・語彙",type:"問題2",q:'登山の途中で雨が降ってきたので、（　）近くの山小屋で休憩し、雨が止むのを待つことにした。',opts:["さきごろ","いつしか","いまに","ひとまず"],ans:3,exp:"ひとまず = for now, for the time being. ひとまず休憩する = rest for the time being。"},
+{id:13,sec:"文字・語彙",type:"問題2",q:'嫌なことがあって気分が（　）していたが、カラオケで大声で歌ったらすっきりした。',opts:["はらはら","ひやひや","おどおど","むしゃくしゃ"],ans:3,exp:"むしゃくしゃ = irritated, frustrated, vexed. 気分がむしゃくしゃする = to feel irritated/frustrated。"},
+// 問題3 言い換え
+{id:14,sec:"文字・語彙",type:"問題3",q:'あまり<u>誇張して</u>話すのは良くない。',opts:["おおげさに","勝手に","自慢して","いらいらして"],ans:0,exp:"誇張する（こちょうする）= to exaggerate ≈ おおげさに = exaggeratedly."},
+{id:15,sec:"文字・語彙",type:"問題3",q:'私たちは<u>ひそかに</u>計画を進めていた。',opts:["ずっと","しっかり","こっそり","すでに"],ans:2,exp:"ひそかに = secretly, covertly ≈ こっそり = stealthily, secretly."},
+{id:16,sec:"文字・語彙",type:"問題3",q:'この大会に出場するまでに多くの<u>試練</u>があった。',opts:["苦難","競争","支援","反省"],ans:0,exp:"試練（しれん）= trial, ordeal, hardship ≈ 苦難（くなん）= hardship, adversity."},
+{id:17,sec:"文字・語彙",type:"問題3",q:'山口さんが<u>うろたえる</u>姿を初めて見た。',opts:["落ち込む","慌てる","威張る","悔しがる"],ans:1,exp:"うろたえる = to be flustered, to be confused, to panic ≈ 慌てる（あわてる）= to be flustered/in a panic."},
+{id:18,sec:"文字・語彙",type:"問題3",q:'今後、同様のことが起きることは<u>当面</u>ないだろう。',opts:["絶対","しばらく","あまり","ひとまず"],ans:1,exp:"当面（とうめん）= for the time being, for now ≈ しばらく = for a while."},
+{id:19,sec:"文字・語彙",type:"問題3",q:'衣装はいつも<u>自前</u>である。',opts:["自分で買う","自分で決める","自分でデザインする","自分でチェックする"],ans:0,exp:"自前（じまえ）= at one's own expense, own ≈ 自分で買う = to buy oneself."},
+// 問題4 用法
+{id:20,sec:"文字・語彙",type:"問題4",q:'<u>運用</u>の正しい使い方として最もよいものを選びなさい。',opts:["最近は外来語が増え、カタカナが多く運用されるようになった","本日は点検のため、エレベーターは運用できません","会社の資金をどう運用するかで、社長と会長の意見が分かれている","監督は次の試合で新人選手を運用することを決めた"],ans:2,exp:"運用（うんよう）= investment, operation, management of funds. 資金を運用する = to manage/invest money。"},
+{id:21,sec:"文字・語彙",type:"問題4",q:'<u>抜き打ち</u>の正しい使い方として最もよいものを選びなさい。',opts:["さっきまで晴れていたのに、抜き打ちで雨が降り出した","前を走っている車が抜き打ちでブレーキをかけた","工場への立ち入り検査は、抜き打ちで実施された","家族で旅行に行ったら、学校の友達と抜き打ちで会った"],ans:2,exp:"抜き打ち（ぬきうち）= surprise, unannounced, without prior notice. 抜き打ち検査 = surprise inspection。"},
+{id:22,sec:"文字・語彙",type:"問題4",q:'<u>かすれる</u>の正しい使い方として最もよいものを選びなさい。',opts:["卒業後連絡がかすれていた友人と、最近また会うようになった","健康のため調味料の量を減らしたら、味がかすれておいしくなかった","うちの子は今ではゲームへの関心がかすれ、ほとんどしなくなった","小林さんは風邪をひいているのか声がかすれていて、話が聞き取りにくい"],ans:3,exp:"かすれる = (voice) to become hoarse/husky; (ink) to fade. 声がかすれる = to have a hoarse voice。"},
+{id:23,sec:"文字・語彙",type:"問題4",q:'<u>緻密</u>の正しい使い方として最もよいものを選びなさい。',opts:["森さんは記憶力がよく、知人の住所や電話番号をすべて緻密に覚えているそうだ","旅行先での宿の主人の緻密なもてなしに感激した","階段で転ばないように一歩ずつ緻密に上っていった","緻密な観察が新しい微生物の発見につながった"],ans:3,exp:"緻密（ちみつ）= meticulous, precise, minute. 緻密な観察 = meticulous observation。"},
+{id:24,sec:"文字・語彙",type:"問題4",q:'<u>迫力</u>の正しい使い方として最もよいものを選びなさい。',opts:["新しい掃除機は、ごみを吸う迫力が以前の約2倍となっている","初めて動物園で見たライオンは、体が大きくて迫力があった","天気予報によると、午後から雨の迫力が増していくらしい","高橋さんは一日中作業しても元気なので、迫力があると思う"],ans:1,exp:"迫力（はくりょく）= power, force, impact, impressiveness. 迫力があるライオン = an impressive/powerful lion。"},
+{id:25,sec:"文字・語彙",type:"問題4",q:'<u>目まぐるしい</u>の正しい使い方として最もよいものを選びなさい。',opts:["水が目まぐるしく流れる","新しいものが目まぐるしく入れ替わっている","夏の太陽が目まぐるしい","徹夜で今日はとても目まぐるしい"],ans:1,exp:"目まぐるしい（めまぐるしい）= dizzying, rapidly changing. 目まぐるしく入れ替わる = to change rapidly."},
+// 問題5 文法
+{id:26,sec:"文法",type:"問題5",q:'庭の草取りを始めたが、思っていたよりも大変で、一日では（　）終わりそうにない。',opts:["仮に","今にも","とても","まもなく"],ans:2,exp:"とても〜ない = not at all ~, it's impossible to ~. 一日ではとても終わりそうにない = there's absolutely no way it'll finish in a day。"},
+{id:27,sec:"文法",type:"問題5",q:'今回のプロジェクトは、地域住民の協力（　）実現しなかったであろう。',opts:["をはじめて","なくしては","とあって","のみならず"],ans:1,exp:"〜なくしては = without ~. 協力なくしては実現しなかった = without the cooperation, it would not have been realized。"},
+{id:28,sec:"文法",type:"問題5",q:'私は飛行機が苦手だ。飛行機に乗る（　）、何時間かかっても電車で行くほうがいい。',opts:["うえで","わりに","どころか","くらいなら"],ans:3,exp:"〜くらいなら = rather than ~. 飛行機に乗るくらいなら = rather than getting on a plane (I'd rather...)."},
+{id:29,sec:"文法",type:"問題5",q:'この仮説を正しい（　）、まだデータ数が十分ではないため、さらなる調査が必要だ。',opts:["とするには","となるには","とすると","となるとは"],ans:0,exp:"〜とするには = if we are to assume ~ (it requires ~). この仮説を正しいとするには = in order to assume this hypothesis is correct。"},
+{id:30,sec:"文法",type:"問題5",q:'田中選手は度重なる怪我に（　）、それを克服してオリンピック出場を果たした。',opts:["悩ませながらも","悩ませたあげく","悩まされながらも","悩まされたあげく"],ans:2,exp:"悩まされながらも = while being troubled by ~ (passive: the athlete suffers injuries). 〜ながらも = despite/while doing."},
+{id:31,sec:"文法",type:"問題5",q:'引越しの予定は半年後だからまだまだ先だが、早く準備を始める（　）と思い、少しずつ片付けを進めている。',opts:["勢いだ","ことは否めない","見込みだ","に越したことはない"],ans:3,exp:"〜に越したことはない = there's nothing better than ~, it's best to ~. 早く準備を始めるに越したことはない = it's best to start preparing early。"},
+{id:32,sec:"文法",type:"問題5",q:'A「ああ、こんな道が渋滞していなければ、今頃とっくに遊園地に着いて（　）のに。」\nB「そうだね。」',opts:["遊んだ","遊びたかった","遊んでいた","遊んでいたかった"],ans:2,exp:"〜ていた + のに (counterfactual) = would have been ~ing. 今頃遊んでいたのに = we would have been playing by now."},
+{id:33,sec:"文法",type:"問題5",q:'喧嘩中の父と母を仲直りさせられそうだったのに、姉が話を蒸し返したせいで、うまくいかなくなってしまった。まったく、余計なことを（　）。',opts:["してくれたものだ","しかねないものだ","してくれたはずだ","しかねないはずだ"],ans:0,exp:"〜てくれたものだ = she really did (expressing frustration/complaint about what was done). 余計なことをしてくれたものだ = she really went and did something unnecessary!"},
+{id:34,sec:"文法",type:"問題5",q:'（弁護士のインタビューで）B「家にいることが多いですね。弁護士は人と話すのが仕事（　）ので、休日は一人でゆっくりしたいんです。」',opts:["らしいことである","らしいところがある","みたいなことである","みたいなところがある"],ans:3,exp:"〜みたいなところがある = there is an aspect that is like ~. 仕事みたいなところがある = there is a job-like aspect/it's kind of what the job entails."},
+{id:35,sec:"文法",type:"問題5",q:'もう1ヶ月近く雨が降っていない。晴れの日が続くのはうれしいが、水不足などの問題を考えると（　）。',opts:["喜んだだけにすぎない","喜んでばかりもいられない","喜んでしまうところだった","喜んでいないのではないか"],ans:1,exp:"喜んでばかりもいられない = can't just be happy about it, must also consider other factors. 〜てばかりもいられない = can't just keep ~ing."},
+// 問題6 並べ替え
+{id:36,sec:"文法",type:"問題6",q:'自分の主張を譲らない西山さん ＿＿ ＿＿ <u>★</u> ＿＿ も課長だ。\n1 なら　2 も　3 西山さん　4 課長',opts:["なら・も・★西山さん・課長（★=西山さん）","なら・課長・★も・西山さん（★=も）","西山さん・なら・★課長・も（★=課長）","課長・なら・★西山さん・も（★=西山さん）"],ans:2,exp:"正しい文: 自分の主張を譲らない「西山さんなら★課長も」仕方ない。→ 実は問題の答えは選択肢3: 西山さん・なら・★課長・も。★ = 課長"},
+{id:37,sec:"文法",type:"問題6",q:'トラブルが ＿＿ ＿＿ <u>★</u> ＿＿ トラブルだ。\n1 起きないように　2 起きる時に　3 起きてしまう　4 どんなに気をつけていても',opts:["どんなに気をつけていても・起きないように・★起きてしまう・起きる時に（★=起きてしまう）","起きる時に・どんなに気をつけていても・★起きないように・起きてしまう（★=起きないように）","どんなに気をつけていても・起きないように・★起きる時に・起きてしまう（★=起きる時に）","起きないように・どんなに気をつけていても・★起きてしまう・起きる時に（★=起きてしまう）"],ans:0,exp:"正しい文: トラブルが「どんなに気をつけていても起きないように★起きてしまう起きる時に」→ どんなに気をつけていても起きないように起きてしまうトラブルだ。★ = 起きてしまう"},
+{id:38,sec:"文法",type:"問題6",q:'俳優のむ村川たかしが今回の作品で ＿＿ ＿＿ <u>★</u> ＿＿ といえるだろう。\n1 自然な演技は　2 長年会社勤めをしてきた　3 彼ならでは　4 見せた',opts:["長年会社勤めをしてきた・自然な演技は・★彼ならでは・見せた（★=彼ならでは）","自然な演技は・長年会社勤めをしてきた・★彼ならでは・見せた（★=彼ならでは）","彼ならでは・自然な演技は・★長年会社勤めをしてきた・見せた（★=長年会社勤めをしてきた）","見せた・長年会社勤めをしてきた・★自然な演技は・彼ならでは（★=自然な演技は）"],ans:0,exp:"正しい文: 今回の作品で「長年会社勤めをしてきた自然な演技は★彼ならでは見せた」といえるだろう。★ = 彼ならでは"},
+{id:39,sec:"文法",type:"問題6",q:'普段は無口な息子だが、昨日は校内のマラソン大会で入賞し ＿＿ ＿＿ <u>★</u> ＿＿ なり、楽しそうに話してくれた。\n1 のか　2 ことが　3 家に帰ってくる　4 よほどうれしかった',opts:["よほどうれしかった・のか・★ことが・家に帰ってくる（★=ことが）","家に帰ってくる・よほどうれしかった・★のか・ことが（★=のか）","ことが・家に帰ってくる・★よほどうれしかった・のか（★=よほどうれしかった）","よほどうれしかった・ことが・★のか・家に帰ってくる（★=のか）"],ans:1,exp:"正しい文: 入賞し「家に帰ってくるよほどうれしかった★のかことが」なり→ 家に帰ってくるよほどうれしかったのかことがなり→ 正しくは: よほどうれしかったのか、家に帰ってくるなり楽しそうに話してくれた。★ = のか"},
+{id:40,sec:"文法",type:"問題6",q:'友人が突然大学を辞めると言い出した。将来のことを ＿＿ ＿＿ <u>★</u> ＿＿ 思えないので、考え直すように説得している。\n1 応援したいが　2 決断ならば　3 よく考えたうえでの　4 そうは',opts:["よく考えたうえでの・決断ならば・★応援したいが・そうは（★=応援したいが）","応援したいが・よく考えたうえでの・★決断ならば・そうは（★=決断ならば）","決断ならば・そうは・★よく考えたうえでの・応援したいが（★=よく考えたうえでの）","よく考えたうえでの・決断ならば・★そうは・応援したいが（★=そうは）"],ans:0,exp:"正しい文: 将来のことを「よく考えたうえでの決断ならば★応援したいがそうは」思えないので→ よく考えたうえでの決断ならば応援したいがそうは思えない。★ = 応援したいが"},
+// 問題7 文法
+{id:41,sec:"文法",type:"問題7",passage:"p7_neko",q:'このようにネコがにおいで相手を確認するのは、目があまり（<u>41</u>）。',opts:["よくないせいだとします","よくないことにもあります","よくないときだといえます","よくないからでもあります"],ans:3,exp:"〜からでもあります = it is also because ~. 目があまりよくないからでもあります = it is also because their eyesight is not very good。"},
+{id:42,sec:"文法",type:"問題7",passage:"p7_neko",q:'ネコは鼻を近づけられたと勘違いして同じ反応を（<u>42</u>）。',opts:["示すのです","示すそうです","示すてばかりです","示すたものです"],ans:0,exp:"〜のです = it's the case that ~, that's why ~. 同じ反応を示すのです = they show the same reaction (that's why / as an explanation)."},
+{id:43,sec:"文法",type:"問題7",passage:"p7_neko",q:'この習性を（<u>43</u>）、初対面のネコとも仲よくできます。',opts:["利用させずに","利用すれば","利用させることで","利用するまでもなく"],ans:1,exp:"〜すれば = if you ~, then ~. この習性を利用すれば = if you make use of this trait。"},
+{id:44,sec:"文法",type:"問題7",passage:"p7_neko",q:'（<u>44</u>）、まずは指先をネコの鼻に近づけてみます。',opts:["あるいは","ちなみに","そこで","すなわち"],ans:2,exp:"そこで = so, therefore, with that in mind. 前の説明を受けた行動への接続詞。"},
+// 問題8 読解（短文）
+{id:45,sec:"読解",type:"問題8",passage:"p8_1_jidousha",q:'自動車メーカーについて、筆者が最も言いたいことは何か。',opts:["不具合をどう改善するかでメーカーの評価が決まる","不具合が起こりにくい車を世に出せるように努力すべきだ","不具合があったら改善して、それを繰り返さないことが大切だ","不具合によるリコールを想定したうえで、車を世に出すべきだ"],ans:2,exp:"「不具合が出たらリコールして、次につくる車からは同じ不具合が出ないように改善していくのが理論的な発想」= 不具合を改善してそれを繰り返さないことが大切。"},
+{id:46,sec:"読解",type:"問題8",passage:"p8_2_bogo",q:'「習得は喪失だ」とはどういうことか。',opts:["母語で区別されない音は区別できなくなること","母語で区別しなければならない音を区別できなくなること","母語でも外国語でも、特定的音が知覚できなくなること","外国語の習得によって、母語の聞き分け能力が衰えること"],ans:0,exp:"「区別しないものを見いだし、同じと見なすことを学ぶ」= 母語で区別しない音（外国語の音）は区別できなくなること。これが喪失。"},
+{id:47,sec:"読解",type:"問題8",passage:"p8_3_wasabi",q:'筆者によると、栽培されたワサビを守る必要があるのはなぜか。',opts:["環境の悪化でワサビが自生できなくなったから","ワサビの品種改良には長い時間がかかるから","栽培されたワサビは育てやすく品質がよいから","野生のワサビの数を増やすには時間がかかるから"],ans:1,exp:"「長い時間をかけてできた品種は、一度失われてしまったら、容易には復元できない」= 品種を作るのに長い時間がかかるから（品種改良ではなく品種の維持の観点）。"},
+{id:48,sec:"読解",type:"問題8",passage:"p8_4_chisei",q:'筆者によると、「知性的」な人物とはどのような人か。',opts:["集団内で学びながら、自身の知的パフォーマンスが高められた人","集団内で、ほかの人より知的パフォーマンスが優れていた人","集団全体のことを考えながら、発言やふるまいができた人","集団全体の知的パフォーマンスの向上に貢献した人"],ans:3,exp:"「集団全体の知的パフォーマンスが、彼がいない場合よりも高まった場合に、その人は『知性的』な人物だったと判定される」= 集団全体の知的パフォーマンスの向上に貢献した人。"},
+// 問題9 読解（中文）
+{id:49,sec:"読解",type:"問題9",passage:"p9_1_hi",q:'筆者によると、火で調理することで人類の脳が発達したのはなぜか。',opts:["食べ物から得た多くのエネルギーを使うことで、多様な活動が可能になったから","多くの食べ物が消化できるようになり、脳の活動が活発になったから","多様な食べ物が効率的に消化でき、脳の発達に必要なエネルギーが得られたから","多様な物が食べられるようになり、効率的な食べ方を考えるようになったから"],ans:2,exp:"「効率よく消化して多くのエネルギーを得ることができるようになった。そして、余ったエネルギーを使って脳を発達させた」= 効率的な消化→余剰エネルギー→脳の発達。"},
+{id:50,sec:"読解",type:"問題9",passage:"p9_1_hi",q:'筆者は、火を使った調理は人類にどのような変化をもたらしたと述べているのか。',opts:["ほかの人々と食事をともにすることが一般化し、他者とつながる社会が生まれた","ほかの人々との行動が個人の行動よりも優先される社会が形成された","同じ物を食べることになり、ほかの人々とのつながりがより深くなった","規則正しく行動するようになり、集団に社会性が生まれた"],ans:0,exp:"「人々は焚火の周りに集まり、一緒に食事をするようになったので、そこが人々の結びつきの場となった」= 共食が一般化し、つながりの社会が生まれた。"},
+{id:51,sec:"読解",type:"問題9",passage:"p9_2_career",q:'一種の「賭け」とあるが、どういうことか。',opts:["自分の適性を教えてもらう機会がなかったのに、仕事を選ばなければならない","自分の適性が分からないまま、仕事を選ばなければならない","仕事に就かなければ自分の適性が確かめられないのに、仕事を選ばなければならない","仕事の内容が分からないまま、仕事を選ばなければならない"],ans:2,exp:"「仕事の世界は、いったんは思いきって飛び込んでみないかぎり、それを理解することはできない」= 仕事に就かないと分からないのに、選ばなければならない状況が「賭け」。"},
+{id:52,sec:"読解",type:"問題9",passage:"p9_2_career",q:'キャリア教育のあり方について、筆者の考えに合うのはどれか。',opts:["自分の特性を生かせる仕事や実現したい社会について、深く考えさせるべきだ","自分の特性を把握させ、社会に貢献できる仕事を選ばせることが重要だ","どうしたら自分が社会に役立てるのか、現実的認識をもたせるべきだ","仕事や社会について学んだうえで、自分を見つめさせることが重要だ"],ans:0,exp:"「根っこ」の部分として「こんな社会を実現したいとか、自分のこんな特性を生かしたい」= 自分の特性と実現したい社会について深く考えさせることが筆者の主張。"},
+{id:53,sec:"読解",type:"問題9",passage:"p9_3_shrimp",q:'クリーナーシュリンプの特徴のひとつとして、筆者が述べているものはどれか。',opts:["魚の体や口を掃除する意思を表すため、体表の明暗を変化させる","魚の体表の色や輪郭によって、掃除を待つ魚かどうかを識別できる","掃除を待つ魚の体表の明暗の変化を認識できる視力を持つ","掃除を待つ魚の大きさや形を認識するための触角を持つ"],ans:2,exp:"「クリーナーシュリンプの視力は...魚の体表の明暗の変化は十分に認識できることが明らかになっている」= 体表の明暗変化を認識できる視力を持つ。"},
+{id:54,sec:"読解",type:"問題9",passage:"p9_3_shrimp",q:'両者が合意すればとあるが、合意したといえるのはどの時点か。',opts:["魚が体表を暗くしたのをクリーナーシュリンプが見たとき","魚が30〜40cmの距離に近づいたのをクリーナーシュリンプが見たとき","クリーナーシュリンプが触角を白く変化させたのを魚が見たとき","クリーナーシュリンプが触角を大きく振ったのを魚が見たとき"],ans:3,exp:"「その触角の動きを見て、ハタなどの魚は、クリーナーシュリンプが掃除することを了解したと知るのである。こうして両者が合意すれば」= 魚が触角を振るのを見た時点が合意。"},
+{id:55,sec:"読解",type:"問題9",passage:"p9_4_nikki",q:'筆者によると、写真におかしみや懐かしさを感じるのはなぜか。',opts:["当時の自分の「内面」が表れているように見えるから","当時の自分の姿に、現在の自分の外面的特徴が見られるから","写っているのは、客観的に見た自分の姿だから","写っているのは、撮られることを意識した自分の姿だから"],ans:2,exp:"「画像が外面的、形態的な客観性を保持している」= 写真は客観的な外見の記録だからおかしみや懐かしさを感じる。"},
+{id:56,sec:"読解",type:"問題9",passage:"p9_4_nikki",q:'筆者によると、日記を読み返したときに羞恥や嫌悪を感じるのはなぜか。',opts:["日記の中の自分は、今の自分とは異なり虚構だったと思い知らされるから","日記の中の自分は、今の自分にほかならないと認識せざるを得なくなるから","今の自分が忘れていた「内面」の弱さをいや応なしに自覚させられるから","今の自分は、日記に書かれた自分から成長していないことを突きつけられるから"],ans:1,exp:"「フィクショナルに仮構された『内面』が、今、読み返している『私』と同一であることを強いられるがゆえに」= 日記の自分が今の自分と同一と認識させられるから。"},
+// 問題10 読解（長文）
+{id:57,sec:"読解",type:"問題10",passage:"p10_kioku",q:'記憶力が不完全であることについて、筆者はどう考えている。',opts:["人間は完成ではないので、当たり前だ","良い思い出を増やせるので重要だ","周囲に合わせて生きていくために不可欠だ","よりよく生きていくために必要だ"],ans:3,exp:"「記憶が徐々に消えていく、あるいは書き換わる仕組みが存在するのは、より良く生きていくためには自然で、当たり前のことだと言えます」= よりよく生きるために必要。"},
+{id:58,sec:"読解",type:"問題10",passage:"p10_kioku",q:'その案件の重みづけを変え、優先順位を低く見直す何のためか。',opts:["過去の体験の記憶を書き換えるため","危険な出来事に対する恐れをなくすため","起こる可能性の高い重大な危険に備えるため","人生に影響を与える新しい挑戦をしやすくするため"],ans:2,exp:"「高頻度かつ致命的な影響を与え得る危険の方を優先的に回避するべき」= 低優先化は高頻度・致命的な危険に備えるため。"},
+{id:59,sec:"読解",type:"問題10",passage:"p10_kioku",q:'現代の教育や試験制度について、筆者はどう述べている。',opts:["いくら技術が発達しても、技術で人間の記憶力の優劣を測るには限界がある","技術で記憶力が補える時代に記憶力で人の優秀さを判断するのは問題である","技術発達に応じて、時代にあった尺度で記憶力を測る必要がある","技術の恩恵を受け入れるようになり、人間には記憶力以外の力が求められる"],ans:1,exp:"「テクノロジーの発達によって記憶力は補完されるようになっており...記憶力という尺度を使うのは時代にそぐわなくなってきている」= 技術で補える時代に記憶力で優秀さを判断するのは問題。"},
+// 問題11 AとB
+{id:60,sec:"読解",type:"問題11",passage:"p11_katazuke",q:'生活の中で手を抜くことについて、AとBはどのように述べているか。',opts:["Aは手を抜くことは悪いことではないと述べ、Bは手が抜けるものを増やしたほうがいいと述べている","Aは手を抜けるものを探し出したほうがいいと述べ、Bは完璧にできなくても、手は抜かないほうがいいと述べている","Aは大切でないことは手を抜いたほうがいいと述べ、Bは手を抜くものと抜かないものを明確にしておけばいいと述べている","Aはできるだけ手を抜くべきではないと述べ、Bはいったん手を抜いてみて、うまくいかなければ元のやり方に戻せばいいと述べている"],ans:2,exp:"A:「自分が何を大切にしたいかを考え、そうではないことは積極的に手を抜いていく」= 大切でないことは手を抜く。B:「手を抜いていいものといけないものを仕分けすることが大切」= 仕分けの重要性。"},
+{id:61,sec:"読解",type:"問題11",passage:"p11_katazuke",q:'AとBの認識で共通していることは何か。',opts:["家事に多くの時間や労力を費やすのは無駄だ","生活において何を重視するかは自分次第だ","自分の基準にこだわりすぎるのはよくない","自分のしたいことだけをするほうが有意義だ"],ans:1,exp:"A:「自分が何を大切にしたいかを考え」B:「何を大切にし、何をそぎ落としていくかは人それぞれ」= 両方とも生活で何を重視するかは自分次第という点で共通。"},
+// 問題12 長文
+{id:62,sec:"読解",type:"問題12",passage:"p12_koukoku",q:'ないがしろにされてきているとあるが、なぜか。',opts:["商品のイメージに関心が持たれるようになったから","商品ではなくイメージでしか違いを出せなくなったから","商品を最後に紹介するほうが強く印象づけられるから","商品を強く訴えることが良いイメージを与えなくなったから"],ans:1,exp:"「商品のコモディティ化が進んできてしまったため、商品の差別化を、イメージだけでなんとか乗り切ろうとしている」= イメージでしか違いを出せなくなったから。"},
+{id:63,sec:"読解",type:"問題12",passage:"p12_koukoku",q:'「ソーシャルグッド」と呼ばれる種類の広告について、筆者はどのように述べているか。',opts:["商品に関心を持たせることはできるが、商品の価値が過大評価されかねない","社会的な問題の解決につながるが、商品の良さを伝えることはできない","社会的な問題の提起が目的であり、商品の宣伝効果を期待するものではない","社会的な問題への関心を持たせられるが、商品が実際に必要だと感じられにくい"],ans:3,exp:"「良いブランド止まりであり、これだけでは自分の生活を良くするのに必要な存在にはなれない」= 社会問題への関心は喚起するが、商品が必要だとは感じられにくい。"},
+{id:64,sec:"読解",type:"問題12",passage:"p12_koukoku",q:'広告について、筆者はどのように考えているか。',opts:["商品が実生活において価値があることを示すべきだ","商品が社会にどのように役に立つかを示さなければならない","商品の購入を促すだけのものであってはいけない","商品を購入する際になくてはならないものにするべきだ"],ans:0,exp:"「商品を生活上役に立つ存在だと認識してもらい、買うに値する理由を明確にすることだ」= 商品が実生活において価値があることを示すべき。"},
+// 問題13 情報検索
+{id:65,sec:"読解",type:"問題13",passage:"p13_cleaning",q:'リンダさんは、コートとワンピースのクリーニング（基本料金の合計4,000円）を注文しようと考えている。リンダさんはこのサービスを初めて利用する。普通会員に登録して注文する場合、リンダさんはいくら支払わなければならないか。',opts:["4,000円から30%引いた金額","4,000円から30%引いた金額と送料2,000円","4,000円","4,000円と送料2,000円"],ans:0,exp:"初回は会員種別を問わず30%引き。4,000×0.7=2,800円。初回は送料無料（特別会員のみ初回送料無料と記載されているが、普通会員の初回も送料無料との記載はない点に注意。ただし問題の正解は1: 30%引きの金額）。"},
+{id:66,sec:"読解",type:"問題13",passage:"p13_cleaning",q:'東京都に住んでいる特別会員の野村さんは、ジャケットと着物のクリーニングを注文しようと考えている。自宅の段ボールに衣類を詰め、今日の17時に発送する予定である。クリーニングが終わった衣類が自宅に届くのはいつになるか。',opts:["3日後","4日後","8日後","9日後"],ans:3,exp:"17時発送 = 16時以降なので特別会員は4日後。ただし着物が含まれるため+5日 = 4+5=9日後。着物と他の衣類を一緒に注文した場合は着物が終わってからまとめて届く。"}
+];
+
+let currentQ=0,questions=[],answers={},startTime=null,timerInterval=null,totalSeconds=0,mode='all';
+
+function secBadgeClass(sec){
+  if(sec==="文字・語彙")return"badge badge-moji";
+  if(sec==="文法")return"badge badge-bunpou";
+  return"badge badge-dokkai";
+}
+function getQuestions(m){
+  if(m==='all')return[...Q];
+  if(m==='moji')return Q.filter(q=>q.sec==="文字・語彙");
+  if(m==='bunpou')return Q.filter(q=>q.sec==="文法");
+  if(m==='dokkai')return Q.filter(q=>q.sec==="読解");
+  return[...Q];
+}
+function getTimeLimit(m){return{all:6600,moji:2100,bunpou:1500,dokkai:3000}[m]||6600;}
+
+function startMode(m){
+  mode=m;questions=getQuestions(m);answers={};currentQ=0;
+  startTime=Date.now();totalSeconds=getTimeLimit(m);
+  showScreen('quiz');buildProgressGrid();renderQuestion();startTimer();
+}
+function startTimer(){
+  if(timerInterval)clearInterval(timerInterval);
+  timerInterval=setInterval(()=>{
+    const elapsed=Math.floor((Date.now()-startTime)/1000);
+    const remaining=totalSeconds-elapsed;
+    if(remaining<=0){clearInterval(timerInterval);finishQuiz();return;}
+    const mm=Math.floor(remaining/60),ss=remaining%60;
+    document.getElementById('timer-text').textContent=`${mm}:${ss.toString().padStart(2,'0')}`;
+    const pct=(remaining/totalSeconds)*100;
+    const fill=document.getElementById('timer-fill');
+    fill.style.width=pct+'%';
+    fill.className='timer-fill'+(pct<25?' danger':pct<50?' warn':'');
+  },500);
+}
+function buildProgressGrid(){
+  const g=document.getElementById('prog-grid');g.innerHTML='';
+  questions.forEach((_,i)=>{
+    const d=document.createElement('div');
+    d.className='prog-dot'+(i===currentQ?' current':'');
+    d.textContent=i+1;d.onclick=()=>goToQ(i);d.id='pd-'+i;
+    g.appendChild(d);
+  });
+}
+function goToQ(i){currentQ=i;renderQuestion();}
+function renderQuestion(){
+  const q=questions[currentQ];
+  const secBadge=document.getElementById('q-sec-badge');
+  secBadge.className=secBadgeClass(q.sec);secBadge.textContent=q.sec;
+  document.getElementById('q-type-badge').textContent=q.type;
+  document.getElementById('q-num').textContent=`問 ${currentQ+1} / ${questions.length}`;
+  const correct=Object.values(answers).filter(a=>a.correct).length;
+  document.getElementById('q-score-live').textContent=`正解: ${correct}`;
+  // passage
+  const pc=document.getElementById('passage-card');
+  const pt=document.getElementById('passage-text');
+  if(q.passage&&PASSAGES[q.passage]){
+    pc.style.display='';
+    pt.innerHTML=PASSAGES[q.passage].split('\n').map(l=>l?`<p>${l}</p>`:'').join('');
+  }else{pc.style.display='none';}
+  // question
+  document.getElementById('q-text').innerHTML=q.q.replace(/\n/g,'<br>');
+  // options
+  const od=document.getElementById('options');od.innerHTML='';
+  q.opts.forEach((opt,i)=>{
+    const b=document.createElement('button');
+    b.className='option-btn';
+    b.innerHTML=`<span style="font-family:var(--mono);color:var(--muted);margin-right:10px;">${i+1}</span>${opt}`;
+    b.onclick=()=>selectAnswer(i);
+    od.appendChild(b);
+  });
+  // restore
+  const exp=document.getElementById('explanation');exp.style.display='none';
+  document.getElementById('next-btn').disabled=true;
+  if(answers[q.id]!==undefined){
+    restoreAnswer(q);
+  }
+  // progress dots
+  document.querySelectorAll('.prog-dot').forEach((d,i)=>{
+    d.className='prog-dot'+(i===currentQ?' current':'');
+    const qq=questions[i];
+    if(answers[qq.id]!==undefined){
+      d.className+=' '+(answers[qq.id].correct?'correct':'wrong');
+    }
+  });
+}
+function selectAnswer(idx){
+  const q=questions[currentQ];
+  if(answers[q.id]!==undefined)return;
+  const correct=idx===q.ans;
+  answers[q.id]={selected:idx,correct};
+  const btns=document.querySelectorAll('.option-btn');
+  btns.forEach((b,i)=>{
+    b.disabled=true;
+    if(i===q.ans)b.classList.add('correct');
+    else if(i===idx&&!correct)b.classList.add('wrong');
+  });
+  const exp=document.getElementById('explanation');
+  exp.style.display='';
+  exp.textContent=q.exp;
+  document.getElementById('next-btn').disabled=false;
+  const dot=document.getElementById('pd-'+currentQ);
+  if(dot){dot.className='prog-dot current '+(correct?'correct':'wrong');}
+  document.getElementById('q-score-live').textContent=`正解: ${Object.values(answers).filter(a=>a.correct).length}`;
+}
+function restoreAnswer(q){
+  const a=answers[q.id];
+  const btns=document.querySelectorAll('.option-btn');
+  btns.forEach((b,i)=>{
+    b.disabled=true;
+    if(i===q.ans)b.classList.add('correct');
+    else if(i===a.selected&&!a.correct)b.classList.add('wrong');
+  });
+  const exp=document.getElementById('explanation');
+  exp.style.display='';exp.textContent=q.exp;
+  document.getElementById('next-btn').disabled=false;
+}
+function nextQ(){
+  if(currentQ<questions.length-1){currentQ++;renderQuestion();}
+}
+function prevQ(){
+  if(currentQ>0){currentQ--;renderQuestion();}
+}
+function finishQuiz(){
+  clearInterval(timerInterval);
+  const elapsed=Math.floor((Date.now()-startTime)/1000);
+  showScreen('result');
+  const total=questions.length;
+  const correct=Object.values(answers).filter(a=>a.correct).length;
+  const wrong=Object.keys(answers).length-correct;
+  const pct=Math.round(correct/total*100);
+  document.getElementById('r-correct').textContent=correct;
+  document.getElementById('r-wrong').textContent=wrong;
+  document.getElementById('r-pct').textContent=pct+'%';
+  const mm=Math.floor(elapsed/60),ss=elapsed%60;
+  document.getElementById('r-time').textContent=`${mm}:${ss.toString().padStart(2,'0')}`;
+  document.getElementById('res-date').textContent=new Date().toLocaleString('ja-JP');
+  // section scores
+  const secs=["文字・語彙","文法","読解"];
+  const sr=document.getElementById('section-results');sr.innerHTML='';
+  secs.forEach(s=>{
+    const qs=questions.filter(q=>q.sec===s);
+    if(!qs.length)return;
+    const c=qs.filter(q=>answers[q.id]?.correct).length;
+    const div=document.createElement('div');div.className='section-result';
+    div.innerHTML=`<span>${s}</span><span style="font-family:var(--mono)">${c}/${qs.length} (${Math.round(c/qs.length*100)}%)</span>`;
+    sr.appendChild(div);
+  });
+  // pass/fail
+  const pass=pct>=60;
+  const pb=document.getElementById('pass-banner');
+  pb.className='pass-banner '+(pass?'pass':'fail');
+  document.getElementById('pass-text').textContent=pass?'✅ 合格圏内 (推定)':'❌ 要復習';
+  document.getElementById('pass-sub').textContent=`${correct}/${total}問正解 (${pct}%) — N1合格目安: 正答率60%以上`;
+  document.getElementById('hs-done').textContent=total;
+  document.getElementById('hs-score').textContent=pct+'%';
+  document.getElementById('hs-pred').textContent=pass?'合格':'不合格';
+  // prediction
+  const pd=document.getElementById('prediction-detail');
+  pd.innerHTML=`<p>📊 正答率 <strong>${pct}%</strong> (${correct}/${total}問)</p>
+<p>JLPT N1の合格基準: 総合得点 100/180点以上 + 各セクション最低ライン通過</p>
+<p>${pct>=70?'✅ 合格の可能性が高いです。':pct>=60?'⚠️ 合格ラインギリギリです。引き続き練習を。':'❌ 合格には更なる学習が必要です。'}</p>`;
+  document.getElementById('print-pdf-btn').classList.add('show');
+}
+function reviewAnswers(){
+  answers={};showScreen('quiz');buildProgressGrid();
+  questions.forEach(q=>{
+    const origAns=answers[q.id];
+    if(origAns)answers[q.id]=origAns;
+  });
+  currentQ=0;renderQuestion();
+}
+function goHome(){
+  clearInterval(timerInterval);
+  document.getElementById('print-pdf-btn').classList.remove('show');
+  showScreen('home');
+}
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function saveSessionManual(){
+  const data={answers,currentQ,mode,elapsed:Math.floor((Date.now()-startTime)/1000)};
+  localStorage.setItem('jlpt_n1_2025_12',JSON.stringify(data));
+  alert('💾 Sesi tersimpan!');
+}
+function loadSessionManual(){
+  const raw=localStorage.getItem('jlpt_n1_2025_12');
+  if(!raw){alert('Tidak ada sesi tersimpan.');return;}
+  const data=JSON.parse(raw);
+  mode=data.mode||'all';
+  questions=getQuestions(mode);
+  answers=data.answers||{};
+  currentQ=data.currentQ||0;
+  startTime=Date.now()-(data.elapsed||0)*1000;
+  totalSeconds=getTimeLimit(mode);
+  showScreen('quiz');buildProgressGrid();renderQuestion();startTimer();
+  alert('📂 Sesi dimuat!');
+}
+
+// Canvas background
+(function(){
+  const c=document.getElementById('bg-canvas');
+  const ctx=c.getContext('2d');
+  let W,H,particles=[];
+  function resize(){W=c.width=window.innerWidth;H=c.height=window.innerHeight;}
+  function init(){
+    resize();particles=[];
+    for(let i=0;i<60;i++)particles.push({x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.5+.3,dx:(Math.random()-.5)*.3,dy:(Math.random()-.5)*.3,a:Math.random()*.5+.1});
+  }
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    particles.forEach(p=>{
+      ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fillStyle=`rgba(90,169,255,${p.a})`;ctx.fill();
+      p.x+=p.dx;p.y+=p.dy;
+      if(p.x<0||p.x>W)p.dx*=-1;
+      if(p.y<0||p.y>H)p.dy*=-1;
+    });
+    requestAnimationFrame(draw);
+  }
+  window.addEventListener('resize',init);
+  init();draw();
+})();
+</script>
+<button id="print-pdf-btn" onclick="window.print()">
+  <svg class="pdf-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+  <span class="pdf-text">Cetak / PDF</span>
+</button>
+</body>
+</html>

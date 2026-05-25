@@ -3,23 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>JLPT N2 — Desember 2025</title>
+<title>JLPT N2 — Desember 2025 (2025-2)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-:root{
-  --bg:#0b1020;--bg2:#121a2f;--card:#18233f;--card2:#1f2d52;
-  --border:#2b3a63;--text:#f1f5ff;--muted:#9fb0d3;
-  --primary:#5aa9ff;--success:#19c37d;--danger:#ff5f73;--warning:#ffb547;
-  --font:'Zen Kaku Gothic New',sans-serif;--mono:'JetBrains Mono',monospace;
-}
+:root{--bg:#0b1020;--bg2:#121a2f;--card:#18233f;--card2:#1f2d52;--border:#2b3a63;--text:#f1f5ff;--muted:#9fb0d3;--primary:#5aa9ff;--success:#19c37d;--danger:#ff5f73;--warning:#ffb547;--font:'Zen Kaku Gothic New',sans-serif;--mono:'JetBrains Mono',monospace;}
 *{margin:0;padding:0;box-sizing:border-box;}
-body{
-  background:radial-gradient(ellipse at top left,#1a2d5a 0%,transparent 45%),
-             radial-gradient(ellipse at bottom right,#231440 0%,transparent 40%),var(--bg);
-  color:var(--text);font-family:var(--font);min-height:100vh;padding:16px;
-}
+body{background:radial-gradient(ellipse at top left,#1a2d5a 0%,transparent 45%),radial-gradient(ellipse at bottom right,#231440 0%,transparent 40%),var(--bg);color:var(--text);font-family:var(--font);min-height:100vh;padding:16px;}
 .app{max-width:720px;margin:0 auto;}
 .screen{display:none;}.screen.active{display:block;}
 .header{background:rgba(24,35,63,.85);backdrop-filter:blur(12px);border:1px solid var(--border);border-radius:20px;padding:22px 24px;margin-bottom:14px;}
@@ -74,47 +65,11 @@ h2{font-size:15px;font-weight:500;margin-bottom:10px;}
 .info-note{background:rgba(255,181,71,.07);border:1px solid rgba(255,181,71,.2);border-radius:12px;padding:10px 14px;font-size:12px;color:rgba(255,181,71,.8);margin-bottom:10px;}
 canvas{position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.35;}
 .app{position:relative;z-index:1;}
+#print-pdf-btn{position:fixed;right:24px;bottom:24px;border:1px solid rgba(96,165,250,.22);border-radius:18px;background:#142349;color:white;padding:14px 18px;display:none;align-items:center;gap:12px;cursor:pointer;z-index:999999;box-shadow:0 10px 30px rgba(0,0,0,.25);font-weight:700;font-size:15px;transition:.2s ease;}
+#print-pdf-btn:hover{transform:translateY(-2px);background:#1a2d5d;}
+#print-pdf-btn.show{display:flex;}
+@media print{#print-pdf-btn{display:none!important;}}
 </style>
-
-<style>
-#print-pdf-btn{
-    position:fixed;
-    right:24px;
-    bottom:24px;
-    border:1px solid rgba(96,165,250,.22);
-    border-radius:18px;
-    background:#142349;
-    color:white;
-    padding:14px 18px;
-    display:none;
-    align-items:center;
-    gap:12px;
-    cursor:pointer;
-    z-index:999999;
-    box-shadow:0 10px 30px rgba(0,0,0,.25);
-    font-weight:700;
-    font-size:15px;
-    transition:.2s ease;
-}
-#print-pdf-btn:hover{
-    transform:translateY(-2px);
-    background:#1a2d5d;
-}
-#print-pdf-btn.show{
-    display:flex;
-}
-.pdf-svg{
-    width:22px;
-    height:22px;
-    opacity:.95;
-}
-@media print{
-    #print-pdf-btn{
-        display:none !important;
-    }
-}
-</style>
-
 </head>
 <body>
 <canvas id="bg-canvas"></canvas>
@@ -123,8 +78,10 @@ canvas{position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.35;}
 <!-- HOME -->
 <div id="home" class="screen active">
   <div class="header">
-    <h1>JLPT N2 — Desember 2025</h1>
-    <p class="muted" style="margin-top:4px">71 soal · 言語知識（文字・語彙・文法）+ 読解 · 105 menit</p>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+      <h1>JLPT N2 — Desember 2025 (2025-2)</h1>
+    </div>
+    <p class="muted">71 soal asli · 言語知識 (文字・語彙・文法) + 読解 · 105 menit</p>
   </div>
   <div class="stat-grid">
     <div class="stat-card"><div class="stat-num">71</div><div class="stat-lbl">total soal</div></div>
@@ -132,7 +89,7 @@ canvas{position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.35;}
     <div class="stat-card"><div class="stat-num" id="hs-score">—</div><div class="stat-lbl">skor terakhir</div></div>
     <div class="stat-card"><div class="stat-num" id="hs-pred">—</div><div class="stat-lbl">prediksi</div></div>
   </div>
-  <div class="info-note">⚠️ Soal 聴解 tidak dimasukkan karena memerlukan audio. Soal written: 71 soal.</div>
+  <div class="info-note">⚠️ Soal 聴解 tidak dimasukkan karena memerlukan audio. Ini adalah soal asli JLPT N2 2025-2 (Desember 2025).</div>
   <button class="mode-btn" onclick="startMode('all')"><strong>🎯 Ujian Penuh</strong><br><span style="font-size:12px;color:var(--muted)">Semua 71 soal · timer 105 menit</span></button>
   <button class="mode-btn" onclick="startMode('moji')"><strong>📝 文字・語彙</strong><br><span style="font-size:12px;color:var(--muted)">30 soal · 問題1–6 · timer 35 menit</span></button>
   <button class="mode-btn" onclick="startMode('bunpou')"><strong>📐 文法</strong><br><span style="font-size:12px;color:var(--muted)">17 soal · 問題7–9 · timer 25 menit</span></button>
@@ -167,11 +124,8 @@ canvas{position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.35;}
   </div>
   <div class="row">
     <button class="nav-btn" onclick="prevQ()">← Back</button>
-
     <button class="nav-btn" onclick="saveSessionManual()">💾 Save</button>
-
     <button class="nav-btn" onclick="loadSessionManual()">📂 Load</button>
-
     <div class="spacer"></div>
     <button class="nav-btn" id="next-btn" onclick="nextQ()" disabled>Next →</button>
     <button class="nav-btn finish" onclick="finishQuiz()">Selesai</button>
@@ -195,7 +149,6 @@ canvas{position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.35;}
   <div class="card"><h2>Prediksi kelulusan JLPT N2</h2><div id="prediction-detail" style="font-size:13px;line-height:2;color:var(--muted);"></div></div>
   <div class="row" style="gap:8px;margin-top:8px;">
     <button class="nav-btn" onclick="reviewAnswers()">Review Jawaban</button>
-	 <button class="nav-btn" onclick="window.location.href='../../index.html'">🏠 HOME</button>
     <div class="spacer"></div>
     <button class="nav-btn" onclick="goHome()">Kembali ke Menu</button>
   </div>
@@ -203,9 +156,6 @@ canvas{position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.35;}
 
 </div>
 <script>
-// =========================================================
-// PASSAGES
-// =========================================================
 const PASSAGES = {
 
 p_me:`「目で味わう」という言葉があります。もちろん、目で食べ物を食べるという意味ではありません。食べる前に目で見て料理の見た目を楽しむという意味です。しかし、「味わう」という言葉は普通、舌で料理の味を楽しむことを指します。目でも味を感じることはできるのでしょうか。
@@ -368,6 +318,7 @@ p_fune:`丸山汽船
 // =========================================================
 // QUESTIONS — N2 Desember 2025 (2025-2)
 // =========================================================
+
 const Q = [
 
 // ===== 文字・語彙 =====
@@ -473,9 +424,6 @@ const Q = [
 {id:71,sec:"読解",type:"問題14",passage:"p_fune",q:'岩根島への船についての記述として正しいのはどれか。',opts:["2等の席は大部屋で、いすに座ることができない。","予約番号は乗船当日の出発30分前までに窓口で伝える。","予約なしでも当日窓口で乗船券を買えば必ず乗れる。","運賃の支払いは、予約の電話時に行う必要がある。"],ans:0,exp:"「2等はいすの席はなく、じゅうたんの大部屋です」→ 2等はいす不可・大部屋。選択肢2は「15分前まで」が正しい（30分前は予約なし当日券）。選択肢3は「空きがあれば」と条件あり・必ずではない。選択肢4は「当日乗船受付窓口でお支払い」。"}
 ];
 
-// =========================================================
-// APP LOGIC
-// =========================================================
 let currentQ=0,questions=[],answers={},startTime=null,timerInterval=null,totalSeconds=0,mode='all';
 
 function secBadgeClass(sec){
@@ -490,7 +438,7 @@ function getQuestions(m){
   if(m==='dokkai')return Q.filter(q=>q.sec==="読解");
   return[...Q];
 }
-function getTimeLimit(m){return{all:6300,moji:2100,bunpou:1500,dokkai:3000}[m]||6300;}
+function getTimeLimit(m){return {all:6300,moji:2100,bunpou:1500,dokkai:3000}[m]||6300;}
 
 function startMode(m){
   mode=m;questions=getQuestions(m);answers={};currentQ=0;
@@ -529,212 +477,158 @@ function renderQuestion(){
   document.getElementById('q-num').textContent=`問 ${currentQ+1} / ${questions.length}`;
   const correct=Object.values(answers).filter(a=>a.correct).length;
   document.getElementById('q-score-live').textContent=`正解: ${correct}`;
-  const passageCard=document.getElementById('passage-card');
-  const passageText=document.getElementById('passage-text');
+  const pc=document.getElementById('passage-card');
+  const pt=document.getElementById('passage-text');
   if(q.passage&&PASSAGES[q.passage]){
-    passageCard.style.display='block';
-    passageText.innerHTML=PASSAGES[q.passage].split('\n').map(line=>line.trim()?`<p>${line}</p>`:'').join('');
-  } else {passageCard.style.display='none';}
-  document.getElementById('q-text').innerHTML=q.q;
-  const opts=document.getElementById('options');opts.innerHTML='';
-  q.opts.forEach((o,i)=>{
+    pc.style.display='';
+    pt.innerHTML=PASSAGES[q.passage].split('\n').map(l=>l?`<p>${l}</p>`:'').join('');
+  }else{pc.style.display='none';}
+  document.getElementById('q-text').innerHTML=q.q.replace(/\n/g,'<br>');
+  const od=document.getElementById('options');od.innerHTML='';
+  q.opts.forEach((opt,i)=>{
     const b=document.createElement('button');
     b.className='option-btn';
-    b.innerHTML=`<span style="font-family:var(--mono);color:var(--muted);margin-right:8px;">${i+1}.</span>${o}`;
-    const ans=answers[currentQ];
-    if(ans){
-      b.disabled=true;
-      if(i===q.ans)b.classList.add('correct');
-      else if(i===ans.chosen)b.classList.add('wrong');
-    } else {b.onclick=()=>selectAnswer(i);}
-    opts.appendChild(b);
+    b.innerHTML=`<span style="font-family:var(--mono);color:var(--muted);margin-right:10px;">${i+1}</span>${opt}`;
+    b.onclick=()=>selectAnswer(i);
+    od.appendChild(b);
+  });
+  const exp=document.getElementById('explanation');exp.style.display='none';
+  document.getElementById('next-btn').disabled=true;
+  if(answers[q.id]!==undefined){restoreAnswer(q);}
+  document.querySelectorAll('.prog-dot').forEach((d,i)=>{
+    d.className='prog-dot'+(i===currentQ?' current':'');
+    const qq=questions[i];
+    if(answers[qq.id]!==undefined){d.className+=' '+(answers[qq.id].correct?'correct':'wrong');}
+  });
+}
+function selectAnswer(idx){
+  const q=questions[currentQ];
+  if(answers[q.id]!==undefined)return;
+  const correct=idx===q.ans;
+  answers[q.id]={selected:idx,correct};
+  const btns=document.querySelectorAll('.option-btn');
+  btns.forEach((b,i)=>{
+    b.disabled=true;
+    if(i===q.ans)b.classList.add('correct');
+    else if(i===idx&&!correct)b.classList.add('wrong');
   });
   const exp=document.getElementById('explanation');
-  if(answers[currentQ]){exp.style.display='block';exp.textContent='💡 解説: '+q.exp;}
-  else{exp.style.display='none';}
-  document.getElementById('next-btn').disabled=!answers[currentQ];
-  updateProgDots();
-}
-function selectAnswer(i){
-  const q=questions[currentQ];
-  answers[currentQ]={chosen:i,correct:i===q.ans};
-  const pd=document.getElementById('pd-'+currentQ);
-  if(pd)pd.classList.add(answers[currentQ].correct?'correct':'wrong');
-  renderQuestion();
+  exp.style.display='';
+  exp.textContent=q.exp;
   document.getElementById('next-btn').disabled=false;
+  const dot=document.getElementById('pd-'+currentQ);
+  if(dot){dot.className='prog-dot current '+(correct?'correct':'wrong');}
+  document.getElementById('q-score-live').textContent=`正解: ${Object.values(answers).filter(a=>a.correct).length}`;
 }
-function updateProgDots(){
-  questions.forEach((_,i)=>{
-    const d=document.getElementById('pd-'+i);if(!d)return;
-    d.className='prog-dot';
-    if(answers[i])d.classList.add(answers[i].correct?'correct':'wrong');
-    if(i===currentQ)d.classList.add('current');
+function restoreAnswer(q){
+  const a=answers[q.id];
+  const btns=document.querySelectorAll('.option-btn');
+  btns.forEach((b,i)=>{
+    b.disabled=true;
+    if(i===q.ans)b.classList.add('correct');
+    else if(i===a.selected&&!a.correct)b.classList.add('wrong');
   });
+  const exp=document.getElementById('explanation');
+  exp.style.display='';exp.textContent=q.exp;
+  document.getElementById('next-btn').disabled=false;
 }
 function nextQ(){if(currentQ<questions.length-1){currentQ++;renderQuestion();}}
 function prevQ(){if(currentQ>0){currentQ--;renderQuestion();}}
 function finishQuiz(){
-  if(timerInterval)clearInterval(timerInterval);
+  clearInterval(timerInterval);
   const elapsed=Math.floor((Date.now()-startTime)/1000);
   showScreen('result');
-  const done=Object.keys(answers).length;
+  const total=questions.length;
   const correct=Object.values(answers).filter(a=>a.correct).length;
-  const wrong=done-correct;
-  const pct=done>0?Math.round((correct/done)*100):0;
-  const mm=Math.floor(elapsed/60),ss=elapsed%60;
+  const wrong=Object.keys(answers).length-correct;
+  const pct=Math.round(correct/total*100);
   document.getElementById('r-correct').textContent=correct;
   document.getElementById('r-wrong').textContent=wrong;
   document.getElementById('r-pct').textContent=pct+'%';
-  document.getElementById('r-time').textContent=mm+'m'+ss+'s';
-  document.getElementById('res-date').textContent=new Date().toLocaleString('id-ID');
-  const secMap={};
-  questions.forEach((q,i)=>{
-    if(!secMap[q.sec])secMap[q.sec]={correct:0,total:0};
-    secMap[q.sec].total++;
-    if(answers[i]&&answers[i].correct)secMap[q.sec].correct++;
+  const mm=Math.floor(elapsed/60),ss=elapsed%60;
+  document.getElementById('r-time').textContent=`${mm}:${ss.toString().padStart(2,'0')}`;
+  document.getElementById('res-date').textContent=new Date().toLocaleString('ja-JP');
+  const secs=["文字・語彙","文法","読解"];
+  const sr=document.getElementById('section-results');sr.innerHTML='';
+  secs.forEach(s=>{
+    const qs=questions.filter(q=>q.sec===s);
+    if(!qs.length)return;
+    const c=qs.filter(q=>answers[q.id]?.correct).length;
+    const div=document.createElement('div');div.className='section-result';
+    div.innerHTML=`<span>${s}</span><span style="font-family:var(--mono)">${c}/${qs.length} (${Math.round(c/qs.length*100)}%)</span>`;
+    sr.appendChild(div);
   });
-  let secHtml='';
-  const secColors={'文字・語彙':'badge-moji','文法':'badge-bunpou','読解':'badge-dokkai'};
-  Object.entries(secMap).forEach(([sec,data])=>{
-    const p=data.total>0?Math.round((data.correct/data.total)*100):0;
-    const bClass=secColors[sec]||'badge-type';
-    secHtml+=`<div class="section-result">
-      <span class="badge ${bClass}">${sec}</span>
-      <span style="color:var(--muted)">${data.correct} / ${data.total}</span>
-      <span class="badge" style="background:${p>=60?'rgba(25,195,125,.18)':p>=40?'rgba(255,181,71,.18)':'rgba(255,95,115,.15)'};color:${p>=60?'var(--success)':p>=40?'var(--warning)':'var(--danger)'};border:1px solid ${p>=60?'rgba(25,195,125,.3)':p>=40?'rgba(255,181,71,.3)':'rgba(255,95,115,.25)'}">${p}%</span>
-    </div>`;
-  });
-  document.getElementById('section-results').innerHTML=secHtml;
-  const pm=secMap['文字・語彙']?Math.round((secMap['文字・語彙'].correct/secMap['文字・語彙'].total)*100):0;
-  const pb=secMap['文法']?Math.round((secMap['文法'].correct/secMap['文法'].total)*100):0;
-  const pd2=secMap['読解']?Math.round((secMap['読解'].correct/secMap['読解'].total)*100):0;
-  const willPass=pct>=60&&pm>=50&&pb>=50&&pd2>=50;
-  const banner=document.getElementById('pass-banner');
-  banner.className='pass-banner '+(willPass?'pass':'fail');
-  document.getElementById('pass-text').textContent=willPass?'✓ Prediksi: LULUS JLPT N2':'✗ Prediksi: Perlu latihan lebih';
-  document.getElementById('pass-sub').textContent=`Akurasi: ${pct}% | Target: ≥60% keseluruhan & ≥50% per seksi`;
-  const daysLeft=Math.max(0,Math.floor((new Date('2026-07-05')-new Date())/86400000));
-  let predHtml=`📝 文字・語彙: ${pm}% ${pm>=60?'✓ Baik':pm>=50?'△ Cukup':'✗ Perlu ditingkatkan'}<br>`;
-  predHtml+=`📐 文法: ${pb}% ${pb>=60?'✓ Baik':pb>=50?'△ Cukup':'✗ Perlu ditingkatkan'}<br>`;
-  predHtml+=`📖 読解: ${pd2}% ${pd2>=60?'✓ Baik':pd2>=50?'△ Cukup':'✗ Perlu ditingkatkan'}<br><br>`;
-  predHtml+=`⏰ Sisa ke JLPT Juli 2026: <strong style="color:var(--text)">${daysLeft} hari</strong><br>`;
-  if(!willPass){
-    const weakest=Object.entries(secMap).sort((a,b)=>(a[1].correct/a[1].total)-(b[1].correct/b[1].total))[0];
-    predHtml+=`💡 Fokus latihan: <strong style="color:var(--text)">${weakest[0]}</strong>`;
-  } else {predHtml+='🎉 Pertahankan dan latihan soal tahun-tahun lain!';}
-  document.getElementById('prediction-detail').innerHTML=predHtml;
-  document.getElementById('hs-done').textContent=done;
+  const pass=pct>=60;
+  const pb=document.getElementById('pass-banner');
+  pb.className='pass-banner '+(pass?'pass':'fail');
+  document.getElementById('pass-text').textContent=pass?'✅ 合格圏内 (推定)':'❌ 要復習';
+  document.getElementById('pass-sub').textContent=`${correct}/${total}問正解 (${pct}%) — JLPT N2合格目安: 正答率60%以上`;
+  document.getElementById('hs-done').textContent=total;
   document.getElementById('hs-score').textContent=pct+'%';
-  document.getElementById('hs-pred').textContent=willPass?'LULUS':'GAGAL';
+  document.getElementById('hs-pred').textContent=pass?'合格':'不合格';
+  const pd=document.getElementById('prediction-detail');
+  pd.innerHTML=`<p>📊 正答率 <strong>${pct}%</strong> (${correct}/${total}問)</p><p>JLPT N2の合格基準: 総合得点 90/180点以上 + 各セクション最低ライン通過</p><p>${pct>=70?'✅ 合格の可能性が高いです。':pct>=60?'⚠️ 合格ラインギリギリです。引き続き練習を。':'❌ 合格には更なる学習が必要です。'}</p>`;
+  document.getElementById('print-pdf-btn').classList.add('show');
 }
-function reviewAnswers(){currentQ=0;showScreen('quiz');buildProgressGrid();renderQuestion();}
-function goHome(){showScreen('home');}
-function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
-</script>
-<script>
-const canvas=document.getElementById('bg-canvas');
-const ctx=canvas.getContext('2d');
-function resize(){canvas.width=window.innerWidth;canvas.height=window.innerHeight;}
-resize();window.addEventListener('resize',resize);
-const particles=[];
-for(let i=0;i<70;i++){particles.push({x:Math.random()*canvas.width,y:Math.random()*canvas.height,r:Math.random()*1.8+0.5,dx:(Math.random()-.5)*.35,dy:(Math.random()-.5)*.35});}
-function animate(){
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  particles.forEach(p=>{
-    p.x+=p.dx;p.y+=p.dy;
-    if(p.x<0||p.x>canvas.width)p.dx*=-1;
-    if(p.y<0||p.y>canvas.height)p.dy*=-1;
-    ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
-    ctx.fillStyle='rgba(100,160,255,.6)';ctx.fill();
-  });
-  requestAnimationFrame(animate);
+function reviewAnswers(){
+  answers={};showScreen('quiz');buildProgressGrid();
+  currentQ=0;renderQuestion();
 }
-animate();
-</script>
-
-<script>
-// ===== SESSION SAVE SYSTEM =====
-const SESSION_KEY = location.pathname + "_session";
-
+function goHome(){
+  clearInterval(timerInterval);
+  document.getElementById('print-pdf-btn').classList.remove('show');
+  showScreen('home');
+}
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
 function saveSessionManual(){
-    try{
-        const data = {
-            current: current,
-            answers: answers,
-            mode: currentMode,
-            remaining: remainingSec,
-            timestamp: Date.now()
-        };
-        localStorage.setItem(SESSION_KEY, JSON.stringify(data));
-        alert("Session berhasil disimpan!");
-    }catch(e){
-        alert("Gagal menyimpan session.");
-    }
+  const data={answers,currentQ,mode,elapsed:Math.floor((Date.now()-startTime)/1000)};
+  localStorage.setItem('jlpt_n2_2025_12',JSON.stringify(data));
+  alert('💾 Sesi tersimpan!');
 }
-
 function loadSessionManual(){
-    try{
-        const raw = localStorage.getItem(SESSION_KEY);
-        if(!raw){
-            alert("Tidak ada session tersimpan.");
-            return;
-        }
-
-        const data = JSON.parse(raw);
-
-        if(data.answers) answers = data.answers;
-        if(typeof data.current === "number") current = data.current;
-        if(data.mode) currentMode = data.mode;
-        if(typeof data.remaining === "number") remainingSec = data.remaining;
-
-        showScreen('quiz');
-        renderProgress();
-        renderQ();
-        startTimer();
-
-        alert("Session berhasil dimuat!");
-    }catch(e){
-        alert("Gagal memuat session.");
-    }
+  const raw=localStorage.getItem('jlpt_n2_2025_12');
+  if(!raw){alert('Tidak ada sesi tersimpan.');return;}
+  const data=JSON.parse(raw);
+  mode=data.mode||'all';
+  questions=getQuestions(mode);
+  answers=data.answers||{};
+  currentQ=data.currentQ||0;
+  startTime=Date.now()-(data.elapsed||0)*1000;
+  totalSeconds=getTimeLimit(mode);
+  showScreen('quiz');buildProgressGrid();renderQuestion();startTimer();
+  alert('📂 Sesi dimuat!');
 }
-
-function deleteSessionManual(){
-    localStorage.removeItem(SESSION_KEY);
-    alert("Session dihapus.");
-}
-</script>
-
-
-<button id="print-pdf-btn" onclick="window.print()">
-<svg class="pdf-svg" viewBox="0 0 24 24" fill="none">
-<path d="M7 3H14L19 8V21H7V3Z" stroke="currentColor" stroke-width="1.8"/>
-<path d="M14 3V8H19" stroke="currentColor" stroke-width="1.8"/>
-<path d="M8 13H16M8 17H13" stroke="currentColor" stroke-width="1.8"/>
-</svg>
-<span class="pdf-text">Save PDF</span>
-</button>
-
-
-<script>
 (function(){
-const originalShowScreen = window.showScreen;
-
-window.showScreen = function(id){
-    if(originalShowScreen){
-        originalShowScreen(id);
-    }
-
-    const btn = document.getElementById('print-pdf-btn');
-    if(btn){
-        if(id === 'result'){
-            btn.classList.add('show');
-        }else{
-            btn.classList.remove('show');
-        }
-    }
-};
+  const c=document.getElementById('bg-canvas');
+  const ctx=c.getContext('2d');
+  let W,H,particles=[];
+  function resize(){W=c.width=window.innerWidth;H=c.height=window.innerHeight;}
+  function init(){
+    resize();particles=[];
+    for(let i=0;i<60;i++)particles.push({x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.5+.3,dx:(Math.random()-.5)*.3,dy:(Math.random()-.5)*.3,a:Math.random()*.5+.1});
+  }
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    particles.forEach(p=>{
+      ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fillStyle=`rgba(90,169,255,${p.a})`;ctx.fill();
+      p.x+=p.dx;p.y+=p.dy;
+      if(p.x<0||p.x>W)p.dx*=-1;
+      if(p.y<0||p.y>H)p.dy*=-1;
+    });
+    requestAnimationFrame(draw);
+  }
+  window.addEventListener('resize',init);
+  init();draw();
 })();
-</script>
 
+</script>
+<button id="print-pdf-btn" onclick="window.print()">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:22px;height:22px;"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+  <span>Cetak / PDF</span>
+</button>
 </body>
 </html>
