@@ -1,2 +1,2 @@
-**日本語能力試験過去問題集**
-<img width="1760" height="540" alt="image" src="https://github.com/user-attachments/assets/600ecfe7-cd03-44a4-82b4-56705661b13a" />
+                                                      **日本語能力試験過去問題集**
+<img width="1200" height="630" alt="image" src="https://github.com/user-attachments/assets/9359e65f-4306-4ab4-9654-70f155a818ab" />
