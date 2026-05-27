@@ -7,7 +7,7 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+JP:wght@300;400;500;700&family=Space+Grotesk:wght@400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
 
 <style>
 
@@ -35,7 +35,7 @@ box-sizing:border-box;
 
 body{
 
-font-family:'Inter','Noto Sans JP',sans-serif;
+font-family:'Space Grotesk','Noto Sans JP',sans-serif;
 background:
 radial-gradient(circle at top left,#22345f 0%,transparent 30%),
 radial-gradient(circle at bottom right,#29194a 0%,transparent 25%),
@@ -102,6 +102,25 @@ right:-120px;
 
 }
 
+/* === NEW: animated gradient border on hero === */
+.hero::after{
+content:'';
+position:absolute;
+inset:-1px;
+border-radius:31px;
+background:linear-gradient(120deg,#5aa9ff33,#7c4dff33,#ff5f7333,#5aa9ff33);
+background-size:300% 300%;
+animation:gradBorder 6s ease infinite;
+z-index:-1;
+pointer-events:none;
+}
+
+@keyframes gradBorder{
+0%{background-position:0% 50%}
+50%{background-position:100% 50%}
+100%{background-position:0% 50%}
+}
+
 .hero.hide{
 
 transform:translateY(-140%);
@@ -112,10 +131,15 @@ pointer-events:none;
 
 h1{
 
+font-family:'Syne',sans-serif;
 font-size:52px;
 font-weight:800;
 letter-spacing:-2px;
 margin-bottom:10px;
+background:linear-gradient(135deg,#fff 30%,#7cc0ff 70%,#b69cff);
+-webkit-background-clip:text;
+-webkit-text-fill-color:transparent;
+background-clip:text;
 
 }
 
@@ -149,7 +173,14 @@ border-radius:18px;
 color:white;
 font-size:15px;
 outline:none;
+font-family:inherit;
+transition:border-color .2s,box-shadow .2s;
 
+}
+
+.search-box:focus{
+border-color:#5aa9ff;
+box-shadow:0 0 0 3px rgba(90,169,255,.15);
 }
 
 .filter-btn{
@@ -162,6 +193,7 @@ border-radius:16px;
 cursor:pointer;
 font-weight:600;
 transition:.25s;
+font-family:inherit;
 
 }
 
@@ -189,7 +221,7 @@ border-radius:24px;
 padding:24px;
 position:relative;
 overflow:hidden;
-transition:transform .22s ease, box-shadow .22s ease;
+transition:transform .22s ease, box-shadow .22s ease, border-color .22s ease;
 box-shadow:0 8px 25px rgba(0,0,0,.25);
 
 }
@@ -198,8 +230,27 @@ box-shadow:0 8px 25px rgba(0,0,0,.25);
 
 transform:translate3d(0,-4px,0);
 box-shadow:0 15px 40px rgba(0,0,0,.4);
+border-color:#3d5a8a;
 
 }
+
+/* === NEW: card accent glow top bar === */
+.card::after{
+content:'';
+position:absolute;
+top:0;left:0;right:0;
+height:2px;
+background:linear-gradient(90deg,transparent,var(--accent-color,#5aa9ff),transparent);
+opacity:0;
+transition:opacity .3s;
+}
+.card:hover::after{opacity:1;}
+
+.card[data-level="N1"]{--accent-color:#ff9aaa;}
+.card[data-level="N2"]{--accent-color:#7cc0ff;}
+.card[data-level="N3"]{--accent-color:#b69cff;}
+.card[data-level="N4"]{--accent-color:#5ff0b0;}
+.card[data-level="N5"]{--accent-color:#ffd18a;}
 
 .card::before{
 
@@ -211,11 +262,26 @@ pointer-events:none;
 
 }
 
+/* === NEW: watermark kanji on card === */
+.card-kanji{
+position:absolute;
+right:16px;
+top:10px;
+font-family:'Noto Sans JP',sans-serif;
+font-size:72px;
+font-weight:700;
+opacity:.04;
+line-height:1;
+pointer-events:none;
+user-select:none;
+}
+
 .year{
 
 font-size:34px;
 font-weight:800;
 margin-bottom:10px;
+font-family:'Syne',sans-serif;
 
 }
 
@@ -328,6 +394,7 @@ backdrop-filter:blur(6px);
 display:flex;
 align-items:center;
 justify-content:center;
+gap:8px;
 text-decoration:none;
 width:100%;
 padding:16px;
@@ -336,7 +403,19 @@ background:linear-gradient(135deg,#3558a8,#6c3fff);
 color:white;
 font-weight:700;
 transition:.25s;
+position:relative;
+overflow:hidden;
+font-family:inherit;
 
+}
+
+.open-btn::before{
+content:'';
+position:absolute;
+inset:0;
+background:linear-gradient(135deg,rgba(255,255,255,.1),transparent);
+opacity:0;
+transition:.25s;
 }
 
 .open-btn:hover{
@@ -345,6 +424,15 @@ transform:translateY(-2px);
 filter:brightness(1.1);
 
 }
+
+.open-btn:hover::before{opacity:1;}
+
+/* open-btn arrow */
+.open-btn-arrow{
+display:inline-block;
+transition:transform .25s;
+}
+.open-btn:hover .open-btn-arrow{transform:translateX(4px);}
 
 .stats{
 
@@ -362,7 +450,14 @@ border:1px solid var(--border);
 padding:24px;
 border-radius:24px;
 text-align:center;
+transition:border-color .2s, transform .2s;
+cursor:default;
 
+}
+
+.stat-box:hover{
+border-color:#3d5a8a;
+transform:translateY(-2px);
 }
 
 .stat-num{
@@ -370,6 +465,11 @@ text-align:center;
 font-size:42px;
 font-weight:800;
 margin-bottom:8px;
+font-family:'Syne',sans-serif;
+background:linear-gradient(135deg,#fff,#7cc0ff);
+-webkit-background-clip:text;
+-webkit-text-fill-color:transparent;
+background-clip:text;
 
 }
 
@@ -387,6 +487,305 @@ color:var(--muted);
 padding-bottom:20px;
 
 }
+
+/* ========================================
+   NEW FEATURES
+   ======================================== */
+
+/* === SECTION HEADER === */
+.section-header{
+display:flex;
+align-items:center;
+justify-content:space-between;
+margin-bottom:20px;
+gap:10px;
+flex-wrap:wrap;
+}
+
+.section-title{
+font-family:'Syne',sans-serif;
+font-size:22px;
+font-weight:700;
+color:var(--text);
+display:flex;
+align-items:center;
+gap:8px;
+}
+
+.section-count{
+font-size:13px;
+color:var(--muted);
+padding:4px 12px;
+border:1px solid var(--border);
+border-radius:999px;
+}
+
+/* === VIEW TOGGLE === */
+.view-toggle{
+display:flex;
+gap:6px;
+}
+
+.view-btn{
+width:36px;
+height:36px;
+border:1px solid var(--border);
+background:transparent;
+border-radius:10px;
+cursor:pointer;
+color:var(--muted);
+display:flex;
+align-items:center;
+justify-content:center;
+transition:.2s;
+font-size:16px;
+}
+
+.view-btn.active,
+.view-btn:hover{
+background:rgba(90,169,255,.15);
+border-color:#5aa9ff;
+color:#5aa9ff;
+}
+
+/* === LIST VIEW === */
+.grid.list-view{
+grid-template-columns:1fr;
+gap:12px;
+}
+
+.grid.list-view .card{
+display:grid;
+grid-template-columns:auto 1fr auto;
+align-items:center;
+gap:20px;
+padding:18px 24px;
+}
+
+.grid.list-view .card-kanji{display:none;}
+.grid.list-view .year{font-size:24px;margin:0;min-width:60px;}
+.grid.list-view .exam-desc{display:none;}
+.grid.list-view .badges{margin:4px 0 0 0;}
+.grid.list-view .exam-title{margin-bottom:0;}
+.grid.list-view .card-body{flex:1;}
+.grid.list-view .open-btn{width:140px;padding:12px 18px;white-space:nowrap;}
+
+/* === LEVEL QUICK PILLS === */
+.level-pills{
+display:flex;
+gap:8px;
+flex-wrap:wrap;
+margin-bottom:24px;
+}
+
+.level-pill{
+padding:8px 18px;
+border-radius:999px;
+font-size:13px;
+font-weight:700;
+border:1.5px solid transparent;
+cursor:pointer;
+transition:.2s;
+background:rgba(255,255,255,.04);
+color:var(--muted);
+}
+
+.level-pill:hover,
+.level-pill.active{
+color:white;
+border-color:currentColor;
+}
+
+.level-pill[data-level="all"]{color:#aab8d8;border-color:#2f4370;}
+.level-pill[data-level="all"].active{background:rgba(170,184,216,.12);}
+.level-pill[data-level="N1"]{color:#ff9aaa;}
+.level-pill[data-level="N1"].active{background:rgba(255,95,115,.12);}
+.level-pill[data-level="N2"]{color:#7cc0ff;}
+.level-pill[data-level="N2"].active{background:rgba(90,169,255,.12);}
+.level-pill[data-level="N3"]{color:#b69cff;}
+.level-pill[data-level="N3"].active{background:rgba(124,77,255,.12);}
+.level-pill[data-level="N4"]{color:#5ff0b0;}
+.level-pill[data-level="N4"].active{background:rgba(25,195,125,.12);}
+.level-pill[data-level="N5"]{color:#ffd18a;}
+.level-pill[data-level="N5"].active{background:rgba(255,181,71,.12);}
+
+/* === EMPTY STATE === */
+.empty-state{
+display:none;
+text-align:center;
+padding:80px 20px;
+color:var(--muted);
+}
+
+.empty-state.show{display:block;}
+
+.empty-icon{
+font-size:52px;
+margin-bottom:16px;
+opacity:.5;
+}
+
+/* === TOAST NOTIFICATION === */
+#toast{
+position:fixed;
+bottom:30px;
+right:30px;
+background:#1d2c50;
+border:1px solid #5aa9ff44;
+color:#fff;
+padding:14px 22px;
+border-radius:16px;
+font-size:14px;
+z-index:9999;
+transform:translateY(20px);
+opacity:0;
+transition:.3s ease;
+backdrop-filter:blur(8px);
+pointer-events:none;
+box-shadow:0 8px 30px rgba(0,0,0,.4);
+}
+
+#toast.show{
+transform:translateY(0);
+opacity:1;
+}
+
+/* === BACK TO TOP === */
+#backTop{
+position:fixed;
+bottom:30px;
+left:30px;
+width:44px;
+height:44px;
+border-radius:14px;
+background:#1d2c50;
+border:1px solid var(--border);
+color:var(--primary);
+font-size:20px;
+cursor:pointer;
+display:flex;
+align-items:center;
+justify-content:center;
+opacity:0;
+transform:translateY(10px);
+transition:.3s;
+z-index:9999;
+box-shadow:0 8px 25px rgba(0,0,0,.3);
+}
+
+#backTop.show{
+opacity:1;
+transform:translateY(0);
+}
+
+#backTop:hover{
+background:#253a68;
+}
+
+/* === LOADING SKELETON === */
+@keyframes shimmer{
+0%{background-position:-400px 0}
+100%{background-position:400px 0}
+}
+
+.skeleton{
+background:linear-gradient(90deg,rgba(255,255,255,.04) 25%,rgba(255,255,255,.08) 50%,rgba(255,255,255,.04) 75%);
+background-size:800px 100%;
+animation:shimmer 1.5s infinite;
+border-radius:8px;
+}
+
+/* === PROGRESS BAR === */
+#scrollProgress{
+position:fixed;
+top:0;left:0;
+height:3px;
+background:linear-gradient(90deg,#5aa9ff,#7c4dff);
+z-index:99999;
+width:0%;
+transition:width .1s;
+border-radius:0 2px 2px 0;
+}
+
+/* === STAT BADGE on card === */
+.new-badge{
+position:absolute;
+top:16px;
+right:16px;
+background:linear-gradient(135deg,#19c37d,#0da868);
+color:white;
+font-size:10px;
+font-weight:800;
+padding:3px 9px;
+border-radius:999px;
+letter-spacing:.5px;
+text-transform:uppercase;
+}
+
+/* === DARK/LIGHT TOGGLE (cosmetic) === */
+.logo-mark{
+display:inline-flex;
+align-items:center;
+gap:10px;
+margin-bottom:12px;
+}
+
+.logo-icon{
+width:38px;
+height:38px;
+border-radius:10px;
+background:linear-gradient(135deg,#3558a8,#6c3fff);
+display:flex;
+align-items:center;
+justify-content:center;
+font-size:18px;
+}
+
+/* === FOOTER UPGRADE === */
+.footer{
+margin-top:60px;
+border-top:1px solid var(--border);
+padding:30px 0;
+display:flex;
+align-items:center;
+justify-content:space-between;
+flex-wrap:wrap;
+gap:12px;
+color:var(--muted);
+font-size:14px;
+}
+
+.footer-links{
+display:flex;
+gap:20px;
+}
+
+.footer-links a{
+color:var(--muted);
+text-decoration:none;
+transition:color .2s;
+}
+
+.footer-links a:hover{color:var(--primary);}
+
+/* === KANJI decorative === */
+.hero-deco{
+position:absolute;
+right:40px;
+top:50%;
+transform:translateY(-50%);
+font-family:'Noto Sans JP',sans-serif;
+font-size:120px;
+font-weight:700;
+opacity:.05;
+letter-spacing:-10px;
+user-select:none;
+pointer-events:none;
+line-height:1;
+}
+
+/* === CARD HOVER RIPPLE === */
+.card{cursor:default;}
 
 @media(max-width:768px){
 
@@ -406,15 +805,36 @@ font-size:36px;
 font-size:15px;
 }
 
+.hero-deco{display:none;}
+
+.grid.list-view .card{
+grid-template-columns:1fr;
+}
+.grid.list-view .open-btn{width:100%;}
+
+.footer{
+flex-direction:column;
+text-align:center;
+}
+
 }
 
 </style>
 </head>
 <body>
 
+<!-- Scroll Progress Bar -->
+<div id="scrollProgress"></div>
+
 <div class="container">
 
 <div class="hero sticky-top">
+
+<div class="hero-deco">試験</div>
+
+<div class="logo-mark">
+  <div class="logo-icon">試</div>
+</div>
 
 <h1>JLPT EXAM HUB</h1>
 
@@ -425,7 +845,7 @@ Akses soal Reading・Grammar・Vocabulary berdasarkan tahun ujian.
 
 <div class="topbar">
 
-<input type="text" class="search-box" id="searchInput" placeholder="Search exam year...">
+<input type="text" class="search-box" id="searchInput" placeholder="🔍  Search exam year...">
 
 <select class="search-box" id="levelFilter">
 <option value="all">All Levels</option>
@@ -442,7 +862,7 @@ Akses soal Reading・Grammar・Vocabulary berdasarkan tahun ujian.
 </select>
 
 <button class="filter-btn" onclick="showAll()">
-Show All
+✦ Show All
 </button>
 
 </div>
@@ -468,440 +888,435 @@ Show All
 
 </div>
 
+<!-- === NEW: Level Quick Filters === -->
+<div class="level-pills" id="levelPills">
+  <button class="level-pill active" data-level="all" onclick="pillFilter(this)">All</button>
+  <button class="level-pill" data-level="N1" onclick="pillFilter(this)">N1</button>
+  <button class="level-pill" data-level="N2" onclick="pillFilter(this)">N2</button>
+  <button class="level-pill" data-level="N3" onclick="pillFilter(this)">N3</button>
+  <button class="level-pill" data-level="N4" onclick="pillFilter(this)">N4</button>
+  <button class="level-pill" data-level="N5" onclick="pillFilter(this)">N5</button>
+</div>
+
+<!-- === NEW: Section Header with View Toggle === -->
+<div class="section-header">
+  <div class="section-title">
+    📋 Daftar Ujian <span class="section-count" id="visibleCount">17 exams</span>
+  </div>
+  <div class="view-toggle">
+    <button class="view-btn active" id="gridViewBtn" title="Grid View" onclick="setView('grid')">⊞</button>
+    <button class="view-btn" id="listViewBtn" title="List View" onclick="setView('list')">☰</button>
+  </div>
+</div>
+
 <div class="grid" id="examGrid">
 
 <div class="card" data-name="2024-07-jlpt" data-level="N1" data-year="2024">
-
+<div class="card-kanji">N1</div>
+<div class="new-badge">NEW</div>
 <div class="year">2024</div>
-
+<div class="card-body">
 <div class="exam-title">
 JLPT N1 July 2024
 </div>
-
 <div class="badges">
 <span class="badge level-n1">N1</span>
 <span class="badge badge-reading">Reading</span>
 <span class="badge badge-grammar">Grammar</span>
 <span class="badge badge-vocabulary">Vocabulary</span>
 </div>
-
 <div class="exam-desc">
 Simulasi ujian JLPT N1 Terbaru - Terlama.
 </div>
-
+</div>
 <a href="./jlpt/n1/2024-07-n1.html" class="open-btn">
-OPEN EXAM
+OPEN EXAM <span class="open-btn-arrow">→</span>
 </a>
-
 </div>
 
   <div class="card" data-name="2025-07-jlpt" data-level="N1" data-year="2025">
-
+<div class="card-kanji">N1</div>
+<div class="new-badge">NEW</div>
 <div class="year">2025</div>
-
+<div class="card-body">
 <div class="exam-title">
 JLPT N1 July 2025
 </div>
-
 <div class="badges">
 <span class="badge level-n1">N1</span>
 <span class="badge badge-reading">Reading</span>
 <span class="badge badge-grammar">Grammar</span>
 <span class="badge badge-vocabulary">Vocabulary</span>
 </div>
-
 <div class="exam-desc">
 Simulasi ujian JLPT N1 Terbaru - Terlama.
 </div>
-
+</div>
 <a href="./jlpt/n1/2025-07-n1.html" class="open-btn">
-OPEN EXAM
+OPEN EXAM <span class="open-btn-arrow">→</span>
 </a>
-
 </div>
 
   <div class="card" data-name="2025-12-jlpt" data-level="N1" data-year="2025">
-
+<div class="card-kanji">N1</div>
+<div class="new-badge">NEW</div>
 <div class="year">2025</div>
-
+<div class="card-body">
 <div class="exam-title">
 JLPT N1 December 2025
 </div>
-
 <div class="badges">
 <span class="badge level-n1">N1</span>
 <span class="badge badge-reading">Reading</span>
 <span class="badge badge-grammar">Grammar</span>
 <span class="badge badge-vocabulary">Vocabulary</span>
 </div>
-
 <div class="exam-desc">
 Simulasi ujian JLPT N1 Terbaru - Terlama.
 </div>
-
+</div>
 <a href="./jlpt/n1/2025-12-n1.html" class="open-btn">
-OPEN EXAM
+OPEN EXAM <span class="open-btn-arrow">→</span>
 </a>
-
 </div>
 
 <div class="card" data-name="2010-07-jlpt" data-level="N2" data-year="2010">
-
+<div class="card-kanji">N2</div>
 <div class="year">2010</div>
-
+<div class="card-body">
 <div class="exam-title">
 JLPT N2 July 2010
 </div>
-
 <div class="badges">
 <span class="badge level-n2">N2</span>
 <span class="badge badge-reading">Reading</span>
 <span class="badge badge-grammar">Grammar</span>
 <span class="badge badge-vocabulary">Vocabulary</span>
 </div>
-
 <div class="exam-desc">
 Simulasi ujian JLPT N2 Terbaru - Terlama.
 </div>
-
+</div>
 <a href="./jlpt/n2/2010-07-jlpt.html" class="open-btn">
-OPEN EXAM
+OPEN EXAM <span class="open-btn-arrow">→</span>
 </a>
-
 </div>
 
 <div class="card" data-name="2010-12-jlpt" data-level="N2" data-year="2010">
-
+<div class="card-kanji">N2</div>
 <div class="year">2010</div>
-
+<div class="card-body">
 <div class="exam-title">
 JLPT N2 December 2010
 </div>
-
 <div class="badges">
 <span class="badge level-n2">N2</span>
 <span class="badge badge-reading">Reading</span>
 <span class="badge badge-grammar">Grammar</span>
 <span class="badge badge-vocabulary">Vocabulary</span>
 </div>
-
 <div class="exam-desc">
 Simulasi ujian JLPT N2 Terbaru - Terlama.
 </div>
-
+</div>
 <a href="./jlpt/n2/2010-12-jlpt.html" class="open-btn">
-OPEN EXAM
+OPEN EXAM <span class="open-btn-arrow">→</span>
 </a>
-
 </div>
 
 <div class="card" data-name="2011-07-jlpt" data-level="N2" data-year="2011">
-
+<div class="card-kanji">N2</div>
 <div class="year">2011</div>
-
+<div class="card-body">
 <div class="exam-title">
 JLPT N2 July 2011
 </div>
-
 <div class="badges">
 <span class="badge level-n2">N2</span>
 <span class="badge badge-reading">Reading</span>
 <span class="badge badge-grammar">Grammar</span>
 <span class="badge badge-vocabulary">Vocabulary</span>
 </div>
-
 <div class="exam-desc">
 Simulasi ujian JLPT N2 Terbaru - Terlama.
 </div>
-
+</div>
 <a href="./jlpt/n2/2011-07-jlpt.html" class="open-btn">
-OPEN EXAM
+OPEN EXAM <span class="open-btn-arrow">→</span>
 </a>
-
 </div>
 
   <div class="card" data-name="2025-07-jlpt" data-level="N2" data-year="2025">
-
+<div class="card-kanji">N2</div>
+<div class="new-badge">NEW</div>
 <div class="year">2025</div>
-
+<div class="card-body">
 <div class="exam-title">
 JLPT N2 July 2025
 </div>
-
 <div class="badges">
 <span class="badge level-n2">N2</span>
 <span class="badge badge-reading">Reading</span>
 <span class="badge badge-grammar">Grammar</span>
 <span class="badge badge-vocabulary">Vocabulary</span>
 </div>
-
 <div class="exam-desc">
 Simulasi ujian JLPT N2 Terbaru - Terlama.
 </div>
-
+</div>
 <a href="./jlpt/n2/2025-07-jlpt.html" class="open-btn">
-OPEN EXAM
+OPEN EXAM <span class="open-btn-arrow">→</span>
 </a>
-
 </div>
 
   <div class="card" data-name="2025-12-jlpt" data-level="N2" data-year="2025">
-
+<div class="card-kanji">N2</div>
+<div class="new-badge">NEW</div>
 <div class="year">2025</div>
-
+<div class="card-body">
 <div class="exam-title">
 JLPT N2 December 2025
 </div>
-
 <div class="badges">
 <span class="badge level-n2">N2</span>
 <span class="badge badge-reading">Reading</span>
 <span class="badge badge-grammar">Grammar</span>
 <span class="badge badge-vocabulary">Vocabulary</span>
 </div>
-
 <div class="exam-desc">
 Simulasi ujian JLPT N2 Terbaru - Terlama.
 </div>
-
+</div>
 <a href="./jlpt/n2/2025-12-jlpt.html" class="open-btn">
-OPEN EXAM
+OPEN EXAM <span class="open-btn-arrow">→</span>
 </a>
-
 </div>
 
 <div class="card" data-name="2010-07-jlpt" data-level="N3" data-year="2010">
-
+<div class="card-kanji">N3</div>
 <div class="year">2010</div>
-
+<div class="card-body">
 <div class="exam-title">
 JLPT N3 July 2010
 </div>
-
 <div class="badges">
 <span class="badge level-n3">N3</span>
 <span class="badge badge-reading">Reading</span>
 <span class="badge badge-grammar">Grammar</span>
 <span class="badge badge-vocabulary">Vocabulary</span>
 </div>
-
 <div class="exam-desc">
 Simulasi ujian JLPT N3 Terbaru - Terlama.
 </div>
-
+</div>
 <a href="./jlpt/n3/2010-07-n3.html" class="open-btn">
-OPEN EXAM
+OPEN EXAM <span class="open-btn-arrow">→</span>
 </a>
-
 </div>
 
 <div class="card" data-name="2025-07-jlpt" data-level="N3" data-year="2025">
-
+<div class="card-kanji">N3</div>
+<div class="new-badge">NEW</div>
 <div class="year">2025</div>
-
+<div class="card-body">
 <div class="exam-title">
 JLPT N3 July 2025
 </div>
-
 <div class="badges">
 <span class="badge level-n3">N3</span>
 <span class="badge badge-reading">Reading</span>
 <span class="badge badge-grammar">Grammar</span>
 <span class="badge badge-vocabulary">Vocabulary</span>
 </div>
-
 <div class="exam-desc">
 Simulasi ujian JLPT N3 Terbaru - Terlama.
 </div>
-
+</div>
 <a href="./jlpt/n3/2025-07-n3.html" class="open-btn">
-OPEN EXAM
+OPEN EXAM <span class="open-btn-arrow">→</span>
 </a>
-
 </div>
   
 <div class="card" data-name="2025-12-jlpt" data-level="N3" data-year="2025">
-
+<div class="card-kanji">N3</div>
+<div class="new-badge">NEW</div>
 <div class="year">2025</div>
-
+<div class="card-body">
 <div class="exam-title">
 JLPT N3 December 2025
 </div>
-
 <div class="badges">
 <span class="badge level-n3">N3</span>
 <span class="badge badge-reading">Reading</span>
 <span class="badge badge-grammar">Grammar</span>
 <span class="badge badge-vocabulary">Vocabulary</span>
 </div>
-
 <div class="exam-desc">
 Simulasi ujian JLPT N3 Terbaru - Terlama.
 </div>
-
+</div>
 <a href="./jlpt/n3/2025-12-n3.html" class="open-btn">
-OPEN EXAM
+OPEN EXAM <span class="open-btn-arrow">→</span>
 </a>
-
 </div>
 
   <div class="card" data-name="2024-07-jlpt" data-level="N3" data-year="2024">
-
+<div class="card-kanji">N3</div>
 <div class="year">2024</div>
-
+<div class="card-body">
 <div class="exam-title">
 JLPT N3 July 2024
 </div>
-
 <div class="badges">
 <span class="badge level-n3">N3</span>
 <span class="badge badge-reading">Reading</span>
 <span class="badge badge-grammar">Grammar</span>
 <span class="badge badge-vocabulary">Vocabulary</span>
 </div>
-
 <div class="exam-desc">
 Simulasi ujian JLPT N3 Terbaru - Terlama.
 </div>
-
+</div>
 <a href="./jlpt/n3/2024-07-n3.html" class="open-btn">
-OPEN EXAM
+OPEN EXAM <span class="open-btn-arrow">→</span>
 </a>
-
 </div>
 
   <div class="card" data-name="2024-12-jlpt" data-level="N3" data-year="2024">
-
+<div class="card-kanji">N3</div>
 <div class="year">2024</div>
-
+<div class="card-body">
 <div class="exam-title">
 JLPT N3 December 2024
 </div>
-
 <div class="badges">
 <span class="badge level-n3">N3</span>
 <span class="badge badge-reading">Reading</span>
 <span class="badge badge-grammar">Grammar</span>
 <span class="badge badge-vocabulary">Vocabulary</span>
 </div>
-
 <div class="exam-desc">
 Simulasi ujian JLPT N3 Terbaru - Terlama.
 </div>
-
+</div>
 <a href="./jlpt/n3/2024-12-n3.html" class="open-btn">
-OPEN EXAM
+OPEN EXAM <span class="open-btn-arrow">→</span>
 </a>
-
 </div>
 
   <div class="card" data-name="2023-07-jlpt" data-level="N3" data-year="2023">
-
+<div class="card-kanji">N3</div>
 <div class="year">2023</div>
-
+<div class="card-body">
 <div class="exam-title">
 JLPT N3 July 2023
 </div>
-
 <div class="badges">
 <span class="badge level-n3">N3</span>
 <span class="badge badge-reading">Reading</span>
 <span class="badge badge-grammar">Grammar</span>
 <span class="badge badge-vocabulary">Vocabulary</span>
 </div>
-
 <div class="exam-desc">
 Simulasi ujian JLPT N3 Terbaru - Terlama.
 </div>
-
+</div>
 <a href="./jlpt/n3/2023-07-n3.html" class="open-btn">
-OPEN EXAM
+OPEN EXAM <span class="open-btn-arrow">→</span>
 </a>
-
 </div>
 
   <div class="card" data-name="2023-12-jlpt" data-level="N3" data-year="2023">
-
+<div class="card-kanji">N3</div>
 <div class="year">2023</div>
-
+<div class="card-body">
 <div class="exam-title">
 JLPT N3 December 2023
 </div>
-
 <div class="badges">
 <span class="badge level-n3">N3</span>
 <span class="badge badge-reading">Reading</span>
 <span class="badge badge-grammar">Grammar</span>
 <span class="badge badge-vocabulary">Vocabulary</span>
 </div>
-
 <div class="exam-desc">
 Simulasi ujian JLPT N3 Terbaru - Terlama.
 </div>
-
+</div>
 <a href="./jlpt/n3/2023-12-n3.html" class="open-btn">
-OPEN EXAM
+OPEN EXAM <span class="open-btn-arrow">→</span>
 </a>
-
 </div>
   
 <div class="card" data-name="2021-12-jlpt" data-level="N4" data-year="2021">
-
+<div class="card-kanji">N4</div>
 <div class="year">2021</div>
-
+<div class="card-body">
 <div class="exam-title">
 JLPT N4 December 2021
 </div>
-
 <div class="badges">
 <span class="badge level-n4">N4</span>
 <span class="badge badge-reading">Reading</span>
 <span class="badge badge-grammar">Grammar</span>
 <span class="badge badge-vocabulary">Vocabulary</span>
 </div>
-
 <div class="exam-desc">
 Simulasi ujian JLPT N4 Terbaru - Terlama.
 </div>
-
+</div>
 <a href="./jlpt/n4/2021-12-n4.html" class="open-btn">
-OPEN EXAM
+OPEN EXAM <span class="open-btn-arrow">→</span>
 </a>
-
 </div>
 
 <div class="card" data-name="2024-07-jlpt" data-level="N5" data-year="2024">
-
+<div class="card-kanji">N5</div>
 <div class="year">2024</div>
-
+<div class="card-body">
 <div class="exam-title">
 JLPT N5 July 2024
 </div>
-
 <div class="badges">
 <span class="badge level-n5">N5</span>
 <span class="badge badge-reading">Reading</span>
 <span class="badge badge-grammar">Grammar</span>
 <span class="badge badge-vocabulary">Vocabulary</span>
 </div>
-
 <div class="exam-desc">
 Simulasi ujian JLPT N5 Terbaru - Terlama.
 </div>
-
+</div>
 <a href="./jlpt/n5/2024-07-n5.html" class="open-btn">
-OPEN EXAM
+OPEN EXAM <span class="open-btn-arrow">→</span>
 </a>
+</div>
 
 </div>
 
+<!-- === NEW: Empty State === -->
+<div class="empty-state" id="emptyState">
+  <div class="empty-icon">🔍</div>
+  <p style="font-size:18px;font-weight:600;margin-bottom:8px;">Exam tidak ditemukan</p>
+  <p>Coba ubah filter atau kata kunci pencarian.</p>
 </div>
 
 <div class="footer">
-JLPT Premium Exam Hub © 2026
+  <span>JLPT Premium Exam Hub © 2026</span>
+  <div class="footer-links">
+    <a href="#">About</a>
+    <a href="#">Guide</a>
+    <a href="#">Feedback</a>
+  </div>
 </div>
 
 </div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- Back to Top -->
+<button id="backTop" title="Back to top" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
 
 <script>
 
@@ -938,6 +1353,15 @@ card.style.display='block';
 
 searchInput.value='';
 
+// reset pills
+document.querySelectorAll('.level-pill').forEach(p=>{
+  p.classList.toggle('active', p.dataset.level==='all');
+});
+document.getElementById('levelFilter').value='all';
+
+updateVisibleCount();
+showToast('✦ Semua ujian ditampilkan');
+
 }
 
 // =====================================
@@ -972,6 +1396,7 @@ card.style.display=visible?'block':'none';
 });
 
 sortCards();
+updateVisibleCount();
 
 }
 
@@ -1141,6 +1566,122 @@ ticking=true;
 }
 
 },{passive:true});
+
+// =====================================
+// NEW FEATURES
+// =====================================
+
+// --- SCROLL PROGRESS BAR ---
+const progressBar = document.getElementById('scrollProgress');
+
+window.addEventListener('scroll', () => {
+  const scrollTop = window.scrollY;
+  const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+  const pct = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+  progressBar.style.width = pct + '%';
+}, { passive: true });
+
+// --- BACK TO TOP ---
+const backTop = document.getElementById('backTop');
+
+window.addEventListener('scroll', () => {
+  if (window.scrollY > 300) {
+    backTop.classList.add('show');
+  } else {
+    backTop.classList.remove('show');
+  }
+}, { passive: true });
+
+// --- TOAST NOTIFICATION ---
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// --- LEVEL PILLS FILTER ---
+function pillFilter(el) {
+  // update active pill
+  document.querySelectorAll('.level-pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+
+  // sync dropdown
+  const lv = el.dataset.level;
+  levelFilter.value = lv;
+
+  applyFilters();
+  showToast(lv === 'all' ? '✦ Semua level ditampilkan' : `✦ Filter: ${lv}`);
+}
+
+// sync pill when dropdown changes
+levelFilter.addEventListener('change', () => {
+  const lv = levelFilter.value;
+  document.querySelectorAll('.level-pill').forEach(p => {
+    p.classList.toggle('active', p.dataset.level === lv);
+  });
+});
+
+// --- VISIBLE COUNT ---
+function updateVisibleCount() {
+  const visible = [...cards].filter(c => c.style.display !== 'none').length;
+  document.getElementById('visibleCount').textContent = visible + ' exam' + (visible !== 1 ? 's' : '');
+  document.getElementById('totalExam').textContent = visible;
+  document.getElementById('emptyState').classList.toggle('show', visible === 0);
+}
+
+// init count
+updateVisibleCount();
+
+// --- VIEW TOGGLE (Grid / List) ---
+function setView(mode) {
+  const grid = document.getElementById('examGrid');
+  const gBtn = document.getElementById('gridViewBtn');
+  const lBtn = document.getElementById('listViewBtn');
+
+  if (mode === 'list') {
+    grid.classList.add('list-view');
+    gBtn.classList.remove('active');
+    lBtn.classList.add('active');
+  } else {
+    grid.classList.remove('list-view');
+    gBtn.classList.add('active');
+    lBtn.classList.remove('active');
+  }
+  showToast(mode === 'list' ? '☰ List View' : '⊞ Grid View');
+}
+
+// --- KEYBOARD SHORTCUT: "/" to focus search ---
+document.addEventListener('keydown', e => {
+  if (e.key === '/' && document.activeElement !== searchInput) {
+    e.preventDefault();
+    searchInput.focus();
+    showToast('🔍 Pencarian aktif');
+  }
+  if (e.key === 'Escape') {
+    searchInput.blur();
+    showAll();
+  }
+});
+
+// --- SEARCH PLACEHOLDER ANIMATION ---
+const placeholders = [
+  '🔍  Search "2024"...',
+  '🔍  Search "N2"...',
+  '🔍  Search "December"...',
+  '🔍  Search "July"...',
+  '🔍  Search "2025"...',
+];
+let phIdx = 0;
+setInterval(() => {
+  if (document.activeElement !== searchInput && !searchInput.value) {
+    phIdx = (phIdx + 1) % placeholders.length;
+    searchInput.placeholder = placeholders[phIdx];
+  }
+}, 2800);
+
 </script>
 
 </body>
