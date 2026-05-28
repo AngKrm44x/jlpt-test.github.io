@@ -1,6 +1,33 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
+   <!-- AUTH GUARD -->
+<script type="module">
+  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+  const SUPABASE_URL  = 'https://uincqpdexdenjcmwdfsv.supabase.co';
+  const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpbmNxcGRleGRlbmpjbXdkZnN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5MjM4ODEsImV4cCI6MjA5NTQ5OTg4MX0.Lf1N_P_iiNQ2hnRJhd-Quy9MLKlZFSzbnXtXCnmRCS0';
+
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON);
+  const { data: { session } } = await supabase.auth.getSession();
+
+  if (!session) {
+    // Belum login → tendang ke auth.html
+    window.location.replace('./auth.html');
+  } else {
+    // Cek status approved
+    const { data: usr } = await supabase
+      .from('users')
+      .select('status')
+      .eq('id', session.user.id)
+      .single();
+
+    if (!usr || usr.status !== 'active') {
+      await supabase.auth.signOut();
+      window.location.replace('./auth.html');
+    }
+  }
+</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Simulasi JLPT</title>
