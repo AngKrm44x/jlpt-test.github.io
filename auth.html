@@ -458,15 +458,15 @@ input.error {
 
     <!-- Tabs -->
     <div class="tabs" id="tabs">
-      <button class="tab active" onclick="switchTab('login')">Masuk</button>
-      <button class="tab" onclick="switchTab('register')">Daftar</button>
+      <button class="tab active" onclick="switchTab('login')">Login</button>
+      <button class="tab" onclick="switchTab('register')">Register</button>
     </div>
 
     <!-- LOGIN FORM -->
     <div class="form active" id="loginForm">
       <div class="field">
         <label>Email</label>
-        <input type="email" id="loginEmail" placeholder="email@kamu.com" autocomplete="email">
+        <input type="email" id="loginEmail" placeholder="your@email.com" autocomplete="email">
       </div>
       <div class="field">
         <label>Password</label>
@@ -477,7 +477,7 @@ input.error {
       </div>
 
       <button class="submit-btn" id="loginBtn" onclick="doLogin()">
-        <span class="btn-text">Masuk →</span>
+        <span class="btn-text">Login →</span>
         <span class="spinner"><span class="spinner-ring"></span></span>
       </button>
 
@@ -487,24 +487,24 @@ input.error {
       </div>
       <div class="alert alert-warning" id="loginPendingAlert">
         <span class="alert-icon">⏳</span>
-        <span>Akun kamu masih <strong>menunggu persetujuan</strong> admin. Silakan tunggu notifikasi.</span>
+        <span>Your account still<strong>waiting approval from</strong> admin. Please wait notification.</span>
       </div>
     </div>
 
     <!-- REGISTER FORM -->
     <div class="form" id="registerForm">
       <div class="field">
-        <label>Nama Lengkap</label>
-        <input type="text" id="regName" placeholder="Nama kamu" autocomplete="name">
+        <label>Full Name</label>
+        <input type="text" id="regName" placeholder="Your Name" autocomplete="name">
       </div>
       <div class="field">
         <label>Email</label>
-        <input type="email" id="regEmail" placeholder="email@kamu.com" autocomplete="email">
+        <input type="email" id="regEmail" placeholder="your@email.com" autocomplete="email">
       </div>
       <div class="field">
         <label>Password</label>
         <div class="input-wrap">
-          <input type="password" id="regPass" placeholder="Min. 8 karakter" autocomplete="new-password" oninput="checkStrength(this.value)">
+          <input type="password" id="regPass" placeholder="Min. 8 Characters" autocomplete="new-password" oninput="checkStrength(this.value)">
           <button class="eye-btn" onclick="togglePass('regPass', this)">👁</button>
         </div>
         <div class="strength-bar">
@@ -517,7 +517,7 @@ input.error {
       </div>
 
       <button class="submit-btn" id="registerBtn" onclick="doRegister()">
-        <span class="btn-text">Daftar Sekarang →</span>
+        <span class="btn-text">Register Now→</span>
         <span class="spinner"><span class="spinner-ring"></span></span>
       </button>
 
@@ -532,22 +532,22 @@ input.error {
       <div class="pending-icon">📬</div>
       <div class="pending-title">Pendaftaran Terkirim!</div>
       <p class="pending-sub">
-        Permintaan kamu sudah dikirim ke admin.<br>
-        Admin akan mereview dan mengonfirmasi via Telegram.<br>
-        Kamu akan bisa login setelah disetujui.
+        Your request has be sent to Admin.<br>
+        Admin will review and accept you via Telegram.<br>
+        You can login after approval.
       </p>
       <div class="pending-badge">
         <span class="pulse"></span>
-        Menunggu Persetujuan Admin
+        Waiting Approval
       </div>
     </div>
 
     <!-- DASHBOARD (setelah login berhasil) -->
     <div class="dashboard" id="dashboard">
       <div class="dash-icon">🎌</div>
-      <div class="dash-title">Selamat Datang, <span id="dashName">-</span>!</div>
-      <p class="dash-sub">Akun aktif · Siap mulai latihan JLPT</p>
-      <a href="./index.html" class="dash-btn">Buka Exam Hub →</a>
+      <div class="dash-title">Welcome, <span id="dashName">-</span>!</div>
+      <p class="dash-sub">Account Activated· Ready for JLPT simulation</p>
+      <a href="./index.html" class="dash-btn">Open Exam Hub →</a>
       <button class="dash-btn ghost" onclick="doLogout()">Logout</button>
     </div>
 
