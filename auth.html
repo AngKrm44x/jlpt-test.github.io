@@ -451,7 +451,7 @@ input.error {
   <div class="logo">
     <div class="logo-icon">試験</div>
     <h1>日本語能力　模擬試験</h1>
-    <p>Platform Simulasi JLPT Premium</p>
+    <p>JLPT Simulation Platform</p>
   </div>
 
   <div class="card" id="authCard">
@@ -530,7 +530,7 @@ input.error {
     <!-- PENDING SCREEN (setelah daftar) -->
     <div class="pending-screen" id="pendingScreen">
       <div class="pending-icon">📬</div>
-      <div class="pending-title">Pendaftaran Terkirim!</div>
+      <div class="pending-title">Registry Sent!</div>
       <p class="pending-sub">
         Your request has be sent to Admin.<br>
         Admin will review and accept you via Telegram.<br>
@@ -599,7 +599,7 @@ window.checkStrength = function(val) {
   if (/[^A-Za-z0-9]/.test(val)) score++;
 
   const colors = ['#ff5f73','#ffb547','#5aa9ff','#19c37d'];
-  const labels = ['','Lemah','Cukup','Kuat','Sangat Kuat'];
+  const labels = ['','Weak','Enought','Strong','Very Strong'];
 
   for (let i = 1; i <= 4; i++) {
     const seg = document.getElementById('s'+i);
@@ -614,8 +614,8 @@ window.doRegister = async function() {
   const email = document.getElementById('regEmail').value.trim();
   const pass  = document.getElementById('regPass').value;
 
-  if (!name || !email || !pass) return showError('registerError','registerErrorMsg','Semua field wajib diisi.');
-  if (pass.length < 8) return showError('registerError','registerErrorMsg','Password minimal 8 karakter.');
+  if (!name || !email || !pass) return showError('registerError','registerErrorMsg','Fill Every Collums.');
+  if (pass.length < 8) return showError('registerError','registerErrorMsg','Password must 8 characters.');
 
   setLoading('registerBtn', true);
   clearAlerts();
@@ -651,7 +651,7 @@ window.doRegister = async function() {
     document.getElementById('pendingScreen').classList.add('show');
 
   } catch(err) {
-    showError('registerError','registerErrorMsg', err.message || 'Gagal mendaftar, coba lagi.');
+    showError('registerError','registerErrorMsg', err.message || 'Failed, try again.');
   }
 
   setLoading('registerBtn', false);
@@ -662,7 +662,7 @@ window.doLogin = async function() {
   const email = document.getElementById('loginEmail').value.trim();
   const pass  = document.getElementById('loginPass').value;
 
-  if (!email || !pass) return showError('loginError','loginErrorMsg','Email dan password wajib diisi.');
+  if (!email || !pass) return showError('loginError','loginErrorMsg','Email & Password must be filled.');
 
   setLoading('loginBtn', true);
   clearAlerts();
@@ -679,7 +679,7 @@ window.doLogin = async function() {
       document.getElementById('loginPendingAlert').classList.add('show');
     } else if (usr.status === 'rejected') {
       await supabase.auth.signOut();
-      showError('loginError','loginErrorMsg','Pendaftaran kamu ditolak oleh admin.');
+      showError('loginError','loginErrorMsg','Your request not Approved by Admin.');
     } else {
       showDashboard({ ...data.user, user_metadata: { full_name: usr.full_name } });
     }
