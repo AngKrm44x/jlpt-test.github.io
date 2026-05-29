@@ -10,34 +10,20 @@
 
 <style>
 :root {
-  --bg: #070b16;
-  --card: #111a2f;
-  --border: #2f4370;
-  --text: #f4f7ff;
-  --muted: #aab8d8;
-  --primary: #5aa9ff;
-  --primary2: #7c4dff;
-  --success: #19c37d;
-  --danger: #ff5f73;
-  --warning: #ffb547;
+  --bg: #070b16; --card: #111a2f; --border: #2f4370; --text: #f4f7ff;
+  --muted: #aab8d8; --primary: #5aa9ff; --primary2: #7c4dff;
+  --success: #19c37d; --danger: #ff5f73; --warning: #ffb547;
 }
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
   font-family: 'Space Grotesk', 'Noto Sans JP', sans-serif;
-  background:
-    radial-gradient(circle at 20% 20%, #1a2d5a 0%, transparent 40%),
-    radial-gradient(circle at 80% 80%, #251542 0%, transparent 35%),
-    var(--bg);
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text);
-  overflow: hidden;
+  background: radial-gradient(circle at 20% 20%, #1a2d5a 0%, transparent 40%),
+    radial-gradient(circle at 80% 80%, #251542 0%, transparent 35%), var(--bg);
+  min-height: 100vh; display: flex; align-items: center;
+  justify-content: center; color: var(--text); overflow: hidden;
 }
 canvas { position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: .15; }
 .wrap { position: relative; z-index: 1; width: 100%; max-width: 460px; padding: 24px; }
-
 .logo { text-align: center; margin-bottom: 32px; }
 .logo-icon {
   width: 56px; height: 56px; border-radius: 16px;
@@ -52,7 +38,6 @@ canvas { position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: .
   -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
 }
 .logo p { color: var(--muted); font-size: 14px; margin-top: 4px; }
-
 .card {
   background: rgba(17,26,47,.9); backdrop-filter: blur(12px);
   border: 1px solid var(--border); border-radius: 28px; padding: 36px;
@@ -63,64 +48,33 @@ canvas { position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: .
   background: linear-gradient(135deg, rgba(255,255,255,.03), transparent 60%);
   pointer-events: none; border-radius: inherit;
 }
-
-/* Google Button */
 .google-btn {
-  width: 100%; padding: 14px 18px;
-  background: rgba(255,255,255,.06);
-  border: 1.5px solid rgba(255,255,255,.12);
-  border-radius: 14px; color: var(--text);
-  font-family: inherit; font-size: 15px; font-weight: 600;
-  cursor: pointer; transition: .2s;
-  display: flex; align-items: center; justify-content: center; gap: 10px;
-  margin-bottom: 4px;
+  width: 100%; padding: 14px 18px; background: rgba(255,255,255,.06);
+  border: 1.5px solid rgba(255,255,255,.12); border-radius: 14px; color: var(--text);
+  font-family: inherit; font-size: 15px; font-weight: 600; cursor: pointer; transition: .2s;
+  display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 4px;
 }
 .google-btn:hover { background: rgba(255,255,255,.1); border-color: rgba(255,255,255,.2); transform: translateY(-1px); }
 .google-btn:disabled { opacity: .6; cursor: not-allowed; transform: none; }
-
-.google-icon {
-  width: 20px; height: 20px; flex-shrink: 0;
-}
-
-/* Divider */
-.divider {
-  display: flex; align-items: center; gap: 12px;
-  margin: 18px 0; color: var(--muted); font-size: 12px;
-}
+.google-icon { width: 20px; height: 20px; flex-shrink: 0; }
+.divider { display: flex; align-items: center; gap: 12px; margin: 18px 0; color: var(--muted); font-size: 12px; }
 .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
-
-.tabs {
-  display: flex; background: rgba(255,255,255,.04);
-  border: 1px solid var(--border); border-radius: 14px; padding: 4px; margin-bottom: 22px;
-}
-.tab {
-  flex: 1; padding: 10px; border: none; background: transparent;
-  color: var(--muted); font-family: inherit; font-size: 14px; font-weight: 600;
-  border-radius: 10px; cursor: pointer; transition: .2s;
-}
+.tabs { display: flex; background: rgba(255,255,255,.04); border: 1px solid var(--border); border-radius: 14px; padding: 4px; margin-bottom: 22px; }
+.tab { flex: 1; padding: 10px; border: none; background: transparent; color: var(--muted); font-family: inherit; font-size: 14px; font-weight: 600; border-radius: 10px; cursor: pointer; transition: .2s; }
 .tab.active { background: linear-gradient(135deg, #3558a8, #6c3fff); color: white; box-shadow: 0 4px 15px rgba(108,63,255,.3); }
-
 .form { display: none; }
 .form.active { display: block; }
 .field { margin-bottom: 18px; }
 label { display: block; font-size: 13px; font-weight: 600; color: var(--muted); margin-bottom: 8px; letter-spacing: .3px; }
-
 input[type="text"], input[type="email"], input[type="password"] {
-  width: 100%; background: #0d1626; border: 1.5px solid #2a3d60;
-  border-radius: 14px; padding: 14px 18px; color: var(--text);
-  font-family: inherit; font-size: 15px; outline: none;
+  width: 100%; background: #0d1626; border: 1.5px solid #2a3d60; border-radius: 14px;
+  padding: 14px 18px; color: var(--text); font-family: inherit; font-size: 15px; outline: none;
   transition: border-color .2s, box-shadow .2s;
 }
 input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(90,169,255,.12); }
-input.error { border-color: var(--danger); box-shadow: 0 0 0 3px rgba(255,95,115,.12); }
-
 .input-wrap { position: relative; }
-.eye-btn {
-  position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
-  background: none; border: none; color: var(--muted); cursor: pointer; font-size: 18px; padding: 4px; transition: color .2s;
-}
+.eye-btn { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--muted); cursor: pointer; font-size: 18px; padding: 4px; transition: color .2s; }
 .eye-btn:hover { color: var(--primary); }
-
 .submit-btn {
   width: 100%; padding: 16px; border: none; border-radius: 16px;
   background: linear-gradient(135deg, #3558a8, #6c3fff); color: white;
@@ -135,14 +89,11 @@ input.error { border-color: var(--danger); box-shadow: 0 0 0 3px rgba(255,95,115
 .submit-btn.loading .spinner { display: flex; }
 .spinner-ring { width: 20px; height: 20px; border: 2px solid rgba(255,255,255,.3); border-top-color: white; border-radius: 50%; animation: spin .7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
-
 .alert { padding: 14px 18px; border-radius: 14px; font-size: 14px; margin-top: 18px; display: none; align-items: flex-start; gap: 10px; line-height: 1.5; }
 .alert.show { display: flex; }
-.alert-success { background: rgba(25,195,125,.12); border: 1px solid rgba(25,195,125,.3); color: #5ff0b0; }
 .alert-error { background: rgba(255,95,115,.12); border: 1px solid rgba(255,95,115,.3); color: #ff9aaa; }
 .alert-warning { background: rgba(255,181,71,.12); border: 1px solid rgba(255,181,71,.3); color: #ffd18a; }
 .alert-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
-
 .pending-screen { display: none; text-align: center; padding: 20px 0; }
 .pending-screen.show { display: block; }
 .pending-icon { font-size: 56px; margin-bottom: 16px; animation: float 3s ease-in-out infinite; }
@@ -152,7 +103,8 @@ input.error { border-color: var(--danger); box-shadow: 0 0 0 3px rgba(255,95,115
 .pending-badge { display: inline-flex; align-items: center; gap: 8px; background: rgba(255,181,71,.12); border: 1px solid rgba(255,181,71,.3); color: #ffd18a; padding: 10px 20px; border-radius: 999px; font-size: 13px; font-weight: 600; }
 .pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--warning); animation: pulse 1.5s ease-in-out infinite; }
 @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .5; transform: scale(.7); } }
-
+.back-btn { margin-top: 20px; background: none; border: 1px solid var(--border); color: var(--muted); padding: 10px 22px; border-radius: 12px; cursor: pointer; font-family: inherit; font-size: 13px; transition: .2s; }
+.back-btn:hover { border-color: var(--primary); color: var(--primary); }
 .dashboard { display: none; text-align: center; padding: 10px 0; }
 .dashboard.show { display: block; }
 .dash-icon { font-size: 48px; margin-bottom: 12px; }
@@ -162,15 +114,10 @@ input.error { border-color: var(--danger); box-shadow: 0 0 0 3px rgba(255,95,115
 .dash-btn:hover { transform: translateY(-2px); filter: brightness(1.1); }
 .dash-btn.ghost { background: transparent; border: 1.5px solid var(--border); color: var(--muted); }
 .dash-btn.ghost:hover { border-color: var(--danger); color: var(--danger); }
-
 .strength-bar { display: flex; gap: 4px; margin-top: 8px; }
 .strength-seg { flex: 1; height: 3px; border-radius: 2px; background: rgba(255,255,255,.08); transition: background .3s; }
 .strength-label { font-size: 11px; margin-top: 5px; color: var(--muted); }
-
-@media (max-width: 480px) {
-  .card { padding: 24px 20px; border-radius: 20px; }
-  .wrap { padding: 16px; }
-}
+@media (max-width: 480px) { .card { padding: 24px 20px; border-radius: 20px; } .wrap { padding: 16px; } }
 </style>
 </head>
 <body>
@@ -186,7 +133,6 @@ input.error { border-color: var(--danger); box-shadow: 0 0 0 3px rgba(255,95,115
 
   <div class="card" id="authCard">
 
-    <!-- GOOGLE BUTTON -->
     <button class="google-btn" id="googleBtn" onclick="doGoogleLogin()">
       <svg class="google-icon" viewBox="0 0 24 24">
         <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -199,13 +145,11 @@ input.error { border-color: var(--danger); box-shadow: 0 0 0 3px rgba(255,95,115
 
     <div class="divider">or</div>
 
-    <!-- Tabs -->
     <div class="tabs" id="tabs">
       <button class="tab active" onclick="switchTab('login')">Login</button>
       <button class="tab" onclick="switchTab('register')">Register</button>
     </div>
 
-    <!-- LOGIN FORM -->
     <div class="form active" id="loginForm">
       <div class="field">
         <label>Email</label>
@@ -231,7 +175,6 @@ input.error { border-color: var(--danger); box-shadow: 0 0 0 3px rgba(255,95,115
       </div>
     </div>
 
-    <!-- REGISTER FORM -->
     <div class="form" id="registerForm">
       <div class="field">
         <label>Full Name</label>
@@ -248,10 +191,8 @@ input.error { border-color: var(--danger); box-shadow: 0 0 0 3px rgba(255,95,115
           <button class="eye-btn" onclick="togglePass('regPass', this)">👁</button>
         </div>
         <div class="strength-bar">
-          <div class="strength-seg" id="s1"></div>
-          <div class="strength-seg" id="s2"></div>
-          <div class="strength-seg" id="s3"></div>
-          <div class="strength-seg" id="s4"></div>
+          <div class="strength-seg" id="s1"></div><div class="strength-seg" id="s2"></div>
+          <div class="strength-seg" id="s3"></div><div class="strength-seg" id="s4"></div>
         </div>
         <div class="strength-label" id="strengthLabel"></div>
       </div>
@@ -277,6 +218,8 @@ input.error { border-color: var(--danger); box-shadow: 0 0 0 3px rgba(255,95,115
         <span class="pulse"></span>
         Waiting for Approval
       </div>
+      <br>
+      <button class="back-btn" onclick="resetToLogin()">← Back to Login</button>
     </div>
 
     <!-- DASHBOARD -->
@@ -300,64 +243,81 @@ const BACKEND_URL   = 'https://jlpt-auth-bot-production.up.railway.app';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON);
 
-// ---- Cek session & handle OAuth callback ----
-const { data: { session } } = await supabase.auth.getSession();
+// ============================================================
+// CEK FLAG PENDING DARI REDIRECT SEBELUMNYA (sebelum async)
+// ============================================================
+if (localStorage.getItem('jlpt_pending') === '1') {
+  showPendingImmediate();
+}
 
-if (session) {
+// ============================================================
+// CEK SESSION AKTIF
+// ============================================================
+const { data: { session } } = await supabase.auth.getSession();
+if (session && localStorage.getItem('jlpt_pending') !== '1') {
   await handleSession(session);
 }
 
-// Listen untuk perubahan auth (OAuth callback masuk sini)
+// Listen OAuth callback
 supabase.auth.onAuthStateChange(async (event, session) => {
-  if (event === 'SIGNED_IN' && session) {
+  if (event === 'SIGNED_IN' && session && localStorage.getItem('jlpt_pending') !== '1') {
     await handleSession(session);
   }
 });
 
-// ---- Handle session (cek status, daftarkan jika Google baru) ----
+// ============================================================
+// HANDLE SESSION — cek status user di DB
+// ============================================================
 async function handleSession(session) {
   const user = session.user;
 
-  // Cek apakah sudah ada di tabel users
-  let { data: usr } = await supabase
+  let { data: usr, error: selErr } = await supabase
     .from('users')
     .select('status, full_name')
     .eq('id', user.id)
     .single();
 
+  console.log('User DB:', usr, 'Error:', selErr);
+
   if (!usr) {
-    // User baru via Google — daftarkan sebagai pending
+    // User baru via Google — insert sebagai pending
     const name  = user.user_metadata?.full_name || user.user_metadata?.name || user.email;
     const email = user.email;
     const uid   = user.id;
 
-    await supabase.from('users').insert({
+    const { error: insertErr } = await supabase.from('users').insert({
       id: uid, email, full_name: name,
       status: 'pending',
       created_at: new Date().toISOString()
     });
 
-    // Kirim notif ke bot Telegram
+    if (insertErr) {
+      console.error('INSERT ERROR:', insertErr);
+    }
+
+    // Kirim notif ke bot
     try {
-      await fetch(`${BACKEND_URL}/notify-register`, {
+      const res = await fetch(`${BACKEND_URL}/notify-register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ uid, name, email })
       });
-    } catch(e) {}
+      console.log('Bot notify:', res.status);
+    } catch(e) {
+      console.error('BOT ERROR:', e);
+    }
 
+    // Simpan flag, sign out, tampilkan pending
+    localStorage.setItem('jlpt_pending', '1');
     await supabase.auth.signOut();
-    hideForms();
-    document.getElementById('tabs').style.display = 'none';
-    document.getElementById('pendingScreen').classList.add('show');
+    showPendingImmediate();
     return;
   }
 
   if (usr.status === 'pending') {
+    localStorage.setItem('jlpt_pending', '1');
     await supabase.auth.signOut();
-    hideForms();
-    document.getElementById('tabs').style.display = 'none';
-    document.getElementById('pendingScreen').classList.add('show');
+    showPendingImmediate();
     return;
   }
 
@@ -367,30 +327,36 @@ async function handleSession(session) {
     return;
   }
 
-  // Active — tampilkan dashboard
+  // ✅ Active
+  localStorage.removeItem('jlpt_pending');
   showDashboard({ ...user, user_metadata: { full_name: usr.full_name } });
 }
 
-// ---- GOOGLE LOGIN ----
+// ============================================================
+// GOOGLE LOGIN
+// ============================================================
 window.doGoogleLogin = async function() {
-  document.getElementById('googleBtn').disabled = true;
-  document.getElementById('googleBtn').textContent = 'Redirecting...';
+  const btn = document.getElementById('googleBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span style="opacity:.6">Redirecting to Google...</span>';
 
   const { error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: 'https://angkrm44x.github.io/jlpt-test.github.io/auth.html' // kembali ke halaman ini setelah login
+      redirectTo: 'https://angkrm44x.github.io/jlpt-test.github.io/auth.html'
     }
   });
 
   if (error) {
-    document.getElementById('googleBtn').disabled = false;
-    document.getElementById('googleBtn').innerHTML = `<svg class="google-icon" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg> Continue with Google`;
+    btn.disabled = false;
+    btn.innerHTML = `<svg class="google-icon" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg> Continue with Google`;
     showError('loginError', 'loginErrorMsg', 'Google login failed: ' + error.message);
   }
 };
 
-// ---- EMAIL LOGIN ----
+// ============================================================
+// EMAIL LOGIN
+// ============================================================
 window.doLogin = async function() {
   const email = document.getElementById('loginEmail').value.trim();
   const pass  = document.getElementById('loginPass').value;
@@ -402,12 +368,15 @@ window.doLogin = async function() {
     if (error) throw error;
     await handleSession(data.session);
   } catch(err) {
-    showError('loginError','loginErrorMsg', err.message === 'Invalid login credentials' ? 'Wrong email or password.' : err.message);
+    showError('loginError','loginErrorMsg', err.message === 'Invalid login credentials'
+      ? 'Wrong email or password.' : err.message);
   }
   setLoading('loginBtn', false);
 };
 
-// ---- REGISTER ----
+// ============================================================
+// REGISTER
+// ============================================================
 window.doRegister = async function() {
   const name  = document.getElementById('regName').value.trim();
   const email = document.getElementById('regEmail').value.trim();
@@ -417,28 +386,70 @@ window.doRegister = async function() {
   setLoading('registerBtn', true);
   clearAlerts();
   try {
-    const { data, error } = await supabase.auth.signUp({ email, password: pass, options: { data: { full_name: name } } });
+    const { data, error } = await supabase.auth.signUp({
+      email, password: pass, options: { data: { full_name: name } }
+    });
     if (error) throw error;
     const uid = data.user?.id;
-    await supabase.from('users').insert({ id: uid, email, full_name: name, status: 'pending', created_at: new Date().toISOString() });
-    await fetch(`${BACKEND_URL}/notify-register`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ uid, name, email }) });
-    hideForms();
-    document.getElementById('pendingScreen').classList.add('show');
+    const { error: insertErr } = await supabase.from('users').insert({
+      id: uid, email, full_name: name, status: 'pending',
+      created_at: new Date().toISOString()
+    });
+    if (insertErr) console.error('INSERT ERROR:', insertErr);
+    await fetch(`${BACKEND_URL}/notify-register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ uid, name, email })
+    });
+    showPendingImmediate();
   } catch(err) {
     showError('registerError','registerErrorMsg', err.message || 'Failed, try again.');
   }
   setLoading('registerBtn', false);
 };
 
-// ---- LOGOUT ----
+// ============================================================
+// LOGOUT
+// ============================================================
 window.doLogout = async function() {
+  localStorage.removeItem('jlpt_pending');
   await supabase.auth.signOut();
   location.reload();
 };
 
-// ---- SWITCH TAB ----
+// ============================================================
+// RESET KE LOGIN (dari pending screen)
+// ============================================================
+window.resetToLogin = function() {
+  localStorage.removeItem('jlpt_pending');
+  location.reload();
+};
+
+// ============================================================
+// HELPERS
+// ============================================================
+function showPendingImmediate() {
+  document.getElementById('loginForm').classList.remove('active');
+  document.getElementById('registerForm').classList.remove('active');
+  document.getElementById('tabs').style.display = 'none';
+  document.getElementById('googleBtn').style.display = 'none';
+  document.querySelector('.divider').style.display = 'none';
+  document.getElementById('pendingScreen').classList.add('show');
+}
+
+function showDashboard(user) {
+  document.getElementById('loginForm').classList.remove('active');
+  document.getElementById('registerForm').classList.remove('active');
+  document.getElementById('tabs').style.display = 'none';
+  document.getElementById('googleBtn').style.display = 'none';
+  document.querySelector('.divider').style.display = 'none';
+  document.getElementById('dashName').textContent = user.user_metadata?.full_name || user.email;
+  document.getElementById('dashboard').classList.add('show');
+}
+
 window.switchTab = function(tab) {
-  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', (i===0&&tab==='login')||(i===1&&tab==='register')));
+  document.querySelectorAll('.tab').forEach((t,i) =>
+    t.classList.toggle('active', (i===0&&tab==='login')||(i===1&&tab==='register')));
   document.getElementById('loginForm').classList.toggle('active', tab==='login');
   document.getElementById('registerForm').classList.toggle('active', tab==='register');
   clearAlerts();
@@ -464,24 +475,9 @@ window.checkStrength = function(val) {
   document.getElementById('strengthLabel').textContent = val.length ? labels[score] : '';
 };
 
-function showDashboard(user) {
-  hideForms();
-  document.getElementById('tabs').style.display = 'none';
-  document.getElementById('googleBtn').style.display = 'none';
-  document.querySelector('.divider').style.display = 'none';
-  document.getElementById('dashName').textContent = user.user_metadata?.full_name || user.email;
-  document.getElementById('dashboard').classList.add('show');
-}
-
-function hideForms() {
-  document.getElementById('loginForm').classList.remove('active');
-  document.getElementById('registerForm').classList.remove('active');
-}
-
 function showError(alertId, msgId, msg) {
-  const el = document.getElementById(alertId);
   document.getElementById(msgId).textContent = msg;
-  el.classList.add('show');
+  document.getElementById(alertId).classList.add('show');
 }
 
 function clearAlerts() {
