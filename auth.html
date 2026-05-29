@@ -21,9 +21,7 @@
   --danger: #ff5f73;
   --warning: #ffb547;
 }
-
 * { margin: 0; padding: 0; box-sizing: border-box; }
-
 body {
   font-family: 'Space Grotesk', 'Noto Sans JP', sans-serif;
   background:
@@ -37,404 +35,137 @@ body {
   color: var(--text);
   overflow: hidden;
 }
+canvas { position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: .15; }
+.wrap { position: relative; z-index: 1; width: 100%; max-width: 460px; padding: 24px; }
 
-canvas {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  opacity: .15;
-}
-
-.wrap {
-  position: relative;
-  z-index: 1;
-  width: 100%;
-  max-width: 460px;
-  padding: 24px;
-}
-
-/* Logo */
-.logo {
-  text-align: center;
-  margin-bottom: 32px;
-}
-
+.logo { text-align: center; margin-bottom: 32px; }
 .logo-icon {
-  width: 56px;
-  height: 56px;
-  border-radius: 16px;
+  width: 56px; height: 56px; border-radius: 16px;
   background: linear-gradient(135deg, #3558a8, #6c3fff);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-family: 'Noto Sans JP', sans-serif;
-  font-size: 24px;
-  font-weight: 700;
-  margin-bottom: 12px;
-  box-shadow: 0 8px 30px rgba(108, 63, 255, .35);
+  display: inline-flex; align-items: center; justify-content: center;
+  font-family: 'Noto Sans JP', sans-serif; font-size: 24px; font-weight: 700;
+  margin-bottom: 12px; box-shadow: 0 8px 30px rgba(108,63,255,.35);
 }
-
 .logo h1 {
-  font-family: 'Syne', sans-serif;
-  font-size: 28px;
-  font-weight: 800;
-  letter-spacing: -1px;
+  font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 800; letter-spacing: -1px;
   background: linear-gradient(135deg, #fff 30%, #7cc0ff 70%, #b69cff);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
 }
+.logo p { color: var(--muted); font-size: 14px; margin-top: 4px; }
 
-.logo p {
-  color: var(--muted);
-  font-size: 14px;
-  margin-top: 4px;
-}
-
-/* Card */
 .card {
-  background: rgba(17, 26, 47, .9);
-  backdrop-filter: blur(12px);
-  border: 1px solid var(--border);
-  border-radius: 28px;
-  padding: 36px;
-  box-shadow: 0 20px 60px rgba(0,0,0,.5);
-  position: relative;
-  overflow: hidden;
+  background: rgba(17,26,47,.9); backdrop-filter: blur(12px);
+  border: 1px solid var(--border); border-radius: 28px; padding: 36px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.5); position: relative; overflow: hidden;
 }
-
 .card::before {
-  content: '';
-  position: absolute;
-  inset: 0;
+  content: ''; position: absolute; inset: 0;
   background: linear-gradient(135deg, rgba(255,255,255,.03), transparent 60%);
-  pointer-events: none;
-  border-radius: inherit;
+  pointer-events: none; border-radius: inherit;
 }
 
-/* Tabs */
-.tabs {
-  display: flex;
-  background: rgba(255,255,255,.04);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 4px;
-  margin-bottom: 28px;
+/* Google Button */
+.google-btn {
+  width: 100%; padding: 14px 18px;
+  background: rgba(255,255,255,.06);
+  border: 1.5px solid rgba(255,255,255,.12);
+  border-radius: 14px; color: var(--text);
+  font-family: inherit; font-size: 15px; font-weight: 600;
+  cursor: pointer; transition: .2s;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  margin-bottom: 4px;
 }
+.google-btn:hover { background: rgba(255,255,255,.1); border-color: rgba(255,255,255,.2); transform: translateY(-1px); }
+.google-btn:disabled { opacity: .6; cursor: not-allowed; transform: none; }
 
-.tab {
-  flex: 1;
-  padding: 10px;
-  border: none;
-  background: transparent;
-  color: var(--muted);
-  font-family: inherit;
-  font-size: 14px;
-  font-weight: 600;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: .2s;
-}
-
-.tab.active {
-  background: linear-gradient(135deg, #3558a8, #6c3fff);
-  color: white;
-  box-shadow: 0 4px 15px rgba(108,63,255,.3);
-}
-
-/* Form */
-.form { display: none; }
-.form.active { display: block; }
-
-.field {
-  margin-bottom: 18px;
-}
-
-label {
-  display: block;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--muted);
-  margin-bottom: 8px;
-  letter-spacing: .3px;
-}
-
-input[type="text"],
-input[type="email"],
-input[type="password"] {
-  width: 100%;
-  background: #0d1626;
-  border: 1.5px solid #2a3d60;
-  border-radius: 14px;
-  padding: 14px 18px;
-  color: var(--text);
-  font-family: inherit;
-  font-size: 15px;
-  outline: none;
-  transition: border-color .2s, box-shadow .2s;
-}
-
-input:focus {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(90,169,255,.12);
-}
-
-input.error {
-  border-color: var(--danger);
-  box-shadow: 0 0 0 3px rgba(255,95,115,.12);
-}
-
-/* Password toggle */
-.input-wrap {
-  position: relative;
-}
-
-.eye-btn {
-  position: absolute;
-  right: 14px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: none;
-  border: none;
-  color: var(--muted);
-  cursor: pointer;
-  font-size: 18px;
-  padding: 4px;
-  transition: color .2s;
-}
-.eye-btn:hover { color: var(--primary); }
-
-/* Submit button */
-.submit-btn {
-  width: 100%;
-  padding: 16px;
-  border: none;
-  border-radius: 16px;
-  background: linear-gradient(135deg, #3558a8, #6c3fff);
-  color: white;
-  font-family: inherit;
-  font-size: 16px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: .25s;
-  position: relative;
-  overflow: hidden;
-  margin-top: 6px;
-}
-
-.submit-btn:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(108,63,255,.4);
-  filter: brightness(1.1);
-}
-
-.submit-btn:disabled {
-  opacity: .6;
-  cursor: not-allowed;
-  transform: none;
-}
-
-.submit-btn .btn-text { transition: opacity .2s; }
-.submit-btn .spinner {
-  display: none;
-  position: absolute;
-  inset: 0;
-  align-items: center;
-  justify-content: center;
-}
-.submit-btn.loading .btn-text { opacity: 0; }
-.submit-btn.loading .spinner { display: flex; }
-
-.spinner-ring {
-  width: 20px;
-  height: 20px;
-  border: 2px solid rgba(255,255,255,.3);
-  border-top-color: white;
-  border-radius: 50%;
-  animation: spin .7s linear infinite;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-
-/* Alert boxes */
-.alert {
-  padding: 14px 18px;
-  border-radius: 14px;
-  font-size: 14px;
-  margin-top: 18px;
-  display: none;
-  align-items: flex-start;
-  gap: 10px;
-  line-height: 1.5;
-}
-
-.alert.show { display: flex; }
-
-.alert-success {
-  background: rgba(25,195,125,.12);
-  border: 1px solid rgba(25,195,125,.3);
-  color: #5ff0b0;
-}
-
-.alert-error {
-  background: rgba(255,95,115,.12);
-  border: 1px solid rgba(255,95,115,.3);
-  color: #ff9aaa;
-}
-
-.alert-warning {
-  background: rgba(255,181,71,.12);
-  border: 1px solid rgba(255,181,71,.3);
-  color: #ffd18a;
-}
-
-.alert-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
-
-/* Pending screen */
-.pending-screen {
-  display: none;
-  text-align: center;
-  padding: 20px 0;
-}
-
-.pending-screen.show { display: block; }
-
-.pending-icon {
-  font-size: 56px;
-  margin-bottom: 16px;
-  animation: float 3s ease-in-out infinite;
-}
-
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
-}
-
-.pending-title {
-  font-family: 'Syne', sans-serif;
-  font-size: 22px;
-  font-weight: 800;
-  margin-bottom: 10px;
-}
-
-.pending-sub {
-  color: var(--muted);
-  font-size: 14px;
-  line-height: 1.7;
-  max-width: 320px;
-  margin: 0 auto 24px;
-}
-
-.pending-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  background: rgba(255,181,71,.12);
-  border: 1px solid rgba(255,181,71,.3);
-  color: #ffd18a;
-  padding: 10px 20px;
-  border-radius: 999px;
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.pulse {
-  width: 8px; height: 8px;
-  border-radius: 50%;
-  background: var(--warning);
-  animation: pulse 1.5s ease-in-out infinite;
-}
-@keyframes pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: .5; transform: scale(.7); }
-}
-
-/* Dashboard (logged in) */
-.dashboard {
-  display: none;
-  text-align: center;
-  padding: 10px 0;
-}
-.dashboard.show { display: block; }
-
-.dash-icon { font-size: 48px; margin-bottom: 12px; }
-.dash-title {
-  font-family: 'Syne', sans-serif;
-  font-size: 22px;
-  font-weight: 800;
-  margin-bottom: 8px;
-}
-.dash-sub { color: var(--muted); font-size: 14px; margin-bottom: 24px; }
-
-.dash-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  text-decoration: none;
-  padding: 14px 28px;
-  border-radius: 16px;
-  background: linear-gradient(135deg, #3558a8, #6c3fff);
-  color: white;
-  font-weight: 700;
-  font-size: 15px;
-  transition: .25s;
-  border: none;
-  cursor: pointer;
-  font-family: inherit;
-  margin: 6px;
-}
-
-.dash-btn:hover { transform: translateY(-2px); filter: brightness(1.1); }
-
-.dash-btn.ghost {
-  background: transparent;
-  border: 1.5px solid var(--border);
-  color: var(--muted);
-}
-.dash-btn.ghost:hover { border-color: var(--danger); color: var(--danger); }
-
-/* Field hint */
-.hint {
-  font-size: 12px;
-  color: var(--muted);
-  margin-top: 6px;
-  opacity: .7;
+.google-icon {
+  width: 20px; height: 20px; flex-shrink: 0;
 }
 
 /* Divider */
 .divider {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin: 20px 0;
-  color: var(--muted);
-  font-size: 12px;
+  display: flex; align-items: center; gap: 12px;
+  margin: 18px 0; color: var(--muted); font-size: 12px;
 }
-.divider::before, .divider::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: var(--border);
-}
+.divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
 
-/* Strength meter */
-.strength-bar {
-  display: flex;
-  gap: 4px;
-  margin-top: 8px;
+.tabs {
+  display: flex; background: rgba(255,255,255,.04);
+  border: 1px solid var(--border); border-radius: 14px; padding: 4px; margin-bottom: 22px;
 }
-.strength-seg {
-  flex: 1;
-  height: 3px;
-  border-radius: 2px;
-  background: rgba(255,255,255,.08);
-  transition: background .3s;
+.tab {
+  flex: 1; padding: 10px; border: none; background: transparent;
+  color: var(--muted); font-family: inherit; font-size: 14px; font-weight: 600;
+  border-radius: 10px; cursor: pointer; transition: .2s;
 }
-.strength-label {
-  font-size: 11px;
-  margin-top: 5px;
-  color: var(--muted);
+.tab.active { background: linear-gradient(135deg, #3558a8, #6c3fff); color: white; box-shadow: 0 4px 15px rgba(108,63,255,.3); }
+
+.form { display: none; }
+.form.active { display: block; }
+.field { margin-bottom: 18px; }
+label { display: block; font-size: 13px; font-weight: 600; color: var(--muted); margin-bottom: 8px; letter-spacing: .3px; }
+
+input[type="text"], input[type="email"], input[type="password"] {
+  width: 100%; background: #0d1626; border: 1.5px solid #2a3d60;
+  border-radius: 14px; padding: 14px 18px; color: var(--text);
+  font-family: inherit; font-size: 15px; outline: none;
+  transition: border-color .2s, box-shadow .2s;
 }
+input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(90,169,255,.12); }
+input.error { border-color: var(--danger); box-shadow: 0 0 0 3px rgba(255,95,115,.12); }
+
+.input-wrap { position: relative; }
+.eye-btn {
+  position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+  background: none; border: none; color: var(--muted); cursor: pointer; font-size: 18px; padding: 4px; transition: color .2s;
+}
+.eye-btn:hover { color: var(--primary); }
+
+.submit-btn {
+  width: 100%; padding: 16px; border: none; border-radius: 16px;
+  background: linear-gradient(135deg, #3558a8, #6c3fff); color: white;
+  font-family: inherit; font-size: 16px; font-weight: 700; cursor: pointer;
+  transition: .25s; position: relative; overflow: hidden; margin-top: 6px;
+}
+.submit-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(108,63,255,.4); filter: brightness(1.1); }
+.submit-btn:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+.submit-btn .btn-text { transition: opacity .2s; }
+.submit-btn .spinner { display: none; position: absolute; inset: 0; align-items: center; justify-content: center; }
+.submit-btn.loading .btn-text { opacity: 0; }
+.submit-btn.loading .spinner { display: flex; }
+.spinner-ring { width: 20px; height: 20px; border: 2px solid rgba(255,255,255,.3); border-top-color: white; border-radius: 50%; animation: spin .7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.alert { padding: 14px 18px; border-radius: 14px; font-size: 14px; margin-top: 18px; display: none; align-items: flex-start; gap: 10px; line-height: 1.5; }
+.alert.show { display: flex; }
+.alert-success { background: rgba(25,195,125,.12); border: 1px solid rgba(25,195,125,.3); color: #5ff0b0; }
+.alert-error { background: rgba(255,95,115,.12); border: 1px solid rgba(255,95,115,.3); color: #ff9aaa; }
+.alert-warning { background: rgba(255,181,71,.12); border: 1px solid rgba(255,181,71,.3); color: #ffd18a; }
+.alert-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+
+.pending-screen { display: none; text-align: center; padding: 20px 0; }
+.pending-screen.show { display: block; }
+.pending-icon { font-size: 56px; margin-bottom: 16px; animation: float 3s ease-in-out infinite; }
+@keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+.pending-title { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; margin-bottom: 10px; }
+.pending-sub { color: var(--muted); font-size: 14px; line-height: 1.7; max-width: 320px; margin: 0 auto 24px; }
+.pending-badge { display: inline-flex; align-items: center; gap: 8px; background: rgba(255,181,71,.12); border: 1px solid rgba(255,181,71,.3); color: #ffd18a; padding: 10px 20px; border-radius: 999px; font-size: 13px; font-weight: 600; }
+.pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--warning); animation: pulse 1.5s ease-in-out infinite; }
+@keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .5; transform: scale(.7); } }
+
+.dashboard { display: none; text-align: center; padding: 10px 0; }
+.dashboard.show { display: block; }
+.dash-icon { font-size: 48px; margin-bottom: 12px; }
+.dash-title { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; margin-bottom: 8px; }
+.dash-sub { color: var(--muted); font-size: 14px; margin-bottom: 24px; }
+.dash-btn { display: inline-flex; align-items: center; gap: 8px; text-decoration: none; padding: 14px 28px; border-radius: 16px; background: linear-gradient(135deg, #3558a8, #6c3fff); color: white; font-weight: 700; font-size: 15px; transition: .25s; border: none; cursor: pointer; font-family: inherit; margin: 6px; }
+.dash-btn:hover { transform: translateY(-2px); filter: brightness(1.1); }
+.dash-btn.ghost { background: transparent; border: 1.5px solid var(--border); color: var(--muted); }
+.dash-btn.ghost:hover { border-color: var(--danger); color: var(--danger); }
+
+.strength-bar { display: flex; gap: 4px; margin-top: 8px; }
+.strength-seg { flex: 1; height: 3px; border-radius: 2px; background: rgba(255,255,255,.08); transition: background .3s; }
+.strength-label { font-size: 11px; margin-top: 5px; color: var(--muted); }
 
 @media (max-width: 480px) {
   .card { padding: 24px 20px; border-radius: 20px; }
@@ -447,7 +178,6 @@ input.error {
 <canvas id="bg-canvas"></canvas>
 
 <div class="wrap">
-
   <div class="logo">
     <div class="logo-icon">試験</div>
     <h1>日本語能力　模擬試験</h1>
@@ -455,6 +185,19 @@ input.error {
   </div>
 
   <div class="card" id="authCard">
+
+    <!-- GOOGLE BUTTON -->
+    <button class="google-btn" id="googleBtn" onclick="doGoogleLogin()">
+      <svg class="google-icon" viewBox="0 0 24 24">
+        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+      </svg>
+      Continue with Google
+    </button>
+
+    <div class="divider">or</div>
 
     <!-- Tabs -->
     <div class="tabs" id="tabs">
@@ -475,19 +218,16 @@ input.error {
           <button class="eye-btn" onclick="togglePass('loginPass', this)">👁</button>
         </div>
       </div>
-
       <button class="submit-btn" id="loginBtn" onclick="doLogin()">
         <span class="btn-text">Login →</span>
         <span class="spinner"><span class="spinner-ring"></span></span>
       </button>
-
       <div class="alert alert-error" id="loginError">
-        <span class="alert-icon">⚠️</span>
-        <span id="loginErrorMsg"></span>
+        <span class="alert-icon">⚠️</span><span id="loginErrorMsg"></span>
       </div>
       <div class="alert alert-warning" id="loginPendingAlert">
         <span class="alert-icon">⏳</span>
-        <span>Your account still<strong>waiting approval from</strong> admin. Please wait notification.</span>
+        <span>Your account is still <strong>waiting for admin approval</strong>. Please wait.</span>
       </div>
     </div>
 
@@ -515,65 +255,186 @@ input.error {
         </div>
         <div class="strength-label" id="strengthLabel"></div>
       </div>
-
       <button class="submit-btn" id="registerBtn" onclick="doRegister()">
-        <span class="btn-text">Register Now→</span>
+        <span class="btn-text">Register Now →</span>
         <span class="spinner"><span class="spinner-ring"></span></span>
       </button>
-
       <div class="alert alert-error" id="registerError">
-        <span class="alert-icon">⚠️</span>
-        <span id="registerErrorMsg"></span>
+        <span class="alert-icon">⚠️</span><span id="registerErrorMsg"></span>
       </div>
     </div>
 
-    <!-- PENDING SCREEN (setelah daftar) -->
+    <!-- PENDING SCREEN -->
     <div class="pending-screen" id="pendingScreen">
       <div class="pending-icon">📬</div>
-      <div class="pending-title">Registry Sent!</div>
+      <div class="pending-title">Registration Sent!</div>
       <p class="pending-sub">
-        Your request has be sent to Admin.<br>
-        Admin will review and accept you via Telegram.<br>
+        Your request has been sent to Admin.<br>
+        Admin will review and approve via Telegram.<br>
         You can login after approval.
       </p>
       <div class="pending-badge">
         <span class="pulse"></span>
-        Waiting Approval
+        Waiting for Approval
       </div>
     </div>
 
-    <!-- DASHBOARD (setelah login berhasil) -->
+    <!-- DASHBOARD -->
     <div class="dashboard" id="dashboard">
       <div class="dash-icon">🎌</div>
       <div class="dash-title">Welcome, <span id="dashName">-</span>!</div>
-      <p class="dash-sub">Account Activated· Ready for JLPT simulation</p>
+      <p class="dash-sub">Account Activated · Ready for JLPT simulation</p>
       <a href="./index.html" class="dash-btn">Open Exam Hub →</a>
       <button class="dash-btn ghost" onclick="doLogout()">Logout</button>
     </div>
 
   </div>
-
 </div>
 
-<!-- ============================================================
-     SUPABASE + APP LOGIC
-     ============================================================ -->
 <script type="module">
-
-// ---------------------------------------------------------------
-// ⚙️  KONFIGURASI — ganti dengan milik kamu
-// ---------------------------------------------------------------
-const SUPABASE_URL  = 'https://uincqpdexdenjcmwdfsv.supabase.co'; // ✅ sudah benar
-const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpbmNxcGRleGRlbmpjbXdkZnN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5MjM4ODEsImV4cCI6MjA5NTQ5OTg4MX0.Lf1N_P_iiNQ2hnRJhd-Quy9MLKlZFSzbnXtXCnmRCS0'; // ← ganti ini
-const BACKEND_URL   = 'https://jlpt-auth-bot-production.up.railway.app'; // ← tambah https://
-// ---------------------------------------------------------------
-
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+const SUPABASE_URL  = 'https://uincqpdexdenjcmwdfsv.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpbmNxcGRleGRlbmpjbXdkZnN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5MjM4ODEsImV4cCI6MjA5NTQ5OTg4MX0.Lf1N_P_iiNQ2hnRJhd-Quy9MLKlZFSzbnXtXCnmRCS0';
+const BACKEND_URL   = 'https://jlpt-auth-bot-production.up.railway.app';
+
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON);
 
-// ---- cek session saat load ----
+// ---- Cek session & handle OAuth callback ----
 const { data: { session } } = await supabase.auth.getSession();
-if (session) showDashboard(session.user);
+
+if (session) {
+  await handleSession(session);
+}
+
+// Listen untuk perubahan auth (OAuth callback masuk sini)
+supabase.auth.onAuthStateChange(async (event, session) => {
+  if (event === 'SIGNED_IN' && session) {
+    await handleSession(session);
+  }
+});
+
+// ---- Handle session (cek status, daftarkan jika Google baru) ----
+async function handleSession(session) {
+  const user = session.user;
+
+  // Cek apakah sudah ada di tabel users
+  let { data: usr } = await supabase
+    .from('users')
+    .select('status, full_name')
+    .eq('id', user.id)
+    .single();
+
+  if (!usr) {
+    // User baru via Google — daftarkan sebagai pending
+    const name  = user.user_metadata?.full_name || user.user_metadata?.name || user.email;
+    const email = user.email;
+    const uid   = user.id;
+
+    await supabase.from('users').insert({
+      id: uid, email, full_name: name,
+      status: 'pending',
+      created_at: new Date().toISOString()
+    });
+
+    // Kirim notif ke bot Telegram
+    try {
+      await fetch(`${BACKEND_URL}/notify-register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ uid, name, email })
+      });
+    } catch(e) {}
+
+    await supabase.auth.signOut();
+    hideForms();
+    document.getElementById('tabs').style.display = 'none';
+    document.getElementById('pendingScreen').classList.add('show');
+    return;
+  }
+
+  if (usr.status === 'pending') {
+    await supabase.auth.signOut();
+    hideForms();
+    document.getElementById('tabs').style.display = 'none';
+    document.getElementById('pendingScreen').classList.add('show');
+    return;
+  }
+
+  if (usr.status === 'rejected') {
+    await supabase.auth.signOut();
+    showError('loginError', 'loginErrorMsg', 'Your request was rejected by admin.');
+    return;
+  }
+
+  // Active — tampilkan dashboard
+  showDashboard({ ...user, user_metadata: { full_name: usr.full_name } });
+}
+
+// ---- GOOGLE LOGIN ----
+window.doGoogleLogin = async function() {
+  document.getElementById('googleBtn').disabled = true;
+  document.getElementById('googleBtn').textContent = 'Redirecting...';
+
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: window.location.href  // kembali ke halaman ini setelah login
+    }
+  });
+
+  if (error) {
+    document.getElementById('googleBtn').disabled = false;
+    document.getElementById('googleBtn').innerHTML = `<svg class="google-icon" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg> Continue with Google`;
+    showError('loginError', 'loginErrorMsg', 'Google login failed: ' + error.message);
+  }
+};
+
+// ---- EMAIL LOGIN ----
+window.doLogin = async function() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass  = document.getElementById('loginPass').value;
+  if (!email || !pass) return showError('loginError','loginErrorMsg','Email & Password must be filled.');
+  setLoading('loginBtn', true);
+  clearAlerts();
+  try {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
+    if (error) throw error;
+    await handleSession(data.session);
+  } catch(err) {
+    showError('loginError','loginErrorMsg', err.message === 'Invalid login credentials' ? 'Wrong email or password.' : err.message);
+  }
+  setLoading('loginBtn', false);
+};
+
+// ---- REGISTER ----
+window.doRegister = async function() {
+  const name  = document.getElementById('regName').value.trim();
+  const email = document.getElementById('regEmail').value.trim();
+  const pass  = document.getElementById('regPass').value;
+  if (!name || !email || !pass) return showError('registerError','registerErrorMsg','Fill all fields.');
+  if (pass.length < 8) return showError('registerError','registerErrorMsg','Password must be at least 8 characters.');
+  setLoading('registerBtn', true);
+  clearAlerts();
+  try {
+    const { data, error } = await supabase.auth.signUp({ email, password: pass, options: { data: { full_name: name } } });
+    if (error) throw error;
+    const uid = data.user?.id;
+    await supabase.from('users').insert({ id: uid, email, full_name: name, status: 'pending', created_at: new Date().toISOString() });
+    await fetch(`${BACKEND_URL}/notify-register`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ uid, name, email }) });
+    hideForms();
+    document.getElementById('pendingScreen').classList.add('show');
+  } catch(err) {
+    showError('registerError','registerErrorMsg', err.message || 'Failed, try again.');
+  }
+  setLoading('registerBtn', false);
+};
+
+// ---- LOGOUT ----
+window.doLogout = async function() {
+  await supabase.auth.signOut();
+  location.reload();
+};
 
 // ---- SWITCH TAB ----
 window.switchTab = function(tab) {
@@ -583,127 +444,32 @@ window.switchTab = function(tab) {
   clearAlerts();
 };
 
-// ---- TOGGLE PASSWORD ----
 window.togglePass = function(id, btn) {
   const inp = document.getElementById(id);
   inp.type = inp.type === 'password' ? 'text' : 'password';
   btn.textContent = inp.type === 'password' ? '👁' : '🙈';
 };
 
-// ---- PASSWORD STRENGTH ----
 window.checkStrength = function(val) {
   let score = 0;
   if (val.length >= 8) score++;
   if (/[A-Z]/.test(val)) score++;
   if (/[0-9]/.test(val)) score++;
   if (/[^A-Za-z0-9]/.test(val)) score++;
-
   const colors = ['#ff5f73','#ffb547','#5aa9ff','#19c37d'];
-  const labels = ['','Weak','Enought','Strong','Very Strong'];
-
+  const labels = ['','Weak','Enough','Strong','Very Strong'];
   for (let i = 1; i <= 4; i++) {
-    const seg = document.getElementById('s'+i);
-    seg.style.background = i <= score ? colors[score-1] : 'rgba(255,255,255,.08)';
+    document.getElementById('s'+i).style.background = i <= score ? colors[score-1] : 'rgba(255,255,255,.08)';
   }
   document.getElementById('strengthLabel').textContent = val.length ? labels[score] : '';
 };
 
-// ---- REGISTER ----
-window.doRegister = async function() {
-  const name  = document.getElementById('regName').value.trim();
-  const email = document.getElementById('regEmail').value.trim();
-  const pass  = document.getElementById('regPass').value;
-
-  if (!name || !email || !pass) return showError('registerError','registerErrorMsg','Fill Every Collums.');
-  if (pass.length < 8) return showError('registerError','registerErrorMsg','Password must 8 characters.');
-
-  setLoading('registerBtn', true);
-  clearAlerts();
-
-  try {
-    // 1. Daftar ke Supabase Auth (tanpa email confirm)
-    const { data, error } = await supabase.auth.signUp({ email, password: pass,
-      options: { data: { full_name: name } }
-    });
-
-    if (error) throw error;
-
-    const uid = data.user?.id;
-
-    // 2. Simpan ke tabel users dengan status 'pending'
-    await supabase.from('users').insert({
-      id: uid,
-      email,
-      full_name: name,
-      status: 'pending',
-      created_at: new Date().toISOString()
-    });
-
-    // 3. Kirim notifikasi ke backend bot Telegram
-    await fetch(`${BACKEND_URL}/notify-register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ uid, name, email })
-    });
-
-    // 4. Tampilkan pending screen
-    hideForms();
-    document.getElementById('pendingScreen').classList.add('show');
-
-  } catch(err) {
-    showError('registerError','registerErrorMsg', err.message || 'Failed, try again.');
-  }
-
-  setLoading('registerBtn', false);
-};
-
-// ---- LOGIN ----
-window.doLogin = async function() {
-  const email = document.getElementById('loginEmail').value.trim();
-  const pass  = document.getElementById('loginPass').value;
-
-  if (!email || !pass) return showError('loginError','loginErrorMsg','Email & Password must be filled.');
-
-  setLoading('loginBtn', true);
-  clearAlerts();
-
-  try {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
-    if (error) throw error;
-
-    // Cek status di tabel users
-    const { data: usr } = await supabase.from('users').select('status,full_name').eq('id', data.user.id).single();
-
-    if (!usr || usr.status === 'pending') {
-      await supabase.auth.signOut();
-      document.getElementById('loginPendingAlert').classList.add('show');
-    } else if (usr.status === 'rejected') {
-      await supabase.auth.signOut();
-      showError('loginError','loginErrorMsg','Your request not Approved by Admin.');
-    } else {
-      showDashboard({ ...data.user, user_metadata: { full_name: usr.full_name } });
-    }
-
-  } catch(err) {
-    showError('loginError','loginErrorMsg', err.message === 'Invalid login credentials'
-      ? 'Email atau password salah.' : err.message);
-  }
-
-  setLoading('loginBtn', false);
-};
-
-// ---- LOGOUT ----
-window.doLogout = async function() {
-  await supabase.auth.signOut();
-  location.reload();
-};
-
-// ---- HELPERS ----
 function showDashboard(user) {
   hideForms();
   document.getElementById('tabs').style.display = 'none';
-  document.getElementById('dashName').textContent =
-    user.user_metadata?.full_name || user.email;
+  document.getElementById('googleBtn').style.display = 'none';
+  document.querySelector('.divider').style.display = 'none';
+  document.getElementById('dashName').textContent = user.user_metadata?.full_name || user.email;
   document.getElementById('dashboard').classList.add('show');
 }
 
@@ -728,16 +494,13 @@ function setLoading(btnId, state) {
   btn.disabled = state;
 }
 
-// ---- ENTER key support ----
 document.addEventListener('keydown', e => {
   if (e.key !== 'Enter') return;
   if (document.getElementById('loginForm').classList.contains('active')) doLogin();
   else if (document.getElementById('registerForm').classList.contains('active')) doRegister();
 });
-
 </script>
 
-<!-- Particle background (sama seperti index) -->
 <script>
 const c = document.getElementById('bg-canvas');
 const cx = c.getContext('2d');
