@@ -379,7 +379,7 @@ window.doGoogleLogin = async function() {
   const { error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: window.location.href  // kembali ke halaman ini setelah login
+      redirectTo: 'https://angkrm44x.github.io/jlpt-test.github.io/auth.html' // kembali ke halaman ini setelah login
     }
   });
 
