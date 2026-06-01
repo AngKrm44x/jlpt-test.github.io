@@ -1,594 +1,117 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-   <!-- AUTH GUARD -->
+<!-- AUTH GUARD -->
 <script type="module">
   import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
-
   const SUPABASE_URL  = 'https://uincqpdexdenjcmwdfsv.supabase.co';
   const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpbmNxcGRleGRlbmpjbXdkZnN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5MjM4ODEsImV4cCI6MjA5NTQ5OTg4MX0.Lf1N_P_iiNQ2hnRJhd-Quy9MLKlZFSzbnXtXCnmRCS0';
-
   const supabase = createClient(SUPABASE_URL, SUPABASE_ANON);
-  const { data: { session } } = await supabase.auth.getSession();
-
-  if (!session) {
-    // Belum login → tendang ke auth.html
-    window.location.replace('./auth.html');
-  } else {
-    // Cek status approved
-    const { data: usr } = await supabase
-      .from('users')
-      .select('status')
-      .eq('id', session.user.id)
-      .single();
-
-    if (!usr || usr.status !== 'active') {
-      await supabase.auth.signOut();
-      window.location.replace('./auth.html');
+  document.documentElement.style.visibility='hidden';
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { window.location.replace('./auth.html'); }
+    else {
+      const { data: usr } = await supabase.from('users').select('status,full_name,avatar_url,display_name').eq('id', session.user.id).single();
+      if (!usr || usr.status !== 'active') { await supabase.auth.signOut(); window.location.replace('./auth.html'); }
+      else {
+        document.documentElement.style.visibility='visible';
+        window._supabase = supabase;
+        window._session  = session;
+        window._userDb   = usr;
+      }
     }
-  }
+  } catch(e) { window.location.replace('./auth.html'); }
 </script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>模擬試験　過去問題</title>
-
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+JP:wght@300;400;500;700&family=Space+Grotesk:wght@400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
-
 <style>
-
 :root{
-
---bg:#070b16;
---bg2:#111a2f;
---card:#16213e;
---card2:#1d2c50;
---text:#f4f7ff;
---muted:#aab8d8;
---primary:#5aa9ff;
---primary2:#7c4dff;
---success:#19c37d;
---danger:#ff5f73;
---border:#2f4370;
-
+--bg:#070b16;--bg2:#111a2f;--card:#16213e;--card2:#1d2c50;
+--text:#f4f7ff;--muted:#aab8d8;--primary:#5aa9ff;--primary2:#7c4dff;
+--success:#19c37d;--danger:#ff5f73;--border:#2f4370;
 }
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Space Grotesk','Noto Sans JP',sans-serif;background:radial-gradient(circle at top left,#22345f 0%,transparent 30%),radial-gradient(circle at bottom right,#29194a 0%,transparent 25%),var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+canvas{position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.18;transform:translateZ(0);}
+.container{max-width:1300px;margin:auto;padding:30px;}
 
-*{
-margin:0;
-padding:0;
-box-sizing:border-box;
-}
+/* HERO */
+.hero{background:rgba(17,26,47,.85);backdrop-filter:blur(6px);will-change:transform,opacity;transform:translateZ(0);border:1px solid var(--border);padding:40px;border-radius:30px;margin-bottom:30px;box-shadow:0 10px 35px rgba(0,0,0,.35);position:sticky;top:15px;z-index:999;overflow:hidden;transition:transform .45s ease,opacity .35s ease,top .35s ease;}
+.hero::before{content:'';position:absolute;width:350px;height:350px;border-radius:50%;background:rgba(255,255,255,.03);top:-160px;right:-120px;}
+.hero::after{content:'';position:absolute;inset:-1px;border-radius:31px;background:linear-gradient(120deg,#5aa9ff33,#7c4dff33,#ff5f7333,#5aa9ff33);background-size:300% 300%;animation:gradBorder 6s ease infinite;z-index:-1;pointer-events:none;}
+@keyframes gradBorder{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+.hero.hide{transform:translateY(-140%);opacity:0;pointer-events:none;}
 
-body{
+h1{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;letter-spacing:-2px;margin-bottom:10px;background:linear-gradient(135deg,#fff 30%,#7cc0ff 70%,#b69cff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.subtitle{color:var(--muted);font-size:18px;line-height:1.8;max-width:800px;}
+.topbar{display:flex;align-items:center;gap:15px;margin-top:30px;flex-wrap:wrap;}
+.search-box{flex:1;min-width:250px;background:#10192d;border:1px solid #314572;padding:16px 20px;border-radius:18px;color:white;font-size:15px;outline:none;font-family:inherit;transition:border-color .2s,box-shadow .2s;}
+.search-box:focus{border-color:#5aa9ff;box-shadow:0 0 0 3px rgba(90,169,255,.15);}
+.filter-btn{border:none;background:linear-gradient(135deg,#3558a8,#6c3fff);color:white;padding:14px 20px;border-radius:16px;cursor:pointer;font-weight:600;transition:.25s;font-family:inherit;}
+.filter-btn:hover{transform:translateY(-2px);}
 
-font-family:'Space Grotesk','Noto Sans JP',sans-serif;
-background:
-radial-gradient(circle at top left,#22345f 0%,transparent 30%),
-radial-gradient(circle at bottom right,#29194a 0%,transparent 25%),
-var(--bg);
-
-color:var(--text);
-min-height:100vh;
-overflow-x:hidden;
-
-}
-
-canvas{
-position:fixed;
-inset:0;
-z-index:-1;
-pointer-events:none;
-opacity:.18;
-transform:translateZ(0);
-}
-
-.container{
-
-max-width:1300px;
-margin:auto;
-padding:30px;
-
-}
-
-.hero{
-
-background:rgba(17,26,47,.85);
-backdrop-filter:blur(6px);
-will-change:transform,opacity;
-transform:translateZ(0);
-border:1px solid var(--border);
-padding:40px;
-border-radius:30px;
-margin-bottom:30px;
-box-shadow:0 10px 35px rgba(0,0,0,.35);
-
-position:sticky;
-top:15px;
-z-index:999;
-
-overflow:hidden;
-
-transition:
-transform .45s ease,
-opacity .35s ease,
-top .35s ease;
-
-}
-
-.hero::before{
-
-content:'';
-position:absolute;
-width:350px;
-height:350px;
-border-radius:50%;
-background:rgba(255,255,255,.03);
-top:-160px;
-right:-120px;
-
-}
-
-/* === NEW: animated gradient border on hero === */
-.hero::after{
-content:'';
-position:absolute;
-inset:-1px;
-border-radius:31px;
-background:linear-gradient(120deg,#5aa9ff33,#7c4dff33,#ff5f7333,#5aa9ff33);
-background-size:300% 300%;
-animation:gradBorder 6s ease infinite;
-z-index:-1;
-pointer-events:none;
-}
-
-@keyframes gradBorder{
-0%{background-position:0% 50%}
-50%{background-position:100% 50%}
-100%{background-position:0% 50%}
-}
-
-.hero.hide{
-
-transform:translateY(-140%);
-opacity:0;
-pointer-events:none;
-
-}
-
-h1{
-
-font-family:'Syne',sans-serif;
-font-size:52px;
-font-weight:800;
-letter-spacing:-2px;
-margin-bottom:10px;
-background:linear-gradient(135deg,#fff 30%,#7cc0ff 70%,#b69cff);
--webkit-background-clip:text;
--webkit-text-fill-color:transparent;
-background-clip:text;
-
-}
-
-.subtitle{
-
-color:var(--muted);
-font-size:18px;
-line-height:1.8;
-max-width:800px;
-
-}
-
-.topbar{
-
-display:flex;
-align-items:center;
-gap:15px;
-margin-top:30px;
-flex-wrap:wrap;
-
-}
-
-.search-box{
-
-flex:1;
-min-width:250px;
-background:#10192d;
-border:1px solid #314572;
-padding:16px 20px;
-border-radius:18px;
-color:white;
-font-size:15px;
-outline:none;
-font-family:inherit;
-transition:border-color .2s,box-shadow .2s;
-
-}
-
-.search-box:focus{
-border-color:#5aa9ff;
-box-shadow:0 0 0 3px rgba(90,169,255,.15);
-}
-
-.filter-btn{
-
-border:none;
-background:linear-gradient(135deg,#3558a8,#6c3fff);
-color:white;
-padding:14px 20px;
-border-radius:16px;
-cursor:pointer;
-font-weight:600;
-transition:.25s;
-font-family:inherit;
-
-}
-
-.filter-btn:hover{
-transform:translateY(-2px);
-}
-
-.grid{
-
-display:grid;
-grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
-gap:22px;
-
-}
-
-.card{
-
-background:rgba(22,33,62,.85);
-backdrop-filter:blur(4px);
-will-change:transform;
-transform:translateZ(0);
-contain:layout paint;
-border:1px solid var(--border);
-border-radius:24px;
-padding:24px;
-position:relative;
-overflow:hidden;
-transition:transform .22s ease, box-shadow .22s ease, border-color .22s ease;
-box-shadow:0 8px 25px rgba(0,0,0,.25);
-
-}
-
-.card:hover{
-
-transform:translate3d(0,-4px,0);
-box-shadow:0 15px 40px rgba(0,0,0,.4);
-border-color:#3d5a8a;
-
-}
-
-/* === NEW: card accent glow top bar === */
-.card::after{
-content:'';
-position:absolute;
-top:0;left:0;right:0;
-height:2px;
-background:linear-gradient(90deg,transparent,var(--accent-color,#5aa9ff),transparent);
-opacity:0;
-transition:opacity .3s;
-}
+/* GRID & CARDS */
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:22px;}
+.card{background:rgba(22,33,62,.85);backdrop-filter:blur(4px);will-change:transform;transform:translateZ(0);contain:layout paint;border:1px solid var(--border);border-radius:24px;padding:24px;position:relative;overflow:hidden;transition:transform .22s ease,box-shadow .22s ease,border-color .22s ease;box-shadow:0 8px 25px rgba(0,0,0,.25);}
+.card:hover{transform:translate3d(0,-4px,0);box-shadow:0 15px 40px rgba(0,0,0,.4);border-color:#3d5a8a;}
+.card::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent-color,#5aa9ff),transparent);opacity:0;transition:opacity .3s;}
 .card:hover::after{opacity:1;}
-
-.card[data-level="N1"]{--accent-color:#ff9aaa;}
-.card[data-level="N2"]{--accent-color:#7cc0ff;}
-.card[data-level="N3"]{--accent-color:#b69cff;}
-.card[data-level="N4"]{--accent-color:#5ff0b0;}
-.card[data-level="N5"]{--accent-color:#ffd18a;}
-
-.card::before{
-
-content:'';
-position:absolute;
-inset:0;
-background:linear-gradient(135deg,rgba(255,255,255,.04),transparent);
-pointer-events:none;
-
-}
-
-/* === NEW: watermark kanji on card === */
-.card-kanji{
-position:absolute;
-right:16px;
-top:10px;
-font-family:'Noto Sans JP',sans-serif;
-font-size:72px;
-font-weight:700;
-opacity:.04;
-line-height:1;
-pointer-events:none;
-user-select:none;
-}
-
-.year{
-
-font-size:34px;
-font-weight:800;
-margin-bottom:10px;
-font-family:'Syne',sans-serif;
-
-}
-
-.exam-title{
-
-font-size:18px;
-font-weight:600;
-margin-bottom:10px;
-
-}
-
-.exam-desc{
-
-color:var(--muted);
-line-height:1.8;
-font-size:14px;
-margin-bottom:20px;
-
-}
-
-.badges{
-
-display:flex;
-gap:10px;
-flex-wrap:wrap;
-margin-bottom:20px;
-
-}
-
-.badge{
-
-padding:6px 12px;
-border-radius:999px;
-font-size:12px;
-font-weight:700;
-
-}
-
-.badge-n2{
-background:rgba(90,169,255,.18);
-color:#7cc0ff;
-}
-
-.badge-reading{
-background:rgba(124,77,255,.18);
-color:#b69cff;
-}
-
-.badge-grammar{
-background:rgba(124,77,255,.18);
-color:#b69fff;
-}
-
-.badge-vocabulary{
-background:rgba(124,77,255,.18);
-color:#b52cff;
-}
-
-
-/* NEW UPDATE */
-
-.level-n1{
-background:rgba(255,95,115,.18);
-color:#ff9aaa;
-}
-
-.level-n2{
-background:rgba(90,169,255,.18);
-color:#7cc0ff;
-}
-
-.level-n3{
-background:rgba(124,77,255,.18);
-color:#b69cff;
-}
-
-.level-n4{
-background:rgba(25,195,125,.18);
-color:#5ff0b0;
-}
-
-.level-n5{
-background:rgba(255,181,71,.18);
-color:#ffd18a;
-}
-
-.hero-stats{
-display:flex;
-gap:15px;
-margin-top:25px;
-flex-wrap:wrap;
-}
-
-.hero-mini{
-padding:14px 18px;
-border-radius:16px;
-background:rgba(255,255,255,.04);
-border:1px solid var(--border);
-}
-
-.sticky-top{
-position:sticky;
-top:0;
-z-index:100;
-backdrop-filter:blur(6px);
-}
-
-.open-btn{
-
-display:flex;
-align-items:center;
-justify-content:center;
-gap:8px;
-text-decoration:none;
-width:100%;
-padding:16px;
-border-radius:18px;
-background:linear-gradient(135deg,#3558a8,#6c3fff);
-color:white;
-font-weight:700;
-transition:.25s;
-position:relative;
-overflow:hidden;
-font-family:inherit;
-
-}
-
-.open-btn::before{
-content:'';
-position:absolute;
-inset:0;
-background:linear-gradient(135deg,rgba(255,255,255,.1),transparent);
-opacity:0;
-transition:.25s;
-}
-
-.open-btn:hover{
-
-transform:translateY(-2px);
-filter:brightness(1.1);
-
-}
-
+.card[data-level="N1"]{--accent-color:#ff9aaa;}.card[data-level="N2"]{--accent-color:#7cc0ff;}.card[data-level="N3"]{--accent-color:#b69cff;}.card[data-level="N4"]{--accent-color:#5ff0b0;}.card[data-level="N5"]{--accent-color:#ffd18a;}
+.card::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.04),transparent);pointer-events:none;}
+.card-kanji{position:absolute;right:16px;top:10px;font-family:'Noto Sans JP',sans-serif;font-size:72px;font-weight:700;opacity:.04;line-height:1;pointer-events:none;user-select:none;}
+.year{font-size:34px;font-weight:800;margin-bottom:10px;font-family:'Syne',sans-serif;}
+.exam-title{font-size:18px;font-weight:600;margin-bottom:10px;}
+.exam-desc{color:var(--muted);line-height:1.8;font-size:14px;margin-bottom:20px;}
+.badges{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;}
+.badge{padding:6px 12px;border-radius:999px;font-size:12px;font-weight:700;}
+.badge-reading{background:rgba(124,77,255,.18);color:#b69cff;}.badge-grammar{background:rgba(124,77,255,.18);color:#b69fff;}.badge-vocabulary{background:rgba(124,77,255,.18);color:#b52cff;}
+.level-n1{background:rgba(255,95,115,.18);color:#ff9aaa;}.level-n2{background:rgba(90,169,255,.18);color:#7cc0ff;}.level-n3{background:rgba(124,77,255,.18);color:#b69cff;}.level-n4{background:rgba(25,195,125,.18);color:#5ff0b0;}.level-n5{background:rgba(255,181,71,.18);color:#ffd18a;}
+.open-btn{display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;width:100%;padding:16px;border-radius:18px;background:linear-gradient(135deg,#3558a8,#6c3fff);color:white;font-weight:700;transition:.25s;position:relative;overflow:hidden;font-family:inherit;}
+.open-btn::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.1),transparent);opacity:0;transition:.25s;}
+.open-btn:hover{transform:translateY(-2px);filter:brightness(1.1);}
 .open-btn:hover::before{opacity:1;}
-
-/* open-btn arrow */
-.open-btn-arrow{
-display:inline-block;
-transition:transform .25s;
-}
+.open-btn-arrow{display:inline-block;transition:transform .25s;}
 .open-btn:hover .open-btn-arrow{transform:translateX(4px);}
+.new-badge{position:absolute;top:16px;right:16px;background:linear-gradient(135deg,#19c37d,#0da868);color:white;font-size:10px;font-weight:800;padding:3px 9px;border-radius:999px;letter-spacing:.5px;text-transform:uppercase;}
+.card{cursor:default;}
 
-.stats{
+/* STATS */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:18px;margin:30px 0;}
+.stat-box{background:rgba(22,33,62,.8);border:1px solid var(--border);padding:24px;border-radius:24px;text-align:center;transition:border-color .2s,transform .2s;cursor:default;}
+.stat-box:hover{border-color:#3d5a8a;transform:translateY(-2px);}
+.stat-num{font-size:42px;font-weight:800;margin-bottom:8px;font-family:'Syne',sans-serif;background:linear-gradient(135deg,#fff,#7cc0ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.stat-label{color:var(--muted);}
 
-display:grid;
-grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
-gap:18px;
-margin:30px 0;
+/* JLPT COUNTER per level */
+.level-counter-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:20px 0 30px;}
+.lc-box{background:rgba(22,33,62,.7);border:1.5px solid var(--border);border-radius:20px;padding:16px 12px;text-align:center;transition:.2s;cursor:pointer;}
+.lc-box:hover{transform:translateY(-2px);}
+.lc-box[data-lv="N1"]{border-color:rgba(255,154,170,.25);}.lc-box[data-lv="N1"]:hover{border-color:#ff9aaa;box-shadow:0 0 20px rgba(255,154,170,.15);}
+.lc-box[data-lv="N2"]{border-color:rgba(124,192,255,.25);}.lc-box[data-lv="N2"]:hover{border-color:#7cc0ff;box-shadow:0 0 20px rgba(124,192,255,.15);}
+.lc-box[data-lv="N3"]{border-color:rgba(182,156,255,.25);}.lc-box[data-lv="N3"]:hover{border-color:#b69cff;box-shadow:0 0 20px rgba(182,156,255,.15);}
+.lc-box[data-lv="N4"]{border-color:rgba(95,240,176,.25);}.lc-box[data-lv="N4"]:hover{border-color:#5ff0b0;box-shadow:0 0 20px rgba(95,240,176,.15);}
+.lc-box[data-lv="N5"]{border-color:rgba(255,209,138,.25);}.lc-box[data-lv="N5"]:hover{border-color:#ffd18a;box-shadow:0 0 20px rgba(255,209,138,.15);}
+.lc-label{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;margin-bottom:4px;}
+.lc-box[data-lv="N1"] .lc-label{color:#ff9aaa;}.lc-box[data-lv="N2"] .lc-label{color:#7cc0ff;}.lc-box[data-lv="N3"] .lc-label{color:#b69cff;}.lc-box[data-lv="N4"] .lc-label{color:#5ff0b0;}.lc-box[data-lv="N5"] .lc-label{color:#ffd18a;}
+.lc-count{font-size:28px;font-weight:800;font-family:'Syne',sans-serif;color:var(--text);}
+.lc-sub{font-size:11px;color:var(--muted);margin-top:2px;}
 
-}
+/* SECTION HEADER */
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;gap:10px;flex-wrap:wrap;}
+.section-title{font-family:'Syne',sans-serif;font-size:22px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:8px;}
+.section-count{font-size:13px;color:var(--muted);padding:4px 12px;border:1px solid var(--border);border-radius:999px;}
+.view-toggle{display:flex;gap:6px;}
+.view-btn{width:36px;height:36px;border:1px solid var(--border);background:transparent;border-radius:10px;cursor:pointer;color:var(--muted);display:flex;align-items:center;justify-content:center;transition:.2s;font-size:16px;}
+.view-btn.active,.view-btn:hover{background:rgba(90,169,255,.15);border-color:#5aa9ff;color:#5aa9ff;}
 
-.stat-box{
-
-background:rgba(22,33,62,.8);
-border:1px solid var(--border);
-padding:24px;
-border-radius:24px;
-text-align:center;
-transition:border-color .2s, transform .2s;
-cursor:default;
-
-}
-
-.stat-box:hover{
-border-color:#3d5a8a;
-transform:translateY(-2px);
-}
-
-.stat-num{
-
-font-size:42px;
-font-weight:800;
-margin-bottom:8px;
-font-family:'Syne',sans-serif;
-background:linear-gradient(135deg,#fff,#7cc0ff);
--webkit-background-clip:text;
--webkit-text-fill-color:transparent;
-background-clip:text;
-
-}
-
-.stat-label{
-
-color:var(--muted);
-
-}
-
-.footer{
-
-margin-top:40px;
-text-align:center;
-color:var(--muted);
-padding-bottom:20px;
-
-}
-
-/* ========================================
-   NEW FEATURES
-   ======================================== */
-
-/* === SECTION HEADER === */
-.section-header{
-display:flex;
-align-items:center;
-justify-content:space-between;
-margin-bottom:20px;
-gap:10px;
-flex-wrap:wrap;
-}
-
-.section-title{
-font-family:'Syne',sans-serif;
-font-size:22px;
-font-weight:700;
-color:var(--text);
-display:flex;
-align-items:center;
-gap:8px;
-}
-
-.section-count{
-font-size:13px;
-color:var(--muted);
-padding:4px 12px;
-border:1px solid var(--border);
-border-radius:999px;
-}
-
-/* === VIEW TOGGLE === */
-.view-toggle{
-display:flex;
-gap:6px;
-}
-
-.view-btn{
-width:36px;
-height:36px;
-border:1px solid var(--border);
-background:transparent;
-border-radius:10px;
-cursor:pointer;
-color:var(--muted);
-display:flex;
-align-items:center;
-justify-content:center;
-transition:.2s;
-font-size:16px;
-}
-
-.view-btn.active,
-.view-btn:hover{
-background:rgba(90,169,255,.15);
-border-color:#5aa9ff;
-color:#5aa9ff;
-}
-
-/* === LIST VIEW === */
-.grid.list-view{
-grid-template-columns:1fr;
-gap:12px;
-}
-
-.grid.list-view .card{
-display:grid;
-grid-template-columns:auto 1fr auto;
-align-items:center;
-gap:20px;
-padding:18px 24px;
-}
-
+/* LIST VIEW */
+.grid.list-view{grid-template-columns:1fr;gap:12px;}
+.grid.list-view .card{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:20px;padding:18px 24px;}
 .grid.list-view .card-kanji{display:none;}
 .grid.list-view .year{font-size:24px;margin:0;min-width:60px;}
 .grid.list-view .exam-desc{display:none;}
@@ -597,325 +120,291 @@ padding:18px 24px;
 .grid.list-view .card-body{flex:1;}
 .grid.list-view .open-btn{width:140px;padding:12px 18px;white-space:nowrap;}
 
-/* === LEVEL QUICK PILLS === */
-.level-pills{
-display:flex;
-gap:8px;
-flex-wrap:wrap;
-margin-bottom:24px;
-}
+/* LEVEL PILLS */
+.level-pills{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:24px;}
+.level-pill{padding:8px 18px;border-radius:999px;font-size:13px;font-weight:700;border:1.5px solid transparent;cursor:pointer;transition:.2s;background:rgba(255,255,255,.04);color:var(--muted);}
+.level-pill:hover,.level-pill.active{color:white;border-color:currentColor;}
+.level-pill[data-level="all"]{color:#aab8d8;border-color:#2f4370;}.level-pill[data-level="all"].active{background:rgba(170,184,216,.12);}
+.level-pill[data-level="N1"]{color:#ff9aaa;}.level-pill[data-level="N1"].active{background:rgba(255,95,115,.12);}
+.level-pill[data-level="N2"]{color:#7cc0ff;}.level-pill[data-level="N2"].active{background:rgba(90,169,255,.12);}
+.level-pill[data-level="N3"]{color:#b69cff;}.level-pill[data-level="N3"].active{background:rgba(124,77,255,.12);}
+.level-pill[data-level="N4"]{color:#5ff0b0;}.level-pill[data-level="N4"].active{background:rgba(25,195,125,.12);}
+.level-pill[data-level="N5"]{color:#ffd18a;}.level-pill[data-level="N5"].active{background:rgba(255,181,71,.12);}
 
-.level-pill{
-padding:8px 18px;
-border-radius:999px;
-font-size:13px;
-font-weight:700;
-border:1.5px solid transparent;
-cursor:pointer;
-transition:.2s;
-background:rgba(255,255,255,.04);
-color:var(--muted);
-}
-
-.level-pill:hover,
-.level-pill.active{
-color:white;
-border-color:currentColor;
-}
-
-.level-pill[data-level="all"]{color:#aab8d8;border-color:#2f4370;}
-.level-pill[data-level="all"].active{background:rgba(170,184,216,.12);}
-.level-pill[data-level="N1"]{color:#ff9aaa;}
-.level-pill[data-level="N1"].active{background:rgba(255,95,115,.12);}
-.level-pill[data-level="N2"]{color:#7cc0ff;}
-.level-pill[data-level="N2"].active{background:rgba(90,169,255,.12);}
-.level-pill[data-level="N3"]{color:#b69cff;}
-.level-pill[data-level="N3"].active{background:rgba(124,77,255,.12);}
-.level-pill[data-level="N4"]{color:#5ff0b0;}
-.level-pill[data-level="N4"].active{background:rgba(25,195,125,.12);}
-.level-pill[data-level="N5"]{color:#ffd18a;}
-.level-pill[data-level="N5"].active{background:rgba(255,181,71,.12);}
-
-/* === EMPTY STATE === */
-.empty-state{
-display:none;
-text-align:center;
-padding:80px 20px;
-color:var(--muted);
-}
-
+/* EMPTY */
+.empty-state{display:none;text-align:center;padding:80px 20px;color:var(--muted);}
 .empty-state.show{display:block;}
+.empty-icon{font-size:52px;margin-bottom:16px;opacity:.5;}
 
-.empty-icon{
-font-size:52px;
-margin-bottom:16px;
-opacity:.5;
+/* TOAST */
+#toast{position:fixed;bottom:30px;right:30px;background:#1d2c50;border:1px solid #5aa9ff44;color:#fff;padding:14px 22px;border-radius:16px;font-size:14px;z-index:9999;transform:translateY(20px);opacity:0;transition:.3s ease;backdrop-filter:blur(8px);pointer-events:none;box-shadow:0 8px 30px rgba(0,0,0,.4);}
+#toast.show{transform:translateY(0);opacity:1;}
+
+/* BACK TO TOP */
+#backTop{position:fixed;bottom:30px;left:30px;width:44px;height:44px;border-radius:14px;background:#1d2c50;border:1px solid var(--border);color:var(--primary);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:0;transform:translateY(10px);transition:.3s;z-index:9999;box-shadow:0 8px 25px rgba(0,0,0,.3);}
+#backTop.show{opacity:1;transform:translateY(0);}
+#backTop:hover{background:#253a68;}
+
+/* PROGRESS BAR */
+#scrollProgress{position:fixed;top:0;left:0;height:3px;background:linear-gradient(90deg,#5aa9ff,#7c4dff);z-index:99999;width:0%;transition:width .1s;border-radius:0 2px 2px 0;}
+
+/* LOGO */
+.logo-mark{display:inline-flex;align-items:center;gap:10px;margin-bottom:12px;}
+.logo-icon{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#3558a8,#6c3fff);display:flex;align-items:center;justify-content:center;font-size:18px;}
+.hero-deco{position:absolute;right:40px;top:50%;transform:translateY(-50%);font-family:'Noto Sans JP',sans-serif;font-size:120px;font-weight:700;opacity:.05;letter-spacing:-10px;user-select:none;pointer-events:none;line-height:1;}
+
+/* =============================================
+   PROFILE CARD
+   ============================================= */
+.profile-card{
+  background:rgba(22,33,62,.9);
+  border:1px solid var(--border);
+  border-radius:28px;
+  padding:28px;
+  margin-bottom:30px;
+  display:flex;
+  align-items:center;
+  gap:24px;
+  position:relative;
+  overflow:hidden;
+  transition:border-color .2s;
 }
+.profile-card::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.03),transparent 60%);pointer-events:none;}
+.profile-card:hover{border-color:#3d5a8a;}
 
-/* === TOAST NOTIFICATION === */
-#toast{
-position:fixed;
-bottom:30px;
-right:30px;
-background:#1d2c50;
-border:1px solid #5aa9ff44;
-color:#fff;
-padding:14px 22px;
-border-radius:16px;
-font-size:14px;
-z-index:9999;
-transform:translateY(20px);
-opacity:0;
-transition:.3s ease;
-backdrop-filter:blur(8px);
-pointer-events:none;
-box-shadow:0 8px 30px rgba(0,0,0,.4);
+.avatar-wrap{position:relative;flex-shrink:0;}
+.avatar{
+  width:72px;height:72px;border-radius:50%;
+  background:linear-gradient(135deg,#3558a8,#6c3fff);
+  display:flex;align-items:center;justify-content:center;
+  font-size:28px;font-weight:800;font-family:'Syne',sans-serif;
+  color:white;cursor:pointer;overflow:hidden;
+  border:2.5px solid rgba(90,169,255,.3);
+  transition:border-color .2s,transform .2s;
+  position:relative;
 }
-
-#toast.show{
-transform:translateY(0);
-opacity:1;
+.avatar:hover{border-color:#5aa9ff;transform:scale(1.05);}
+.avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
+.avatar-edit{
+  position:absolute;bottom:0;right:0;
+  width:22px;height:22px;border-radius:50%;
+  background:#5aa9ff;border:2px solid #111a2f;
+  display:flex;align-items:center;justify-content:center;
+  font-size:10px;cursor:pointer;
+  transition:transform .2s;
 }
+.avatar-edit:hover{transform:scale(1.15);}
 
-/* === BACK TO TOP === */
-#backTop{
-position:fixed;
-bottom:30px;
-left:30px;
-width:44px;
-height:44px;
-border-radius:14px;
-background:#1d2c50;
-border:1px solid var(--border);
-color:var(--primary);
-font-size:20px;
-cursor:pointer;
-display:flex;
-align-items:center;
-justify-content:center;
-opacity:0;
-transform:translateY(10px);
-transition:.3s;
-z-index:9999;
-box-shadow:0 8px 25px rgba(0,0,0,.3);
+.profile-info{flex:1;}
+.profile-name{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;display:flex;align-items:center;gap:10px;margin-bottom:4px;}
+.profile-name-text{cursor:pointer;transition:color .2s;}
+.profile-name-text:hover{color:#5aa9ff;}
+.edit-name-btn{font-size:14px;cursor:pointer;opacity:.5;transition:opacity .2s;}
+.edit-name-btn:hover{opacity:1;}
+.profile-email{color:var(--muted);font-size:14px;margin-bottom:10px;}
+.profile-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  background:rgba(25,195,125,.12);border:1px solid rgba(25,195,125,.3);
+  color:#5ff0b0;padding:4px 12px;border-radius:999px;font-size:12px;font-weight:700;
 }
+.online-dot{width:6px;height:6px;border-radius:50%;background:#19c37d;animation:pulse 1.5s infinite;}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.5;transform:scale(.7);}}
 
-#backTop.show{
-opacity:1;
-transform:translateY(0);
+.profile-actions{display:flex;flex-direction:column;gap:10px;align-items:flex-end;}
+
+/* Request Soal Button */
+.request-btn{
+  display:flex;align-items:center;gap:8px;
+  border:none;
+  background:linear-gradient(135deg,#ff6b9d,#c44dff);
+  color:white;padding:12px 20px;border-radius:16px;
+  cursor:pointer;font-weight:700;font-family:inherit;font-size:14px;
+  transition:.25s;white-space:nowrap;
+  box-shadow:0 4px 20px rgba(196,77,255,.25);
 }
+.request-btn:hover{transform:translateY(-2px);filter:brightness(1.1);box-shadow:0 8px 25px rgba(196,77,255,.4);}
 
-#backTop:hover{
-background:#253a68;
+.logout-btn-sm{
+  display:flex;align-items:center;gap:6px;
+  background:rgba(255,255,255,.04);border:1px solid var(--border);
+  color:var(--muted);padding:10px 16px;border-radius:14px;
+  cursor:pointer;font-family:inherit;font-size:13px;font-weight:600;
+  transition:.2s;white-space:nowrap;
 }
+.logout-btn-sm:hover{border-color:var(--danger);color:var(--danger);}
 
-/* === LOADING SKELETON === */
-@keyframes shimmer{
-0%{background-position:-400px 0}
-100%{background-position:400px 0}
+/* EDIT NAME MODAL */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);
+  z-index:10000;display:none;align-items:center;justify-content:center;
 }
-
-.skeleton{
-background:linear-gradient(90deg,rgba(255,255,255,.04) 25%,rgba(255,255,255,.08) 50%,rgba(255,255,255,.04) 75%);
-background-size:800px 100%;
-animation:shimmer 1.5s infinite;
-border-radius:8px;
+.modal-overlay.show{display:flex;}
+.modal{
+  background:#111a2f;border:1px solid var(--border);border-radius:24px;
+  padding:32px;width:90%;max-width:420px;
+  box-shadow:0 20px 60px rgba(0,0,0,.5);
+  animation:modalIn .25s ease;
 }
+@keyframes modalIn{from{transform:scale(.9);opacity:0;}to{transform:scale(1);opacity:1;}}
+.modal-title{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;margin-bottom:20px;}
+.modal-field{margin-bottom:16px;}
+.modal-field label{display:block;font-size:13px;color:var(--muted);margin-bottom:8px;font-weight:600;}
+.modal-field input{width:100%;background:#0d1626;border:1.5px solid #2a3d60;border-radius:14px;padding:13px 16px;color:var(--text);font-family:inherit;font-size:15px;outline:none;transition:border-color .2s;}
+.modal-field input:focus{border-color:#5aa9ff;}
+.modal-actions{display:flex;gap:10px;margin-top:20px;}
+.modal-save{flex:1;padding:13px;border:none;border-radius:14px;background:linear-gradient(135deg,#3558a8,#6c3fff);color:white;font-family:inherit;font-weight:700;font-size:15px;cursor:pointer;transition:.2s;}
+.modal-save:hover{filter:brightness(1.1);}
+.modal-cancel{padding:13px 20px;border:1px solid var(--border);background:transparent;color:var(--muted);border-radius:14px;cursor:pointer;font-family:inherit;font-weight:600;transition:.2s;}
+.modal-cancel:hover{border-color:var(--danger);color:var(--danger);}
 
-/* === PROGRESS BAR === */
-#scrollProgress{
-position:fixed;
-top:0;left:0;
-height:3px;
-background:linear-gradient(90deg,#5aa9ff,#7c4dff);
-z-index:99999;
-width:0%;
-transition:width .1s;
-border-radius:0 2px 2px 0;
+/* AVATAR OPTIONS */
+.avatar-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin:16px 0;}
+.av-opt{
+  width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#3558a8,#6c3fff);
+  display:flex;align-items:center;justify-content:center;font-size:22px;
+  cursor:pointer;border:2px solid transparent;transition:.2s;
 }
-
-/* === STAT BADGE on card === */
-.new-badge{
-position:absolute;
-top:16px;
-right:16px;
-background:linear-gradient(135deg,#19c37d,#0da868);
-color:white;
-font-size:10px;
-font-weight:800;
-padding:3px 9px;
-border-radius:999px;
-letter-spacing:.5px;
-text-transform:uppercase;
+.av-opt:hover,.av-opt.selected{border-color:#5aa9ff;transform:scale(1.1);}
+.av-upload-area{
+  border:1.5px dashed var(--border);border-radius:14px;padding:16px;
+  text-align:center;cursor:pointer;color:var(--muted);font-size:13px;
+  transition:.2s;margin-top:10px;
 }
+.av-upload-area:hover{border-color:#5aa9ff;color:#5aa9ff;}
+#avatarFileInput{display:none;}
 
-/* === DARK/LIGHT TOGGLE (cosmetic) === */
-.logo-mark{
-display:inline-flex;
-align-items:center;
-gap:10px;
-margin-bottom:12px;
+/* REQUEST SOAL MODAL */
+.req-modal .modal-title{background:linear-gradient(135deg,#ff6b9d,#c44dff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.req-options{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:10px 0 18px;}
+.req-lv{
+  padding:10px 6px;border-radius:14px;text-align:center;
+  border:1.5px solid var(--border);cursor:pointer;transition:.2s;
+  font-weight:700;font-size:13px;
 }
+.req-lv:hover,.req-lv.sel{transform:scale(1.05);}
+.req-lv[data-l="N1"]{color:#ff9aaa;}.req-lv[data-l="N1"].sel{background:rgba(255,95,115,.15);border-color:#ff9aaa;}
+.req-lv[data-l="N2"]{color:#7cc0ff;}.req-lv[data-l="N2"].sel{background:rgba(90,169,255,.15);border-color:#7cc0ff;}
+.req-lv[data-l="N3"]{color:#b69cff;}.req-lv[data-l="N3"].sel{background:rgba(124,77,255,.15);border-color:#b69cff;}
+.req-lv[data-l="N4"]{color:#5ff0b0;}.req-lv[data-l="N4"].sel{background:rgba(25,195,125,.15);border-color:#5ff0b0;}
+.req-lv[data-l="N5"]{color:#ffd18a;}.req-lv[data-l="N5"].sel{background:rgba(255,181,71,.15);border-color:#ffd18a;}
+.req-types{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
+.req-type{padding:7px 14px;border:1.5px solid var(--border);border-radius:999px;font-size:12px;font-weight:700;cursor:pointer;transition:.2s;color:var(--muted);}
+.req-type:hover,.req-type.sel{color:white;border-color:#5aa9ff;background:rgba(90,169,255,.12);}
+.req-note{width:100%;background:#0d1626;border:1.5px solid #2a3d60;border-radius:14px;padding:13px 16px;color:var(--text);font-family:inherit;font-size:14px;outline:none;resize:vertical;min-height:80px;transition:border-color .2s;}
+.req-note:focus{border-color:#5aa9ff;}
 
-.logo-icon{
-width:38px;
-height:38px;
-border-radius:10px;
-background:linear-gradient(135deg,#3558a8,#6c3fff);
-display:flex;
-align-items:center;
-justify-content:center;
-font-size:18px;
-}
-
-/* === FOOTER UPGRADE === */
-.footer{
-margin-top:60px;
-border-top:1px solid var(--border);
-padding:30px 0;
-display:flex;
-align-items:center;
-justify-content:space-between;
-flex-wrap:wrap;
-gap:12px;
-color:var(--muted);
-font-size:14px;
-}
-
-.footer-links{
-display:flex;
-gap:20px;
-}
-
-.footer-links a{
-color:var(--muted);
-text-decoration:none;
-transition:color .2s;
-}
-
+/* FOOTER */
+.footer{margin-top:60px;border-top:1px solid var(--border);padding:30px 0;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;color:var(--muted);font-size:14px;}
+.footer-links{display:flex;gap:20px;}
+.footer-links a{color:var(--muted);text-decoration:none;transition:color .2s;}
 .footer-links a:hover{color:var(--primary);}
 
-/* === KANJI decorative === */
-.hero-deco{
-position:absolute;
-right:40px;
-top:50%;
-transform:translateY(-50%);
-font-family:'Noto Sans JP',sans-serif;
-font-size:120px;
-font-weight:700;
-opacity:.05;
-letter-spacing:-10px;
-user-select:none;
-pointer-events:none;
-line-height:1;
-}
-
-/* === CARD HOVER RIPPLE === */
-.card{cursor:default;}
+@keyframes shimmer{0%{background-position:-400px 0}100%{background-position:400px 0}}
+.skeleton{background:linear-gradient(90deg,rgba(255,255,255,.04) 25%,rgba(255,255,255,.08) 50%,rgba(255,255,255,.04) 75%);background-size:800px 100%;animation:shimmer 1.5s infinite;border-radius:8px;}
 
 @media(max-width:768px){
-
-.container{
-padding:15px;
+  .container{padding:15px;}.hero{padding:25px;}h1{font-size:36px;}.subtitle{font-size:15px;}.hero-deco{display:none;}
+  .grid.list-view .card{grid-template-columns:1fr;}.grid.list-view .open-btn{width:100%;}
+  .footer{flex-direction:column;text-align:center;}
+  .level-counter-grid{grid-template-columns:repeat(3,1fr);}
+  .profile-card{flex-wrap:wrap;}.profile-actions{width:100%;flex-direction:row;justify-content:flex-start;}
+  h1{font-size:30px;}
 }
-
-.hero{
-padding:25px;
-}
-
-h1{
-font-size:36px;
-}
-
-.subtitle{
-font-size:15px;
-}
-
-.hero-deco{display:none;}
-
-.grid.list-view .card{
-grid-template-columns:1fr;
-}
-.grid.list-view .open-btn{width:100%;}
-
-.footer{
-flex-direction:column;
-text-align:center;
-}
-
-}
-
 </style>
 </head>
 <body>
 
-<!-- Scroll Progress Bar -->
 <div id="scrollProgress"></div>
 
 <div class="container">
 
+<!-- ======== HERO ======== -->
 <div class="hero sticky-top">
-
 <div class="hero-deco">試験</div>
-
-<div class="logo-mark">
-  <div class="logo-icon">試験</div>
-</div>
-
+<div class="logo-mark"><div class="logo-icon">試験</div></div>
 <h1>日本語能力　模擬試験　過去問題集</h1>
-
 <p class="subtitle">
 Kumpulan latihan dan simulasi JLPT modern dengan tampilan premium.
 Akses soal Reading・Grammar・Vocabulary berdasarkan tahun ujian.
 </p>
-
 <div class="topbar">
-
 <input type="text" class="search-box" id="searchInput" placeholder="🔍  Search exam year...">
-
 <select class="search-box" id="levelFilter">
 <option value="all">All Levels</option>
-<option value="N1">N1</option>
-<option value="N2">N2</option>
-<option value="N3">N3</option>
-<option value="N4">N4</option>
-<option value="N5">N5</option>
+<option value="N1">N1</option><option value="N2">N2</option>
+<option value="N3">N3</option><option value="N4">N4</option><option value="N5">N5</option>
 </select>
-
 <select class="search-box" id="sortFilter">
-<option value="newest">Newest</option>
-<option value="oldest">Oldest</option>
+<option value="newest">Newest</option><option value="oldest">Oldest</option>
 </select>
-
-<button class="filter-btn" onclick="showAll()">
-✦ Show All
-</button>
-
+<button class="filter-btn" onclick="showAll()">✦ Show All</button>
+</div>
 </div>
 
+<!-- ======== PROFILE CARD ======== -->
+<div class="profile-card" id="profileCard">
+  <div class="avatar-wrap">
+    <div class="avatar" id="avatarEl" onclick="openAvatarModal()">
+      <span id="avatarInitial">?</span>
+    </div>
+    <div class="avatar-edit" onclick="openAvatarModal()" title="Edit avatar">✏️</div>
+  </div>
+  <div class="profile-info">
+    <div class="profile-name">
+      <span class="profile-name-text" id="profileNameEl" onclick="openEditNameModal()">Loading...</span>
+      <span class="edit-name-btn" onclick="openEditNameModal()" title="Edit name">✏️</span>
+    </div>
+    <div class="profile-email" id="profileEmailEl">—</div>
+    <div class="profile-badge"><span class="online-dot"></span> Active Member</div>
+  </div>
+  <div class="profile-actions">
+    <button class="request-btn" onclick="openRequestModal()">
+      📩 Request Soal JLPT
+    </button>
+    <button class="logout-btn-sm" onclick="doLogout()">
+      🚪 Logout
+    </button>
+  </div>
 </div>
 
+<!-- ======== STATS ======== -->
 <div class="stats">
-
-<div class="stat-box">
-<div class="stat-num" id="totalExam">17</div>
-<div class="stat-label">Total Exams</div>
+<div class="stat-box"><div class="stat-num" id="totalExam">17</div><div class="stat-label">Total Exams</div></div>
+<div class="stat-box"><div class="stat-num">N5–N1</div><div class="stat-label">JLPT Level</div></div>
+<div class="stat-box"><div class="stat-num">2026</div><div class="stat-label">Updated</div></div>
+<div class="stat-box"><div class="stat-num" id="totalLevels">5</div><div class="stat-label">Level Tersedia</div></div>
 </div>
 
-<div class="stat-box">
-<div class="stat-num">N5-N1</div>
-<div class="stat-label">JLPT Level</div>
+<!-- ======== JLPT COUNTER PER LEVEL ======== -->
+<div class="level-counter-grid" id="levelCounterGrid">
+  <div class="lc-box" data-lv="N1" onclick="filterByLevel('N1')">
+    <div class="lc-label">N1</div>
+    <div class="lc-count" id="cnt-N1">0</div>
+    <div class="lc-sub">exams</div>
+  </div>
+  <div class="lc-box" data-lv="N2" onclick="filterByLevel('N2')">
+    <div class="lc-label">N2</div>
+    <div class="lc-count" id="cnt-N2">0</div>
+    <div class="lc-sub">exams</div>
+  </div>
+  <div class="lc-box" data-lv="N3" onclick="filterByLevel('N3')">
+    <div class="lc-label">N3</div>
+    <div class="lc-count" id="cnt-N3">0</div>
+    <div class="lc-sub">exams</div>
+  </div>
+  <div class="lc-box" data-lv="N4" onclick="filterByLevel('N4')">
+    <div class="lc-label">N4</div>
+    <div class="lc-count" id="cnt-N4">0</div>
+    <div class="lc-sub">exams</div>
+  </div>
+  <div class="lc-box" data-lv="N5" onclick="filterByLevel('N5')">
+    <div class="lc-label">N5</div>
+    <div class="lc-count" id="cnt-N5">0</div>
+    <div class="lc-sub">exams</div>
+  </div>
 </div>
 
-<div class="stat-box">
-<div class="stat-num">2026</div>
-<div class="stat-label">Updated</div>
-</div>
-
-</div>
-
-<!-- === NEW: Level Quick Filters === -->
+<!-- LEVEL PILLS -->
 <div class="level-pills" id="levelPills">
   <button class="level-pill active" data-level="all" onclick="pillFilter(this)">All</button>
   <button class="level-pill" data-level="N1" onclick="pillFilter(this)">N1</button>
@@ -925,403 +414,156 @@ Akses soal Reading・Grammar・Vocabulary berdasarkan tahun ujian.
   <button class="level-pill" data-level="N5" onclick="pillFilter(this)">N5</button>
 </div>
 
-<!-- === NEW: Section Header with View Toggle === -->
+<!-- SECTION HEADER -->
 <div class="section-header">
-  <div class="section-title">
-    📋 Daftar Ujian <span class="section-count" id="visibleCount">17 exams</span>
-  </div>
+  <div class="section-title">📋 Daftar Ujian <span class="section-count" id="visibleCount">17 exams</span></div>
   <div class="view-toggle">
     <button class="view-btn active" id="gridViewBtn" title="Grid View" onclick="setView('grid')">⊞</button>
     <button class="view-btn" id="listViewBtn" title="List View" onclick="setView('list')">☰</button>
   </div>
 </div>
 
+<!-- EXAM GRID -->
 <div class="grid" id="examGrid">
 
 <div class="card" data-name="2024-07-jlpt" data-level="N1" data-year="2024">
-<div class="card-kanji">N1</div>
-<div class="new-badge">NEW</div>
-<div class="year">2024</div>
-<div class="card-body">
-<div class="exam-title">
-JLPT N1 July 2024
-</div>
-<div class="badges">
-<span class="badge level-n1">N1</span>
-<span class="badge badge-reading">Reading</span>
-<span class="badge badge-grammar">Grammar</span>
-<span class="badge badge-vocabulary">Vocabulary</span>
-</div>
-<div class="exam-desc">
-Simulasi ujian JLPT N1 Terbaru - Terlama.
-</div>
-</div>
-<a href="./jlpt/n1/2024-07-n1.html" class="open-btn">
-OPEN EXAM <span class="open-btn-arrow">→</span>
-</a>
+<div class="card-kanji">N1</div><div class="new-badge">NEW</div><div class="year">2024</div>
+<div class="card-body"><div class="exam-title">JLPT N1 July 2024</div>
+<div class="badges"><span class="badge level-n1">N1</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
+<div class="exam-desc">Simulasi ujian JLPT N1 Terbaru - Terlama.</div></div>
+<a href="./jlpt/n1/2024-07-n1.html" class="open-btn">OPEN EXAM <span class="open-btn-arrow">→</span></a>
 </div>
 
-  <div class="card" data-name="2025-07-jlpt" data-level="N1" data-year="2025">
-<div class="card-kanji">N1</div>
-<div class="new-badge">NEW</div>
-<div class="year">2025</div>
-<div class="card-body">
-<div class="exam-title">
-JLPT N1 July 2025
-</div>
-<div class="badges">
-<span class="badge level-n1">N1</span>
-<span class="badge badge-reading">Reading</span>
-<span class="badge badge-grammar">Grammar</span>
-<span class="badge badge-vocabulary">Vocabulary</span>
-</div>
-<div class="exam-desc">
-Simulasi ujian JLPT N1 Terbaru - Terlama.
-</div>
-</div>
-<a href="./jlpt/n1/2025-07-n1.html" class="open-btn">
-OPEN EXAM <span class="open-btn-arrow">→</span>
-</a>
+<div class="card" data-name="2025-07-jlpt" data-level="N1" data-year="2025">
+<div class="card-kanji">N1</div><div class="new-badge">NEW</div><div class="year">2025</div>
+<div class="card-body"><div class="exam-title">JLPT N1 July 2025</div>
+<div class="badges"><span class="badge level-n1">N1</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
+<div class="exam-desc">Simulasi ujian JLPT N1 Terbaru - Terlama.</div></div>
+<a href="./jlpt/n1/2025-07-n1.html" class="open-btn">OPEN EXAM <span class="open-btn-arrow">→</span></a>
 </div>
 
-  <div class="card" data-name="2025-12-jlpt" data-level="N1" data-year="2025">
-<div class="card-kanji">N1</div>
-<div class="new-badge">NEW</div>
-<div class="year">2025</div>
-<div class="card-body">
-<div class="exam-title">
-JLPT N1 December 2025
-</div>
-<div class="badges">
-<span class="badge level-n1">N1</span>
-<span class="badge badge-reading">Reading</span>
-<span class="badge badge-grammar">Grammar</span>
-<span class="badge badge-vocabulary">Vocabulary</span>
-</div>
-<div class="exam-desc">
-Simulasi ujian JLPT N1 Terbaru - Terlama.
-</div>
-</div>
-<a href="./jlpt/n1/2025-12-n1.html" class="open-btn">
-OPEN EXAM <span class="open-btn-arrow">→</span>
-</a>
+<div class="card" data-name="2025-12-jlpt" data-level="N1" data-year="2025">
+<div class="card-kanji">N1</div><div class="new-badge">NEW</div><div class="year">2025</div>
+<div class="card-body"><div class="exam-title">JLPT N1 December 2025</div>
+<div class="badges"><span class="badge level-n1">N1</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
+<div class="exam-desc">Simulasi ujian JLPT N1 Terbaru - Terlama.</div></div>
+<a href="./jlpt/n1/2025-12-n1.html" class="open-btn">OPEN EXAM <span class="open-btn-arrow">→</span></a>
 </div>
 
 <div class="card" data-name="2010-07-jlpt" data-level="N2" data-year="2010">
-<div class="card-kanji">N2</div>
-<div class="year">2010</div>
-<div class="card-body">
-<div class="exam-title">
-JLPT N2 July 2010
-</div>
-<div class="badges">
-<span class="badge level-n2">N2</span>
-<span class="badge badge-reading">Reading</span>
-<span class="badge badge-grammar">Grammar</span>
-<span class="badge badge-vocabulary">Vocabulary</span>
-</div>
-<div class="exam-desc">
-Simulasi ujian JLPT N2 Terbaru - Terlama.
-</div>
-</div>
-<a href="./jlpt/n2/2010-07-jlpt.html" class="open-btn">
-OPEN EXAM <span class="open-btn-arrow">→</span>
-</a>
+<div class="card-kanji">N2</div><div class="year">2010</div>
+<div class="card-body"><div class="exam-title">JLPT N2 July 2010</div>
+<div class="badges"><span class="badge level-n2">N2</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
+<div class="exam-desc">Simulasi ujian JLPT N2 Terbaru - Terlama.</div></div>
+<a href="./jlpt/n2/2010-07-jlpt.html" class="open-btn">OPEN EXAM <span class="open-btn-arrow">→</span></a>
 </div>
 
 <div class="card" data-name="2010-12-jlpt" data-level="N2" data-year="2010">
-<div class="card-kanji">N2</div>
-<div class="year">2010</div>
-<div class="card-body">
-<div class="exam-title">
-JLPT N2 December 2010
-</div>
-<div class="badges">
-<span class="badge level-n2">N2</span>
-<span class="badge badge-reading">Reading</span>
-<span class="badge badge-grammar">Grammar</span>
-<span class="badge badge-vocabulary">Vocabulary</span>
-</div>
-<div class="exam-desc">
-Simulasi ujian JLPT N2 Terbaru - Terlama.
-</div>
-</div>
-<a href="./jlpt/n2/2010-12-jlpt.html" class="open-btn">
-OPEN EXAM <span class="open-btn-arrow">→</span>
-</a>
+<div class="card-kanji">N2</div><div class="year">2010</div>
+<div class="card-body"><div class="exam-title">JLPT N2 December 2010</div>
+<div class="badges"><span class="badge level-n2">N2</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
+<div class="exam-desc">Simulasi ujian JLPT N2 Terbaru - Terlama.</div></div>
+<a href="./jlpt/n2/2010-12-jlpt.html" class="open-btn">OPEN EXAM <span class="open-btn-arrow">→</span></a>
 </div>
 
 <div class="card" data-name="2011-07-jlpt" data-level="N2" data-year="2011">
-<div class="card-kanji">N2</div>
-<div class="year">2011</div>
-<div class="card-body">
-<div class="exam-title">
-JLPT N2 July 2011
-</div>
-<div class="badges">
-<span class="badge level-n2">N2</span>
-<span class="badge badge-reading">Reading</span>
-<span class="badge badge-grammar">Grammar</span>
-<span class="badge badge-vocabulary">Vocabulary</span>
-</div>
-<div class="exam-desc">
-Simulasi ujian JLPT N2 Terbaru - Terlama.
-</div>
-</div>
-<a href="./jlpt/n2/2011-07-jlpt.html" class="open-btn">
-OPEN EXAM <span class="open-btn-arrow">→</span>
-</a>
+<div class="card-kanji">N2</div><div class="year">2011</div>
+<div class="card-body"><div class="exam-title">JLPT N2 July 2011</div>
+<div class="badges"><span class="badge level-n2">N2</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
+<div class="exam-desc">Simulasi ujian JLPT N2 Terbaru - Terlama.</div></div>
+<a href="./jlpt/n2/2011-07-jlpt.html" class="open-btn">OPEN EXAM <span class="open-btn-arrow">→</span></a>
 </div>
 
-  <div class="card" data-name="2025-07-jlpt" data-level="N2" data-year="2025">
-<div class="card-kanji">N2</div>
-<div class="new-badge">NEW</div>
-<div class="year">2025</div>
-<div class="card-body">
-<div class="exam-title">
-JLPT N2 July 2025
-</div>
-<div class="badges">
-<span class="badge level-n2">N2</span>
-<span class="badge badge-reading">Reading</span>
-<span class="badge badge-grammar">Grammar</span>
-<span class="badge badge-vocabulary">Vocabulary</span>
-</div>
-<div class="exam-desc">
-Simulasi ujian JLPT N2 Terbaru - Terlama.
-</div>
-</div>
-<a href="./jlpt/n2/2025-07-jlpt.html" class="open-btn">
-OPEN EXAM <span class="open-btn-arrow">→</span>
-</a>
+<div class="card" data-name="2025-07-jlpt" data-level="N2" data-year="2025">
+<div class="card-kanji">N2</div><div class="new-badge">NEW</div><div class="year">2025</div>
+<div class="card-body"><div class="exam-title">JLPT N2 July 2025</div>
+<div class="badges"><span class="badge level-n2">N2</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
+<div class="exam-desc">Simulasi ujian JLPT N2 Terbaru - Terlama.</div></div>
+<a href="./jlpt/n2/2025-07-jlpt.html" class="open-btn">OPEN EXAM <span class="open-btn-arrow">→</span></a>
 </div>
 
-  <div class="card" data-name="2025-12-jlpt" data-level="N2" data-year="2025">
-<div class="card-kanji">N2</div>
-<div class="new-badge">NEW</div>
-<div class="year">2025</div>
-<div class="card-body">
-<div class="exam-title">
-JLPT N2 December 2025
-</div>
-<div class="badges">
-<span class="badge level-n2">N2</span>
-<span class="badge badge-reading">Reading</span>
-<span class="badge badge-grammar">Grammar</span>
-<span class="badge badge-vocabulary">Vocabulary</span>
-</div>
-<div class="exam-desc">
-Simulasi ujian JLPT N2 Terbaru - Terlama.
-</div>
-</div>
-<a href="./jlpt/n2/2025-12-jlpt.html" class="open-btn">
-OPEN EXAM <span class="open-btn-arrow">→</span>
-</a>
+<div class="card" data-name="2025-12-jlpt" data-level="N2" data-year="2025">
+<div class="card-kanji">N2</div><div class="new-badge">NEW</div><div class="year">2025</div>
+<div class="card-body"><div class="exam-title">JLPT N2 December 2025</div>
+<div class="badges"><span class="badge level-n2">N2</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
+<div class="exam-desc">Simulasi ujian JLPT N2 Terbaru - Terlama.</div></div>
+<a href="./jlpt/n2/2025-12-jlpt.html" class="open-btn">OPEN EXAM <span class="open-btn-arrow">→</span></a>
 </div>
 
 <div class="card" data-name="2010-07-jlpt" data-level="N3" data-year="2010">
-<div class="card-kanji">N3</div>
-<div class="year">2010</div>
-<div class="card-body">
-<div class="exam-title">
-JLPT N3 July 2010
-</div>
-<div class="badges">
-<span class="badge level-n3">N3</span>
-<span class="badge badge-reading">Reading</span>
-<span class="badge badge-grammar">Grammar</span>
-<span class="badge badge-vocabulary">Vocabulary</span>
-</div>
-<div class="exam-desc">
-Simulasi ujian JLPT N3 Terbaru - Terlama.
-</div>
-</div>
-<a href="./jlpt/n3/2010-07-n3.html" class="open-btn">
-OPEN EXAM <span class="open-btn-arrow">→</span>
-</a>
+<div class="card-kanji">N3</div><div class="year">2010</div>
+<div class="card-body"><div class="exam-title">JLPT N3 July 2010</div>
+<div class="badges"><span class="badge level-n3">N3</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
+<div class="exam-desc">Simulasi ujian JLPT N3 Terbaru - Terlama.</div></div>
+<a href="./jlpt/n3/2010-07-n3.html" class="open-btn">OPEN EXAM <span class="open-btn-arrow">→</span></a>
 </div>
 
 <div class="card" data-name="2025-07-jlpt" data-level="N3" data-year="2025">
-<div class="card-kanji">N3</div>
-<div class="new-badge">NEW</div>
-<div class="year">2025</div>
-<div class="card-body">
-<div class="exam-title">
-JLPT N3 July 2025
+<div class="card-kanji">N3</div><div class="new-badge">NEW</div><div class="year">2025</div>
+<div class="card-body"><div class="exam-title">JLPT N3 July 2025</div>
+<div class="badges"><span class="badge level-n3">N3</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
+<div class="exam-desc">Simulasi ujian JLPT N3 Terbaru - Terlama.</div></div>
+<a href="./jlpt/n3/2025-07-n3.html" class="open-btn">OPEN EXAM <span class="open-btn-arrow">→</span></a>
 </div>
-<div class="badges">
-<span class="badge level-n3">N3</span>
-<span class="badge badge-reading">Reading</span>
-<span class="badge badge-grammar">Grammar</span>
-<span class="badge badge-vocabulary">Vocabulary</span>
-</div>
-<div class="exam-desc">
-Simulasi ujian JLPT N3 Terbaru - Terlama.
-</div>
-</div>
-<a href="./jlpt/n3/2025-07-n3.html" class="open-btn">
-OPEN EXAM <span class="open-btn-arrow">→</span>
-</a>
-</div>
-  
+
 <div class="card" data-name="2025-12-jlpt" data-level="N3" data-year="2025">
-<div class="card-kanji">N3</div>
-<div class="new-badge">NEW</div>
-<div class="year">2025</div>
-<div class="card-body">
-<div class="exam-title">
-JLPT N3 December 2025
-</div>
-<div class="badges">
-<span class="badge level-n3">N3</span>
-<span class="badge badge-reading">Reading</span>
-<span class="badge badge-grammar">Grammar</span>
-<span class="badge badge-vocabulary">Vocabulary</span>
-</div>
-<div class="exam-desc">
-Simulasi ujian JLPT N3 Terbaru - Terlama.
-</div>
-</div>
-<a href="./jlpt/n3/2025-12-n3.html" class="open-btn">
-OPEN EXAM <span class="open-btn-arrow">→</span>
-</a>
+<div class="card-kanji">N3</div><div class="new-badge">NEW</div><div class="year">2025</div>
+<div class="card-body"><div class="exam-title">JLPT N3 December 2025</div>
+<div class="badges"><span class="badge level-n3">N3</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
+<div class="exam-desc">Simulasi ujian JLPT N3 Terbaru - Terlama.</div></div>
+<a href="./jlpt/n3/2025-12-n3.html" class="open-btn">OPEN EXAM <span class="open-btn-arrow">→</span></a>
 </div>
 
-  <div class="card" data-name="2024-07-jlpt" data-level="N3" data-year="2024">
-<div class="card-kanji">N3</div>
-<div class="year">2024</div>
-<div class="card-body">
-<div class="exam-title">
-JLPT N3 July 2024
-</div>
-<div class="badges">
-<span class="badge level-n3">N3</span>
-<span class="badge badge-reading">Reading</span>
-<span class="badge badge-grammar">Grammar</span>
-<span class="badge badge-vocabulary">Vocabulary</span>
-</div>
-<div class="exam-desc">
-Simulasi ujian JLPT N3 Terbaru - Terlama.
-</div>
-</div>
-<a href="./jlpt/n3/2024-07-n3.html" class="open-btn">
-OPEN EXAM <span class="open-btn-arrow">→</span>
-</a>
+<div class="card" data-name="2024-07-jlpt" data-level="N3" data-year="2024">
+<div class="card-kanji">N3</div><div class="year">2024</div>
+<div class="card-body"><div class="exam-title">JLPT N3 July 2024</div>
+<div class="badges"><span class="badge level-n3">N3</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
+<div class="exam-desc">Simulasi ujian JLPT N3 Terbaru - Terlama.</div></div>
+<a href="./jlpt/n3/2024-07-n3.html" class="open-btn">OPEN EXAM <span class="open-btn-arrow">→</span></a>
 </div>
 
-  <div class="card" data-name="2024-12-jlpt" data-level="N3" data-year="2024">
-<div class="card-kanji">N3</div>
-<div class="year">2024</div>
-<div class="card-body">
-<div class="exam-title">
-JLPT N3 December 2024
-</div>
-<div class="badges">
-<span class="badge level-n3">N3</span>
-<span class="badge badge-reading">Reading</span>
-<span class="badge badge-grammar">Grammar</span>
-<span class="badge badge-vocabulary">Vocabulary</span>
-</div>
-<div class="exam-desc">
-Simulasi ujian JLPT N3 Terbaru - Terlama.
-</div>
-</div>
-<a href="./jlpt/n3/2024-12-n3.html" class="open-btn">
-OPEN EXAM <span class="open-btn-arrow">→</span>
-</a>
+<div class="card" data-name="2024-12-jlpt" data-level="N3" data-year="2024">
+<div class="card-kanji">N3</div><div class="year">2024</div>
+<div class="card-body"><div class="exam-title">JLPT N3 December 2024</div>
+<div class="badges"><span class="badge level-n3">N3</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
+<div class="exam-desc">Simulasi ujian JLPT N3 Terbaru - Terlama.</div></div>
+<a href="./jlpt/n3/2024-12-n3.html" class="open-btn">OPEN EXAM <span class="open-btn-arrow">→</span></a>
 </div>
 
-  <div class="card" data-name="2023-07-jlpt" data-level="N3" data-year="2023">
-<div class="card-kanji">N3</div>
-<div class="year">2023</div>
-<div class="card-body">
-<div class="exam-title">
-JLPT N3 July 2023
-</div>
-<div class="badges">
-<span class="badge level-n3">N3</span>
-<span class="badge badge-reading">Reading</span>
-<span class="badge badge-grammar">Grammar</span>
-<span class="badge badge-vocabulary">Vocabulary</span>
-</div>
-<div class="exam-desc">
-Simulasi ujian JLPT N3 Terbaru - Terlama.
-</div>
-</div>
-<a href="./jlpt/n3/2023-07-n3.html" class="open-btn">
-OPEN EXAM <span class="open-btn-arrow">→</span>
-</a>
+<div class="card" data-name="2023-07-jlpt" data-level="N3" data-year="2023">
+<div class="card-kanji">N3</div><div class="year">2023</div>
+<div class="card-body"><div class="exam-title">JLPT N3 July 2023</div>
+<div class="badges"><span class="badge level-n3">N3</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
+<div class="exam-desc">Simulasi ujian JLPT N3 Terbaru - Terlama.</div></div>
+<a href="./jlpt/n3/2023-07-n3.html" class="open-btn">OPEN EXAM <span class="open-btn-arrow">→</span></a>
 </div>
 
-  <div class="card" data-name="2023-12-jlpt" data-level="N3" data-year="2023">
-<div class="card-kanji">N3</div>
-<div class="year">2023</div>
-<div class="card-body">
-<div class="exam-title">
-JLPT N3 December 2023
+<div class="card" data-name="2023-12-jlpt" data-level="N3" data-year="2023">
+<div class="card-kanji">N3</div><div class="year">2023</div>
+<div class="card-body"><div class="exam-title">JLPT N3 December 2023</div>
+<div class="badges"><span class="badge level-n3">N3</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
+<div class="exam-desc">Simulasi ujian JLPT N3 Terbaru - Terlama.</div></div>
+<a href="./jlpt/n3/2023-12-n3.html" class="open-btn">OPEN EXAM <span class="open-btn-arrow">→</span></a>
 </div>
-<div class="badges">
-<span class="badge level-n3">N3</span>
-<span class="badge badge-reading">Reading</span>
-<span class="badge badge-grammar">Grammar</span>
-<span class="badge badge-vocabulary">Vocabulary</span>
-</div>
-<div class="exam-desc">
-Simulasi ujian JLPT N3 Terbaru - Terlama.
-</div>
-</div>
-<a href="./jlpt/n3/2023-12-n3.html" class="open-btn">
-OPEN EXAM <span class="open-btn-arrow">→</span>
-</a>
-</div>
-  
+
 <div class="card" data-name="2021-12-jlpt" data-level="N4" data-year="2021">
-<div class="card-kanji">N4</div>
-<div class="year">2021</div>
-<div class="card-body">
-<div class="exam-title">
-JLPT N4 December 2021
-</div>
-<div class="badges">
-<span class="badge level-n4">N4</span>
-<span class="badge badge-reading">Reading</span>
-<span class="badge badge-grammar">Grammar</span>
-<span class="badge badge-vocabulary">Vocabulary</span>
-</div>
-<div class="exam-desc">
-Simulasi ujian JLPT N4 Terbaru - Terlama.
-</div>
-</div>
-<a href="./jlpt/n4/2021-12-n4.html" class="open-btn">
-OPEN EXAM <span class="open-btn-arrow">→</span>
-</a>
+<div class="card-kanji">N4</div><div class="year">2021</div>
+<div class="card-body"><div class="exam-title">JLPT N4 December 2021</div>
+<div class="badges"><span class="badge level-n4">N4</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
+<div class="exam-desc">Simulasi ujian JLPT N4 Terbaru - Terlama.</div></div>
+<a href="./jlpt/n4/2021-12-n4.html" class="open-btn">OPEN EXAM <span class="open-btn-arrow">→</span></a>
 </div>
 
 <div class="card" data-name="2024-07-jlpt" data-level="N5" data-year="2024">
-<div class="card-kanji">N5</div>
-<div class="year">2024</div>
-<div class="card-body">
-<div class="exam-title">
-JLPT N5 July 2024
-</div>
-<div class="badges">
-<span class="badge level-n5">N5</span>
-<span class="badge badge-reading">Reading</span>
-<span class="badge badge-grammar">Grammar</span>
-<span class="badge badge-vocabulary">Vocabulary</span>
-</div>
-<div class="exam-desc">
-Simulasi ujian JLPT N5 Terbaru - Terlama.
-</div>
-</div>
-<a href="./jlpt/n5/2024-07-n5.html" class="open-btn">
-OPEN EXAM <span class="open-btn-arrow">→</span>
-</a>
+<div class="card-kanji">N5</div><div class="year">2024</div>
+<div class="card-body"><div class="exam-title">JLPT N5 July 2024</div>
+<div class="badges"><span class="badge level-n5">N5</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
+<div class="exam-desc">Simulasi ujian JLPT N5 Terbaru - Terlama.</div></div>
+<a href="./jlpt/n5/2024-07-n5.html" class="open-btn">OPEN EXAM <span class="open-btn-arrow">→</span></a>
 </div>
 
 </div>
 
-<!-- === NEW: Empty State === -->
 <div class="empty-state" id="emptyState">
   <div class="empty-icon">🔍</div>
   <p style="font-size:18px;font-weight:600;margin-bottom:8px;">Exam tidak ditemukan</p>
@@ -1330,385 +572,383 @@ OPEN EXAM <span class="open-btn-arrow">→</span>
 
 <div class="footer">
   <span>Made by Kurumi with ❤ 2026</span>
-  <div class="footer-links">
-    <a href="#">About</a>
-    <a href="#">Guide</a>
-    <a href="#">Feedback</a>
+  <div class="footer-links"><a href="#">About</a><a href="#">Guide</a><a href="#">Feedback</a></div>
+</div>
+
+</div><!-- /container -->
+
+<!-- TOAST -->
+<div id="toast"></div>
+<button id="backTop" title="Back to top" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
+
+<!-- ======== EDIT NAME MODAL ======== -->
+<div class="modal-overlay" id="editNameModal">
+  <div class="modal">
+    <div class="modal-title">✏️ Edit Profile Name</div>
+    <div class="modal-field">
+      <label>Display Name</label>
+      <input type="text" id="editNameInput" placeholder="Your name..." maxlength="40">
+    </div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeModal('editNameModal')">Cancel</button>
+      <button class="modal-save" onclick="saveDisplayName()">Save Changes</button>
+    </div>
   </div>
 </div>
 
+<!-- ======== AVATAR MODAL ======== -->
+<div class="modal-overlay" id="avatarModal">
+  <div class="modal">
+    <div class="modal-title">🖼️ Choose Avatar</div>
+    <p style="color:var(--muted);font-size:13px;margin-bottom:12px;">Pick an emoji or upload a photo</p>
+    <div class="avatar-grid" id="avatarGrid"></div>
+    <div class="av-upload-area" onclick="document.getElementById('avatarFileInput').click()">
+      📁 Upload photo (JPG/PNG, max 2MB)
+    </div>
+    <input type="file" id="avatarFileInput" accept="image/*" onchange="handleAvatarUpload(event)">
+    <div class="modal-actions" style="margin-top:16px;">
+      <button class="modal-cancel" onclick="closeModal('avatarModal')">Cancel</button>
+      <button class="modal-save" onclick="saveAvatar()">Apply</button>
+    </div>
+  </div>
 </div>
 
-<!-- Toast -->
-<div id="toast"></div>
+<!-- ======== REQUEST SOAL MODAL ======== -->
+<div class="modal-overlay" id="requestModal">
+  <div class="modal req-modal">
+    <div class="modal-title">📩 Request Soal JLPT</div>
+    <p style="color:var(--muted);font-size:13px;margin-bottom:14px;">Pilih level dan tipe soal yang ingin kamu minta ke admin</p>
+    <div class="modal-field">
+      <label>Level JLPT</label>
+      <div class="req-options">
+        <div class="req-lv" data-l="N1" onclick="toggleReqLevel(this)">N1</div>
+        <div class="req-lv" data-l="N2" onclick="toggleReqLevel(this)">N2</div>
+        <div class="req-lv" data-l="N3" onclick="toggleReqLevel(this)">N3</div>
+        <div class="req-lv" data-l="N4" onclick="toggleReqLevel(this)">N4</div>
+        <div class="req-lv" data-l="N5" onclick="toggleReqLevel(this)">N5</div>
+      </div>
+    </div>
+    <div class="modal-field">
+      <label>Tipe Soal</label>
+      <div class="req-types">
+        <div class="req-type" onclick="toggleReqType(this)">Reading</div>
+        <div class="req-type" onclick="toggleReqType(this)">Grammar</div>
+        <div class="req-type" onclick="toggleReqType(this)">Vocabulary</div>
+        <div class="req-type" onclick="toggleReqType(this)">Listening</div>
+      </div>
+    </div>
+    <div class="modal-field">
+      <label>Tahun / Catatan Tambahan</label>
+      <textarea class="req-note" id="reqNote" placeholder="Contoh: JLPT N2 2019, atau soal listening khusus..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeModal('requestModal')">Cancel</button>
+      <button class="modal-save" style="background:linear-gradient(135deg,#ff6b9d,#c44dff);" onclick="submitRequest()">📨 Kirim Request</button>
+    </div>
+  </div>
+</div>
 
-<!-- Back to Top -->
-<button id="backTop" title="Back to top" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
-
+<!-- ======== SCRIPTS ======== -->
 <script>
+// =============================================
+// PROFILE INIT — isi data dari Supabase
+// =============================================
+const AVATAR_EMOJIS = ['🦊','🐱','🐼','🐸','🦁','🐯','🐺','🦄','🐻','🐮','🦋','🌸','🎭','⛩️','🎋','🌙','⭐','🔥','💎','🎌'];
+let selectedAvatarEmoji = null;
+let selectedAvatarDataUrl = null;
 
-// =====================================
-// SEARCH FILTER
-// =====================================
+window.addEventListener('DOMContentLoaded', () => {
+  const usr = window._userDb;
+  const session = window._session;
+  if (!usr || !session) return;
 
+  const displayName = usr.display_name || usr.full_name || session.user.user_metadata?.full_name || session.user.email;
+  const email = session.user.email;
+  const avatarUrl = usr.avatar_url;
+
+  document.getElementById('profileNameEl').textContent = displayName;
+  document.getElementById('profileEmailEl').textContent = email;
+
+  // Avatar
+  const avatarEl = document.getElementById('avatarEl');
+  if (avatarUrl && avatarUrl.startsWith('data:')) {
+    avatarEl.innerHTML = `<img src="${avatarUrl}" alt="avatar">`;
+  } else if (avatarUrl && avatarUrl.length <= 4) {
+    // emoji
+    avatarEl.innerHTML = `<span style="font-size:32px">${avatarUrl}</span>`;
+  } else {
+    // initials
+    document.getElementById('avatarInitial').textContent = displayName.charAt(0).toUpperCase();
+  }
+
+  // Build avatar emoji grid
+  const grid = document.getElementById('avatarGrid');
+  AVATAR_EMOJIS.forEach(em => {
+    const d = document.createElement('div');
+    d.className = 'av-opt';
+    d.textContent = em;
+    d.onclick = () => {
+      document.querySelectorAll('.av-opt').forEach(x => x.classList.remove('selected'));
+      d.classList.add('selected');
+      selectedAvatarEmoji = em;
+      selectedAvatarDataUrl = null;
+    };
+    grid.appendChild(d);
+  });
+
+  // Count per level
+  const cards = document.querySelectorAll('.card[data-level]');
+  const counts = {N1:0,N2:0,N3:0,N4:0,N5:0};
+  cards.forEach(c => { if (counts[c.dataset.level] !== undefined) counts[c.dataset.level]++; });
+  Object.entries(counts).forEach(([lv,n]) => {
+    const el = document.getElementById('cnt-'+lv);
+    if (el) animateCount(el, n);
+  });
+});
+
+function animateCount(el, target) {
+  let cur = 0;
+  const step = Math.ceil(target / 20);
+  const timer = setInterval(() => {
+    cur = Math.min(cur + step, target);
+    el.textContent = cur;
+    if (cur >= target) clearInterval(timer);
+  }, 40);
+}
+
+// =============================================
+// LOGOUT
+// =============================================
+async function doLogout() {
+  await window._supabase.auth.signOut();
+  window.location.replace('./auth.html');
+}
+
+// =============================================
+// EDIT NAME MODAL
+// =============================================
+function openEditNameModal() {
+  document.getElementById('editNameInput').value = document.getElementById('profileNameEl').textContent;
+  openModal('editNameModal');
+}
+
+async function saveDisplayName() {
+  const newName = document.getElementById('editNameInput').value.trim();
+  if (!newName) return showToast('⚠️ Name cannot be empty');
+  const { error } = await window._supabase.from('users')
+    .update({ display_name: newName })
+    .eq('id', window._session.user.id);
+  if (error) { showToast('❌ Failed to save'); return; }
+  document.getElementById('profileNameEl').textContent = newName;
+  document.getElementById('avatarInitial').textContent = newName.charAt(0).toUpperCase();
+  closeModal('editNameModal');
+  showToast('✅ Name updated!');
+}
+
+// =============================================
+// AVATAR MODAL
+// =============================================
+function openAvatarModal() { openModal('avatarModal'); }
+
+function handleAvatarUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  if (file.size > 2 * 1024 * 1024) { showToast('⚠️ Max file size 2MB'); return; }
+  const reader = new FileReader();
+  reader.onload = ev => {
+    selectedAvatarDataUrl = ev.target.result;
+    selectedAvatarEmoji = null;
+    document.querySelectorAll('.av-opt').forEach(x => x.classList.remove('selected'));
+    showToast('📸 Photo loaded — click Apply');
+  };
+  reader.readAsDataURL(file);
+}
+
+async function saveAvatar() {
+  let avatarVal = null;
+  if (selectedAvatarDataUrl) avatarVal = selectedAvatarDataUrl;
+  else if (selectedAvatarEmoji) avatarVal = selectedAvatarEmoji;
+  else { showToast('⚠️ Pick an avatar first'); return; }
+
+  const { error } = await window._supabase.from('users')
+    .update({ avatar_url: avatarVal })
+    .eq('id', window._session.user.id);
+
+  if (error) { showToast('❌ Failed to save'); return; }
+
+  const avatarEl = document.getElementById('avatarEl');
+  if (selectedAvatarDataUrl) {
+    avatarEl.innerHTML = `<img src="${avatarVal}" alt="avatar">`;
+  } else {
+    avatarEl.innerHTML = `<span style="font-size:32px">${avatarVal}</span>`;
+  }
+
+  closeModal('avatarModal');
+  showToast('✅ Avatar updated!');
+}
+
+// =============================================
+// REQUEST SOAL MODAL
+// =============================================
+function openRequestModal() { openModal('requestModal'); }
+
+function toggleReqLevel(el) {
+  document.querySelectorAll('.req-lv').forEach(x => x.classList.remove('sel'));
+  el.classList.add('sel');
+}
+
+function toggleReqType(el) {
+  el.classList.toggle('sel');
+}
+
+async function submitRequest() {
+  const level = document.querySelector('.req-lv.sel')?.dataset.l;
+  const types = [...document.querySelectorAll('.req-type.sel')].map(x => x.textContent).join(', ');
+  const note  = document.getElementById('reqNote').value.trim();
+
+  if (!level) { showToast('⚠️ Pilih level dulu'); return; }
+
+  const usr = window._userDb;
+  const session = window._session;
+  const name = usr.display_name || usr.full_name || session.user.email;
+
+  // Kirim ke bot Telegram via backend
+  try {
+    await fetch('https://jlpt-auth-bot-production.up.railway.app/request-soal', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        uid: session.user.id,
+        name,
+        email: session.user.email,
+        level,
+        types: types || 'All',
+        note: note || '-'
+      })
+    });
+    closeModal('requestModal');
+    showToast('📨 Request terkirim ke admin!');
+    // Reset
+    document.querySelectorAll('.req-lv,.req-type').forEach(x => x.classList.remove('sel'));
+    document.getElementById('reqNote').value = '';
+  } catch(e) {
+    showToast('❌ Gagal kirim request');
+  }
+}
+
+// =============================================
+// MODAL HELPERS
+// =============================================
+function openModal(id) { document.getElementById(id).classList.add('show'); }
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+document.querySelectorAll('.modal-overlay').forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('show'); });
+});
+
+// =============================================
+// LEVEL COUNTER CLICK FILTER
+// =============================================
+function filterByLevel(lv) {
+  document.getElementById('levelFilter').value = lv;
+  document.querySelectorAll('.level-pill').forEach(p => p.classList.toggle('active', p.dataset.level === lv));
+  applyFilters();
+  showToast(`✦ Filter: ${lv}`);
+}
+
+// =============================================
+// ORIGINAL SCRIPTS (preserved)
+// =============================================
 const searchInput=document.getElementById('searchInput');
 const cards=document.querySelectorAll('.card');
 
 searchInput.addEventListener('input',()=>{
-
 const value=searchInput.value.toLowerCase();
-
 cards.forEach(card=>{
-
 const name=card.dataset.name.toLowerCase();
-
-if(name.includes(value)){
-card.style.display='block';
-}else{
-card.style.display='none';
-}
-
+card.style.display=name.includes(value)?'block':'none';
 });
-
 });
 
 function showAll(){
-
-cards.forEach(card=>{
-card.style.display='block';
-});
-
+cards.forEach(card=>{card.style.display='block';});
 searchInput.value='';
-
-// reset pills
-document.querySelectorAll('.level-pill').forEach(p=>{
-  p.classList.toggle('active', p.dataset.level==='all');
-});
+document.querySelectorAll('.level-pill').forEach(p=>{p.classList.toggle('active',p.dataset.level==='all');});
 document.getElementById('levelFilter').value='all';
-
 updateVisibleCount();
 showToast('✦ Semua ujian ditampilkan');
-
 }
-
-// =====================================
-// NEW UPDATE FILTER
-// =====================================
 
 const levelFilter=document.getElementById('levelFilter');
 const sortFilter=document.getElementById('sortFilter');
 
 function applyFilters(){
-
 const level=levelFilter.value;
 const search=searchInput.value.toLowerCase();
-
 cards.forEach(card=>{
-
 const name=card.dataset.name.toLowerCase();
 const cardLevel=card.dataset.level;
-
 let visible=true;
-
-if(level!=='all' && cardLevel!==level){
-visible=false;
-}
-
-if(!name.includes(search)){
-visible=false;
-}
-
+if(level!=='all'&&cardLevel!==level){visible=false;}
+if(!name.includes(search)){visible=false;}
 card.style.display=visible?'block':'none';
-
 });
-
 sortCards();
 updateVisibleCount();
-
 }
 
 function sortCards(){
-
 const grid=document.getElementById('examGrid');
-
 const sorted=[...cards].sort((a,b)=>{
-
 const ay=parseInt(a.dataset.year);
 const by=parseInt(b.dataset.year);
-
-if(sortFilter.value==='newest'){
-return by-ay;
-}else{
-return ay-by;
-}
-
+return sortFilter.value==='newest'?by-ay:ay-by;
 });
-
-sorted.forEach(card=>{
-grid.appendChild(card);
-});
-
+sorted.forEach(card=>{grid.appendChild(card);});
 }
 
 levelFilter.addEventListener('change',applyFilters);
 sortFilter.addEventListener('change',applyFilters);
-
 searchInput.addEventListener('input',applyFilters);
-
-// =====================================
-// PARTICLE BACKGROUND
-// =====================================
 
 const canvas=document.createElement('canvas');
 document.body.appendChild(canvas);
-
 const ctx=canvas.getContext('2d');
-
-function resize(){
-
-canvas.width=window.innerWidth;
-canvas.height=window.innerHeight;
-
-}
-
-resize();
-window.addEventListener('resize',resize);
-
+function resize(){canvas.width=window.innerWidth;canvas.height=window.innerHeight;}
+resize();window.addEventListener('resize',resize);
 const particles=[];
-
 const particleCount=window.innerWidth<768?28:45;
-for(let i=0;i<particleCount;i++){
-
-particles.push({
-
-x:Math.random()*canvas.width,
-y:Math.random()*canvas.height,
-r:Math.random()*2+1,
-dx:(Math.random()-0.5)*0.18,
-dy:(Math.random()-0.5)*0.18
-
-});
-
-}
-
-let lastTime=0;
-const fps=30;
-const interval=1000/fps;
-
-function animate(timestamp){
-
+for(let i=0;i<particleCount;i++){particles.push({x:Math.random()*canvas.width,y:Math.random()*canvas.height,r:Math.random()*2+1,dx:(Math.random()-0.5)*0.18,dy:(Math.random()-0.5)*0.18});}
+let lastTime=0;const fps=30;const interval=1000/fps;
+function animate(timestamp){requestAnimationFrame(animate);const delta=timestamp-lastTime;if(delta<interval)return;lastTime=timestamp-(delta%interval);ctx.clearRect(0,0,canvas.width,canvas.height);particles.forEach(p=>{p.x+=p.dx;p.y+=p.dy;if(p.x<0||p.x>canvas.width)p.dx*=-1;if(p.y<0||p.y>canvas.height)p.dy*=-1;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle='rgba(120,170,255,.45)';ctx.fill();});}
 requestAnimationFrame(animate);
 
-const delta=timestamp-lastTime;
+cards.forEach((card,index)=>{card.animate([{opacity:0,transform:'translateY(30px)'},{opacity:1,transform:'translateY(0px)'}],{duration:500,delay:index*100,fill:'forwards'});});
 
-if(delta<interval)return;
+const hero=document.querySelector('.hero');let lastScroll=0;let ticking=false;
+function updateHero(){const currentScroll=window.pageYOffset;if(currentScroll>120){if(currentScroll>lastScroll){hero.classList.add('hide');}else{hero.classList.remove('hide');}}else{hero.classList.remove('hide');}lastScroll=currentScroll;ticking=false;}
+window.addEventListener('scroll',()=>{if(!ticking){requestAnimationFrame(updateHero);ticking=true;}},{passive:true});
 
-lastTime=timestamp-(delta%interval);
+const progressBar=document.getElementById('scrollProgress');
+window.addEventListener('scroll',()=>{const scrollTop=window.scrollY;const docHeight=document.documentElement.scrollHeight-window.innerHeight;const pct=docHeight>0?(scrollTop/docHeight)*100:0;progressBar.style.width=pct+'%';},{passive:true});
 
-ctx.clearRect(0,0,canvas.width,canvas.height);
+const backTop=document.getElementById('backTop');
+window.addEventListener('scroll',()=>{backTop.classList.toggle('show',window.scrollY>300);},{passive:true});
 
-particles.forEach(p=>{
-
-p.x+=p.dx;
-p.y+=p.dy;
-
-if(p.x<0||p.x>canvas.width)p.dx*=-1;
-if(p.y<0||p.y>canvas.height)p.dy*=-1;
-
-ctx.beginPath();
-ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
-ctx.fillStyle='rgba(120,170,255,.45)';
-ctx.fill();
-
-});
-
-}
-
-requestAnimationFrame(animate);
-
-// =====================================
-// CARD APPEAR ANIMATION
-// =====================================
-
-cards.forEach((card,index)=>{
-
-card.animate([
-{
-opacity:0,
-transform:'translateY(30px)'
-},
-{
-opacity:1,
-transform:'translateY(0px)'
-}
-],{
-
-duration:500,
-delay:index*100,
-fill:'forwards'
-
-});
-
-});
-
-
-// =====================================
-// AUTO HIDE HERO ON SCROLL
-// =====================================
-
-const hero=document.querySelector('.hero');
-
-let lastScroll=0;
-
-let ticking=false;
-
-function updateHero(){
-
-const currentScroll=window.pageYOffset;
-
-if(currentScroll>120){
-
-if(currentScroll>lastScroll){
-hero.classList.add('hide');
-}else{
-hero.classList.remove('hide');
-}
-
-}else{
-hero.classList.remove('hide');
-}
-
-lastScroll=currentScroll;
-ticking=false;
-
-}
-
-window.addEventListener('scroll',()=>{
-
-if(!ticking){
-
-requestAnimationFrame(updateHero);
-ticking=true;
-
-}
-
-},{passive:true});
-
-// =====================================
-// NEW FEATURES
-// =====================================
-
-// --- SCROLL PROGRESS BAR ---
-const progressBar = document.getElementById('scrollProgress');
-
-window.addEventListener('scroll', () => {
-  const scrollTop = window.scrollY;
-  const docHeight = document.documentElement.scrollHeight - window.innerHeight;
-  const pct = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
-  progressBar.style.width = pct + '%';
-}, { passive: true });
-
-// --- BACK TO TOP ---
-const backTop = document.getElementById('backTop');
-
-window.addEventListener('scroll', () => {
-  if (window.scrollY > 300) {
-    backTop.classList.add('show');
-  } else {
-    backTop.classList.remove('show');
-  }
-}, { passive: true });
-
-// --- TOAST NOTIFICATION ---
 let toastTimer;
-function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
-}
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2500);}
 
-// --- LEVEL PILLS FILTER ---
-function pillFilter(el) {
-  // update active pill
-  document.querySelectorAll('.level-pill').forEach(p => p.classList.remove('active'));
-  el.classList.add('active');
+function pillFilter(el){document.querySelectorAll('.level-pill').forEach(p=>p.classList.remove('active'));el.classList.add('active');const lv=el.dataset.level;levelFilter.value=lv;applyFilters();showToast(lv==='all'?'✦ Semua level ditampilkan':`✦ Filter: ${lv}`);}
+levelFilter.addEventListener('change',()=>{const lv=levelFilter.value;document.querySelectorAll('.level-pill').forEach(p=>{p.classList.toggle('active',p.dataset.level===lv);});});
 
-  // sync dropdown
-  const lv = el.dataset.level;
-  levelFilter.value = lv;
-
-  applyFilters();
-  showToast(lv === 'all' ? '✦ Semua level ditampilkan' : `✦ Filter: ${lv}`);
-}
-
-// sync pill when dropdown changes
-levelFilter.addEventListener('change', () => {
-  const lv = levelFilter.value;
-  document.querySelectorAll('.level-pill').forEach(p => {
-    p.classList.toggle('active', p.dataset.level === lv);
-  });
-});
-
-// --- VISIBLE COUNT ---
-function updateVisibleCount() {
-  const visible = [...cards].filter(c => c.style.display !== 'none').length;
-  document.getElementById('visibleCount').textContent = visible + ' exam' + (visible !== 1 ? 's' : '');
-  document.getElementById('totalExam').textContent = visible;
-  document.getElementById('emptyState').classList.toggle('show', visible === 0);
-}
-
-// init count
+function updateVisibleCount(){const visible=[...cards].filter(c=>c.style.display!=='none').length;document.getElementById('visibleCount').textContent=visible+' exam'+(visible!==1?'s':'');document.getElementById('totalExam').textContent=visible;document.getElementById('emptyState').classList.toggle('show',visible===0);}
 updateVisibleCount();
 
-// --- VIEW TOGGLE (Grid / List) ---
-function setView(mode) {
-  const grid = document.getElementById('examGrid');
-  const gBtn = document.getElementById('gridViewBtn');
-  const lBtn = document.getElementById('listViewBtn');
+function setView(mode){const grid=document.getElementById('examGrid');const gBtn=document.getElementById('gridViewBtn');const lBtn=document.getElementById('listViewBtn');if(mode==='list'){grid.classList.add('list-view');gBtn.classList.remove('active');lBtn.classList.add('active');}else{grid.classList.remove('list-view');gBtn.classList.add('active');lBtn.classList.remove('active');}showToast(mode==='list'?'☰ List View':'⊞ Grid View');}
 
-  if (mode === 'list') {
-    grid.classList.add('list-view');
-    gBtn.classList.remove('active');
-    lBtn.classList.add('active');
-  } else {
-    grid.classList.remove('list-view');
-    gBtn.classList.add('active');
-    lBtn.classList.remove('active');
-  }
-  showToast(mode === 'list' ? '☰ List View' : '⊞ Grid View');
-}
+document.addEventListener('keydown',e=>{if(e.key==='/'&&document.activeElement!==searchInput){e.preventDefault();searchInput.focus();showToast('🔍 Pencarian aktif');}if(e.key==='Escape'){searchInput.blur();showAll();}});
 
-// --- KEYBOARD SHORTCUT: "/" to focus search ---
-document.addEventListener('keydown', e => {
-  if (e.key === '/' && document.activeElement !== searchInput) {
-    e.preventDefault();
-    searchInput.focus();
-    showToast('🔍 Pencarian aktif');
-  }
-  if (e.key === 'Escape') {
-    searchInput.blur();
-    showAll();
-  }
-});
-
-// --- SEARCH PLACEHOLDER ANIMATION ---
-const placeholders = [
-  '🔍  Search "2024"...',
-  '🔍  Search "N2"...',
-  '🔍  Search "December"...',
-  '🔍  Search "July"...',
-  '🔍  Search "2025"...',
-];
-let phIdx = 0;
-setInterval(() => {
-  if (document.activeElement !== searchInput && !searchInput.value) {
-    phIdx = (phIdx + 1) % placeholders.length;
-    searchInput.placeholder = placeholders[phIdx];
-  }
-}, 2800);
-
+const placeholders=['🔍  Search "2024"...','🔍  Search "N2"...','🔍  Search "December"...','🔍  Search "July"...','🔍  Search "2025"...'];
+let phIdx=0;setInterval(()=>{if(document.activeElement!==searchInput&&!searchInput.value){phIdx=(phIdx+1)%placeholders.length;searchInput.placeholder=placeholders[phIdx];}},2800);
 </script>
 
 </body>
