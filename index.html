@@ -1,27 +1,64 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<!-- AUTH GUARD -->
+<!-- AUTH GUARD — FIXED -->
 <script type="module">
   import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
   const SUPABASE_URL  = 'https://uincqpdexdenjcmwdfsv.supabase.co';
   const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpbmNxcGRleGRlbmpjbXdkZnN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5MjM4ODEsImV4cCI6MjA5NTQ5OTg4MX0.Lf1N_P_iiNQ2hnRJhd-Quy9MLKlZFSzbnXtXCnmRCS0';
   const supabase = createClient(SUPABASE_URL, SUPABASE_ANON);
-  document.documentElement.style.visibility='hidden';
+  document.documentElement.style.visibility = 'hidden';
+
   try {
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) { window.location.replace('./auth.html'); }
-    else {
-      const { data: usr } = await supabase.from('users').select('status,full_name,avatar_url,display_name').eq('id', session.user.id).single();
-      if (!usr || usr.status !== 'active') { await supabase.auth.signOut(); window.location.replace('./auth.html'); }
-      else {
-        document.documentElement.style.visibility='visible';
+
+    if (!session) {
+      window.location.replace('./auth.html');
+    } else {
+      // Hanya select kolom yang PASTI ada — tidak include avatar_url/display_name dulu
+      const { data: usr, error: usrErr } = await supabase
+        .from('users')
+        .select('status, full_name')
+        .eq('id', session.user.id)
+        .single();
+
+      if (usrErr || !usr || usr.status !== 'active') {
+        // Jangan signOut kalau cuma error kolom — cek dulu
+        if (!usr || usr.status !== 'active') {
+          await supabase.auth.signOut();
+        }
+        window.location.replace('./auth.html');
+      } else {
+        // Coba ambil kolom tambahan secara terpisah, kalau gagal tidak apa-apa
+        let extraData = {};
+        try {
+          const { data: extra } = await supabase
+            .from('users')
+            .select('avatar_url, display_name')
+            .eq('id', session.user.id)
+            .single();
+          if (extra) extraData = extra;
+        } catch(e) {
+          // kolom belum ada, skip saja
+        }
+
+        document.documentElement.style.visibility = 'visible';
         window._supabase = supabase;
         window._session  = session;
-        window._userDb   = usr;
+        window._userDb   = { ...usr, ...extraData };
       }
     }
-  } catch(e) { window.location.replace('./auth.html'); }
+  } catch(e) {
+    console.error('Auth guard error:', e);
+    // Jangan langsung redirect — cek dulu apakah ada session
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) window.location.replace('./auth.html');
+      else document.documentElement.style.visibility = 'visible';
+    } catch(e2) {
+      window.location.replace('./auth.html');
+    }
+  }
 </script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
