@@ -668,6 +668,8 @@ let selectedAvatarDataUrl = null;
 window.addEventListener('DOMContentLoaded', () => {
   const usr = window._userDb;
   const session = window._session;
+  console.log('USER DB:', usr);
+console.log('SESSION:', session);
   if (!usr || !session) return;
 
   const displayName = usr.display_name || usr.full_name || session.user.user_metadata?.full_name || session.user.email;
@@ -742,17 +744,38 @@ function openEditNameModal() {
 
 async function saveDisplayName() {
   const newName = document.getElementById('editNameInput').value.trim();
-  if (!newName) return showToast('⚠️ Name cannot be empty');
-  const { error } = await window._supabase.from('users')
-    .update({ display_name: newName })
-    .eq('id', window._session.user.id);
-  if (error) { showToast('❌ Failed to save'); return; }
-  document.getElementById('profileNameEl').textContent = newName;
-  document.getElementById('avatarInitial').textContent = newName.charAt(0).toUpperCase();
-  closeModal('editNameModal');
-  showToast('✅ Name updated!');
-}
 
+  if (!newName) {
+    showToast('⚠️ Name cannot be empty');
+    return;
+  }
+
+  const { data, error } = await window._supabase
+    .from('users')
+    .update({
+      display_name: newName
+    })
+    .eq('id', window._session.user.id)
+    .select();
+
+  if (error) {
+    console.error(error);
+    showToast('❌ ' + error.message);
+    return;
+  }
+
+  document.getElementById('profileNameEl').textContent = newName;
+
+  const avatarInitial = document.getElementById('avatarInitial');
+  if (avatarInitial) {
+    avatarInitial.textContent = newName.charAt(0).toUpperCase();
+  }
+
+  window._userDb.display_name = newName;
+
+  closeModal('editNameModal');
+  showToast('✅ Name saved permanently');
+}
 // =============================================
 // AVATAR MODAL
 // =============================================
@@ -773,26 +796,47 @@ function handleAvatarUpload(e) {
 }
 
 async function saveAvatar() {
+
   let avatarVal = null;
-  if (selectedAvatarDataUrl) avatarVal = selectedAvatarDataUrl;
-  else if (selectedAvatarEmoji) avatarVal = selectedAvatarEmoji;
-  else { showToast('⚠️ Pick an avatar first'); return; }
 
-  const { error } = await window._supabase.from('users')
-    .update({ avatar_url: avatarVal })
-    .eq('id', window._session.user.id);
-
-  if (error) { showToast('❌ Failed to save'); return; }
-
-  const avatarEl = document.getElementById('avatarEl');
   if (selectedAvatarDataUrl) {
-    avatarEl.innerHTML = `<img src="${avatarVal}" alt="avatar">`;
+    avatarVal = selectedAvatarDataUrl;
+  } else if (selectedAvatarEmoji) {
+    avatarVal = selectedAvatarEmoji;
   } else {
-    avatarEl.innerHTML = `<span style="font-size:32px">${avatarVal}</span>`;
+    showToast('⚠️ Pick an avatar first');
+    return;
   }
 
+  const { data, error } = await window._supabase
+    .from('users')
+    .update({
+      avatar_url: avatarVal
+    })
+    .eq('id', window._session.user.id)
+    .select();
+
+  if (error) {
+    console.error(error);
+    showToast('❌ ' + error.message);
+    return;
+  }
+
+  const avatarEl = document.getElementById('avatarEl');
+
+  if (selectedAvatarDataUrl) {
+    avatarEl.innerHTML =
+      `<img src="${avatarVal}" alt="avatar">`;
+  } else {
+    avatarEl.innerHTML =
+      `<span style="font-size:32px">${avatarVal}</span>`;
+  }
+
+  window._userDb.avatar_url = avatarVal;
+
   closeModal('avatarModal');
-  showToast('✅ Avatar updated!');
+
+  showToast('✅ Avatar saved permanently');
 }
 
 // =============================================
