@@ -412,35 +412,6 @@ Akses soal Reading・Grammar・Vocabulary berdasarkan tahun ujian.
 <div class="stat-box"><div class="stat-num" id="totalLevels">5</div><div class="stat-label">Level Tersedia</div></div>
 </div>
 
-<!-- ======== JLPT COUNTER PER LEVEL ======== -->
-<div class="level-counter-grid" id="levelCounterGrid">
-  <div class="lc-box" data-lv="N1" onclick="filterByLevel('N1')">
-    <div class="lc-label">N1</div>
-    <div class="lc-count" id="cnt-N1">0</div>
-    <div class="lc-sub">exams</div>
-  </div>
-  <div class="lc-box" data-lv="N2" onclick="filterByLevel('N2')">
-    <div class="lc-label">N2</div>
-    <div class="lc-count" id="cnt-N2">0</div>
-    <div class="lc-sub">exams</div>
-  </div>
-  <div class="lc-box" data-lv="N3" onclick="filterByLevel('N3')">
-    <div class="lc-label">N3</div>
-    <div class="lc-count" id="cnt-N3">0</div>
-    <div class="lc-sub">exams</div>
-  </div>
-  <div class="lc-box" data-lv="N4" onclick="filterByLevel('N4')">
-    <div class="lc-label">N4</div>
-    <div class="lc-count" id="cnt-N4">0</div>
-    <div class="lc-sub">exams</div>
-  </div>
-  <div class="lc-box" data-lv="N5" onclick="filterByLevel('N5')">
-    <div class="lc-label">N5</div>
-    <div class="lc-count" id="cnt-N5">0</div>
-    <div class="lc-sub">exams</div>
-  </div>
-</div>
-
 <!-- LEVEL PILLS -->
 <div class="level-pills" id="levelPills">
   <button class="level-pill active" data-level="all" onclick="pillFilter(this)">All</button>
@@ -851,7 +822,7 @@ async function submitRequest() {
 
   // Kirim ke bot Telegram via backend
   try {
-    await fetch('https://jlpt-auth-bot-production.up.railway.app/request-soal', {
+    await fetch('https://jlpt-auth-bot-production.up.railway.app/request', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
