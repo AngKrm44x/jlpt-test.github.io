@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<!-- AUTH GUARD — FIXED -->
+<!-- AUTH GUARD -->
 <script type="module">
   import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
   const SUPABASE_URL  = 'https://uincqpdexdenjcmwdfsv.supabase.co';
@@ -15,39 +15,28 @@
     if (!session) {
       window.location.replace('./auth.html');
     } else {
-      // Hanya select kolom yang PASTI ada — tidak include avatar_url/display_name dulu
+      // Ambil semua kolom sekaligus — termasuk display_name & avatar_url
       const { data: usr, error: usrErr } = await supabase
         .from('users')
-        .select('status, full_name')
+        .select('status, full_name, display_name, avatar_url')
         .eq('id', session.user.id)
         .single();
 
       if (usrErr || !usr || usr.status !== 'active') {
-        // Jangan signOut kalau cuma error kolom — cek dulu
         if (!usr || usr.status !== 'active') {
           await supabase.auth.signOut();
         }
         window.location.replace('./auth.html');
       } else {
-        // Coba ambil kolom tambahan secara terpisah, kalau gagal tidak apa-apa
-       let extraData = {};
-const { data: extra, error: extraErr } = await supabase
-  .from('users')
-  .select('avatar_url, display_name')
-  .eq('id', session.user.id)
-  .single();
-if (!extraErr && extra) extraData = extra;
-        }
-
         document.documentElement.style.visibility = 'visible';
+        // Expose ke window agar script non-module bisa akses
         window._supabase = supabase;
         window._session  = session;
-        window._userDb   = { ...usr, ...extraData };
+        window._userDb   = usr;
       }
     }
   } catch(e) {
     console.error('Auth guard error:', e);
-    // Jangan langsung redirect — cek dulu apakah ada session
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) window.location.replace('./auth.html');
@@ -662,12 +651,31 @@ const AVATAR_EMOJIS = ['🦊','🐱','🐼','🐸','🦁','🐯','🐺','🦄','
 let selectedAvatarEmoji = null;
 let selectedAvatarDataUrl = null;
 
-window.addEventListener('DOMContentLoaded', () => {
-  const usr = window._userDb;
-  const session = window._session;
-  console.log('USER DB:', usr);
-console.log('SESSION:', session);
-  if (!usr || !session) return;
+// Helper: tunggu _supabase/_session/_userDb siap (module script async)
+function getSupabase() {
+  return new Promise((resolve, reject) => {
+    if (window._supabase && window._session && window._userDb) {
+      resolve({ sb: window._supabase, session: window._session, usr: window._userDb });
+      return;
+    }
+    let tries = 0;
+    const t = setInterval(() => {
+      tries++;
+      if (window._supabase && window._session && window._userDb) {
+        clearInterval(t);
+        resolve({ sb: window._supabase, session: window._session, usr: window._userDb });
+      } else if (tries > 50) {
+        clearInterval(t);
+        reject(new Error('Supabase not ready'));
+      }
+    }, 100);
+  });
+}
+
+window.addEventListener('DOMContentLoaded', async () => {
+  let _ctx;
+  try { _ctx = await getSupabase(); } catch(e) { return; }
+  const { usr, session } = _ctx;
 
   const displayName = usr.display_name || usr.full_name || session.user.user_metadata?.full_name || session.user.email;
   const email = session.user.email;
@@ -703,14 +711,6 @@ console.log('SESSION:', session);
     grid.appendChild(d);
   });
 
-  // Count per level
-  const cards = document.querySelectorAll('.card[data-level]');
-  const counts = {N1:0,N2:0,N3:0,N4:0,N5:0};
-  cards.forEach(c => { if (counts[c.dataset.level] !== undefined) counts[c.dataset.level]++; });
-  Object.entries(counts).forEach(([lv,n]) => {
-    const el = document.getElementById('cnt-'+lv);
-    if (el) animateCount(el, n);
-  });
 });
 
 function animateCount(el, target) {
@@ -727,7 +727,10 @@ function animateCount(el, target) {
 // LOGOUT
 // =============================================
 async function doLogout() {
-  await window._supabase.auth.signOut();
+  try {
+    const { sb } = await getSupabase();
+    await sb.auth.signOut();
+  } catch(e) {}
   window.location.replace('./auth.html');
 }
 
@@ -741,33 +744,26 @@ function openEditNameModal() {
 
 async function saveDisplayName() {
   const newName = document.getElementById('editNameInput').value.trim();
+  if (!newName) { showToast('⚠️ Name cannot be empty'); return; }
 
-  if (!newName) {
-    showToast('⚠️ Name cannot be empty');
-    return;
-  }
+  let _ctx;
+  try { _ctx = await getSupabase(); } catch(e) { showToast('❌ Not authenticated'); return; }
+  const { sb, session } = _ctx;
 
-  const { data, error } = await window._supabase
+  const { error } = await sb
     .from('users')
-    .update({
-      display_name: newName
-    })
-    .eq('id', window._session.user.id)
-    .select();
+    .update({ display_name: newName })
+    .eq('id', session.user.id);
 
   if (error) {
-    console.error(error);
+    console.error('saveDisplayName error:', error);
     showToast('❌ ' + error.message);
     return;
   }
 
   document.getElementById('profileNameEl').textContent = newName;
-
   const avatarInitial = document.getElementById('avatarInitial');
-  if (avatarInitial) {
-    avatarInitial.textContent = newName.charAt(0).toUpperCase();
-  }
-
+  if (avatarInitial) avatarInitial.textContent = newName.charAt(0).toUpperCase();
   window._userDb.display_name = newName;
 
   closeModal('editNameModal');
@@ -793,9 +789,7 @@ function handleAvatarUpload(e) {
 }
 
 async function saveAvatar() {
-
   let avatarVal = null;
-
   if (selectedAvatarDataUrl) {
     avatarVal = selectedAvatarDataUrl;
   } else if (selectedAvatarEmoji) {
@@ -805,34 +799,30 @@ async function saveAvatar() {
     return;
   }
 
-  const { data, error } = await window._supabase
+  let _ctx;
+  try { _ctx = await getSupabase(); } catch(e) { showToast('❌ Not authenticated'); return; }
+  const { sb, session } = _ctx;
+
+  const { error } = await sb
     .from('users')
-    .update({
-      avatar_url: avatarVal
-    })
-    .eq('id', window._session.user.id)
-    .select();
+    .update({ avatar_url: avatarVal })
+    .eq('id', session.user.id);
 
   if (error) {
-    console.error(error);
+    console.error('saveAvatar error:', error);
     showToast('❌ ' + error.message);
     return;
   }
 
   const avatarEl = document.getElementById('avatarEl');
-
   if (selectedAvatarDataUrl) {
-    avatarEl.innerHTML =
-      `<img src="${avatarVal}" alt="avatar">`;
+    avatarEl.innerHTML = `<img src="${avatarVal}" alt="avatar">`;
   } else {
-    avatarEl.innerHTML =
-      `<span style="font-size:32px">${avatarVal}</span>`;
+    avatarEl.innerHTML = `<span style="font-size:32px">${avatarVal}</span>`;
   }
-
   window._userDb.avatar_url = avatarVal;
 
   closeModal('avatarModal');
-
   showToast('✅ Avatar saved permanently');
 }
 
@@ -857,8 +847,10 @@ async function submitRequest() {
 
   if (!level) { showToast('⚠️ Pilih level dulu'); return; }
 
+  let _ctx2;
+  try { _ctx2 = await getSupabase(); } catch(e) { showToast('❌ Not authenticated'); return; }
+  const { session } = _ctx2;
   const usr = window._userDb;
-  const session = window._session;
   const name = usr.display_name || usr.full_name || session.user.email;
 
   // Kirim ke bot Telegram via backend
