@@ -1,0 +1,1017 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JLPT N3 — Juli 2022</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0b1020;--bg2:#121a2f;--card:#18233f;--card2:#1f2d52;--border:#2b3a63;--text:#f1f5ff;--muted:#9fb0d3;--primary:#5aa9ff;--success:#19c37d;--danger:#ff5f73;--warning:#ffb547;--font:'Zen Kaku Gothic New',sans-serif;--mono:'JetBrains Mono',monospace;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:radial-gradient(ellipse at top left,#1a2d5a 0%,transparent 45%),radial-gradient(ellipse at bottom right,#231440 0%,transparent 40%),var(--bg);color:var(--text);font-family:var(--font);min-height:100vh;padding:16px;}
+.app{max-width:720px;margin:0 auto;}
+.screen{display:none;}.screen.active{display:block;}
+.header{background:rgba(24,35,63,.85);backdrop-filter:blur(12px);border:1px solid var(--border);border-radius:20px;padding:22px 24px;margin-bottom:14px;}
+h1{font-size:22px;font-weight:700;letter-spacing:.02em;margin-bottom:3px;}
+h2{font-size:15px;font-weight:500;margin-bottom:10px;}
+.muted{color:var(--muted);font-size:13px;}
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;}
+.stat-card{background:rgba(24,35,63,.7);border:1px solid var(--border);border-radius:14px;padding:12px 10px;text-align:center;}
+.stat-num{font-size:21px;font-weight:700;color:var(--text);}
+.stat-lbl{font-size:10px;color:var(--muted);margin-top:3px;letter-spacing:.04em;}
+.mode-btn{width:100%;text-align:left;padding:14px 18px;border-radius:16px;border:1px solid var(--border);background:rgba(24,35,63,.7);color:var(--text);cursor:pointer;font-size:14px;font-family:var(--font);margin-bottom:10px;transition:all .18s;line-height:1.6;}
+.mode-btn:hover{background:var(--card2);border-color:#4a6aaa;transform:translateY(-1px);}
+.card{background:rgba(24,35,63,.85);backdrop-filter:blur(8px);border:1px solid var(--border);border-radius:18px;padding:18px 20px;margin-bottom:12px;}
+.badge{display:inline-block;padding:3px 11px;border-radius:99px;font-size:11px;font-weight:600;letter-spacing:.03em;}
+.badge-moji{background:rgba(90,169,255,.18);color:#5aa9ff;border:1px solid rgba(90,169,255,.3);}
+.badge-bunpou{background:rgba(124,77,255,.18);color:#a87bff;border:1px solid rgba(124,77,255,.3);}
+.badge-dokkai{background:rgba(25,195,125,.18);color:#19c37d;border:1px solid rgba(25,195,125,.3);}
+.badge-type{background:rgba(255,255,255,.07);color:var(--muted);border:1px solid rgba(255,255,255,.1);}
+.timer-bar{height:5px;background:rgba(255,255,255,.07);border-radius:99px;overflow:hidden;margin:10px 0 6px;}
+.timer-fill{height:100%;background:linear-gradient(90deg,#5aa9ff,#7c4dff);border-radius:99px;transition:width .5s linear;}
+.timer-fill.warn{background:linear-gradient(90deg,var(--warning),#f57c00);}
+.timer-fill.danger{background:linear-gradient(90deg,var(--danger),#c0392b);}
+.progress-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(30px,1fr));gap:4px;margin-bottom:12px;}
+.prog-dot{height:30px;border-radius:8px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--muted);cursor:pointer;transition:all .12s;font-family:var(--mono);}
+.prog-dot:hover{border-color:#4a6aaa;}
+.prog-dot.current{border:2px solid var(--primary);color:var(--text);font-weight:600;}
+.prog-dot.correct{background:rgba(25,195,125,.25);border-color:var(--success);color:var(--success);}
+.prog-dot.wrong{background:rgba(255,95,115,.2);border-color:var(--danger);color:var(--danger);}
+.passage-label{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;}
+.passage-box{background:rgba(11,16,32,.6);border-left:3px solid var(--primary);border-radius:0 12px 12px 0;padding:14px 18px;font-size:13.5px;line-height:2;color:rgba(241,245,255,.85);}
+.passage-box p{margin-bottom:.5em;}.passage-box p:last-child{margin-bottom:0;}
+.q-text{font-size:15px;line-height:1.9;color:var(--text);margin-bottom:14px;}
+.q-text u{text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1.5px;text-decoration-color:var(--primary);}
+.option-btn{width:100%;text-align:left;padding:11px 16px;border-radius:12px;border:1px solid var(--border);background:rgba(18,26,47,.6);color:var(--text);cursor:pointer;font-size:13.5px;font-family:var(--font);margin-bottom:7px;transition:all .15s;line-height:1.7;}
+.option-btn:hover:not(:disabled){background:var(--card2);border-color:#4a6aaa;}
+.option-btn.correct{background:rgba(25,195,125,.18);border-color:var(--success);color:#a0f5d3;}
+.option-btn.wrong{background:rgba(255,95,115,.15);border-color:var(--danger);color:#ffb3be;}
+.option-btn:disabled{cursor:default;}
+.explanation{background:rgba(11,16,32,.5);border-radius:10px;padding:10px 14px;font-size:12.5px;color:var(--muted);margin-top:8px;line-height:1.7;border-left:2px solid var(--warning);}
+.row{display:flex;align-items:center;gap:8px;margin-top:8px;}
+.spacer{flex:1;}
+.nav-btn{padding:9px 20px;border-radius:11px;border:1px solid var(--border);background:rgba(24,35,63,.7);color:var(--text);cursor:pointer;font-size:13px;font-family:var(--font);transition:all .15s;}
+.nav-btn:hover{background:var(--card2);}
+.nav-btn.finish{background:rgba(255,95,115,.18);border-color:var(--danger);color:var(--danger);}
+.nav-btn.finish:hover{background:rgba(255,95,115,.3);}
+.nav-btn:disabled{opacity:.35;cursor:not-allowed;}
+.pass-banner{border-radius:16px;padding:16px;text-align:center;margin:12px 0;}
+.pass-banner.pass{background:rgba(25,195,125,.18);border:1px solid rgba(25,195,125,.3);}
+.pass-banner.fail{background:rgba(255,95,115,.12);border:1px solid rgba(255,95,115,.25);}
+.section-result{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:13px;}
+.section-result:last-child{border-bottom:none;}
+.info-note{background:rgba(255,181,71,.07);border:1px solid rgba(255,181,71,.2);border-radius:12px;padding:10px 14px;font-size:12px;color:rgba(255,181,71,.8);margin-bottom:10px;}
+canvas{position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.35;}
+.app{position:relative;z-index:1;}
+#print-pdf-btn{position:fixed;right:24px;bottom:24px;border:1px solid rgba(96,165,250,.22);border-radius:18px;background:#142349;color:white;padding:14px 18px;display:none;align-items:center;gap:12px;cursor:pointer;z-index:999999;box-shadow:0 10px 30px rgba(0,0,0,.25);font-weight:700;font-size:15px;transition:.2s ease;}
+#print-pdf-btn:hover{transform:translateY(-2px);background:#1a2d5d;}
+#print-pdf-btn.show{display:flex;}
+@media print{#print-pdf-btn{display:none!important;}}
+</style>
+</head>
+<body>
+<canvas id="bg-canvas"></canvas>
+<div class="app">
+
+<!-- HOME -->
+<div id="home" class="screen active">
+  <div class="header">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+      <h1>JLPT N3 — July 2022</h1>
+    </div>
+    <p class="muted">72 real questions · 言語知識 (文字・語彙・文法) + 読解 · 105 minute</p>
+  </div>
+  <div class="stat-grid">
+    <div class="stat-card"><div class="stat-num">72</div><div class="stat-lbl">total soal</div></div>
+    <div class="stat-card"><div class="stat-num" id="hs-done">0</div><div class="stat-lbl">dikerjakan</div></div>
+    <div class="stat-card"><div class="stat-num" id="hs-score">—</div><div class="stat-lbl">skor terakhir</div></div>
+    <div class="stat-card"><div class="stat-num" id="hs-pred">—</div><div class="stat-lbl">prediksi</div></div>
+  </div>
+  <div class="info-note">⚠️ Questions 聴解 (listening) not included because it requires audio. Total questions written: 72</div>
+  <button class="mode-btn" onclick="startMode('all')"><strong>🎯 Full Exam</strong><br><span style="font-size:12px;color:var(--muted)">All 72 questions · timer 105 minute</span></button>
+  <button class="mode-btn" onclick="startMode('moji')"><strong>📝 文字・語彙</strong><br><span style="font-size:12px;color:var(--muted)">34 questions · 問題1–5 · timer 35 minute</span></button>
+  <button class="mode-btn" onclick="startMode('bunpou')"><strong>📐 文法</strong><br><span style="font-size:12px;color:var(--muted)">22 questions · 問題1–3 · timer 25 minute</span></button>
+  <button class="mode-btn" onclick="startMode('dokkai')"><strong>📖 読解</strong><br><span style="font-size:12px;color:var(--muted)">16 questions · 問題4–7 · timer 45 minute</span></button>
+</div>
+
+<!-- QUIZ -->
+<div id="quiz" class="screen">
+  <div class="card" style="padding:14px 18px;">
+    <div class="row" style="margin-top:0;">
+      <span class="badge" id="q-sec-badge">文字</span>
+      <span class="badge badge-type" id="q-type-badge">問題1</span>
+      <div class="spacer"></div>
+      <span id="timer-text" style="font-size:14px;font-weight:600;font-family:var(--mono)">--:--</span>
+    </div>
+    <div class="timer-bar"><div class="timer-fill" id="timer-fill" style="width:100%"></div></div>
+    <div class="row" style="margin-top:2px;">
+      <span class="muted" id="q-num" style="font-family:var(--mono);font-size:12px;">問 1 / 72</span>
+      <div class="spacer"></div>
+      <span class="muted" id="q-score-live" style="font-size:12px;">正解: 0</span>
+    </div>
+  </div>
+  <div class="progress-grid" id="prog-grid"></div>
+  <div class="card" id="passage-card" style="display:none;">
+    <div class="passage-label">📖 reading text</div>
+    <div class="passage-box" id="passage-text"></div>
+  </div>
+  <div class="card">
+    <div class="q-text" id="q-text"></div>
+    <div id="options"></div>
+    <div class="explanation" id="explanation" style="display:none;"></div>
+  </div>
+  <div class="row">
+    <button class="nav-btn" onclick="prevQ()">← Back</button>
+    <button class="nav-btn" onclick="saveSessionManual()">💾 Save</button>
+    <button class="nav-btn" onclick="loadSessionManual()">📂 Load</button>
+    <div class="spacer"></div>
+    <button class="nav-btn" id="next-btn" onclick="nextQ()" disabled>Next →</button>
+    <button class="nav-btn finish" onclick="finishQuiz()">Done</button>
+  </div>
+</div>
+
+<!-- RESULT -->
+<div id="result" class="screen">
+  <div class="header"><h1>Exam Result</h1><p class="muted" id="res-date"></p></div>
+  <div class="pass-banner" id="pass-banner">
+    <strong id="pass-text" style="font-size:18px;"></strong>
+    <p id="pass-sub" style="font-size:13px;margin-top:6px;color:var(--muted);"></p>
+  </div>
+  <div class="stat-grid">
+    <div class="stat-card"><div class="stat-num" id="r-correct"></div><div class="stat-lbl">correct</div></div>
+    <div class="stat-card"><div class="stat-num" id="r-wrong"></div><div class="stat-lbl">wrong</div></div>
+    <div class="stat-card"><div class="stat-num" id="r-pct"></div><div class="stat-lbl">accuracy</div></div>
+    <div class="stat-card"><div class="stat-num" id="r-time"></div><div class="stat-lbl">time</div></div>
+  </div>
+  <div class="card"><h2>Score per section</h2><div id="section-results"></div></div>
+  <div class="card"><h2>JLPT N3 passing prediction</h2><div id="prediction-detail" style="font-size:13px;line-height:2;color:var(--muted);"></div></div>
+  <div class="row" style="gap:8px;margin-top:8px;">
+    <button class="nav-btn" onclick="reviewAnswers()">Review Answers</button>
+    <div class="spacer"></div>
+    <button class="nav-btn" onclick="goHome()">Back to Menu</button>
+  </div>
+</div>
+
+</div>
+<script>
+const PASSAGES = {
+
+p_koujou:`以下は、留学生の作文である。
+
+工場見学
+
+コルホネン　アーロン
+
+日本に来る前に、日本には無料で工場見学ができるところがあると聞いて、面白そうだと思いました。日本に行ったら絶対に行こうと思っていたのですが、先月ついに行くことができました。
+
+19 のはアイスクリームの会社の工場です。工場では、機会を使って、材料を混ぜたり型に入れたり凍らせたりしていました。工場の人の説明は丁寧で、機械や商品の説明が書かれた資料もくれたので、よくわかりました。できたばかりのアイスも食べさせてくれました。工場見学は本当に楽しかったです。20、どうして無料で見学をさせてくれるのかわかりませんでした。
+
+調べてみたら、工場見学は、会社側にもいいことがあるとわかりました。ある新聞の調査によると、工場見学をした人の大部分が、21 で作られている商品を好きになり、会社に対するイメージもよくなったそうです。実際に、私も工場見学をした会社の印象が前よりよくなりました。
+
+日本には、他にも同じような工場見学ができるところがたくさんあるそうです。今、次に見学に行く工場を探しています。日本にいる間にいろいろな工場に見学に 22。`,
+
+p_mokuhyou:`日本語学校の新学期が始まったとき、クラス全員がそれぞれ、学期の目標を紙に書いて教室にはっておくことになった。私は漢字を500字覚えることにしたが、やってみると大変だった。でも、教室に入ると、自分で書いた目標が目に入るし、クラスのみんなも知っているから、簡単にはやめられない。そのおかげで、学期末には目標の500字を覚えることができた。目標を心の中で決めるだけではなく、紙に書いて教室にはったのがよかったのだ。`,
+
+p_ryokou:`これはある旅行会社が客の水川さんに書いたメールである。
+
+水川真理様
+「京都の旅 2泊3日」へのお申し込み、ありがとうございました。下のご予約内容を確認していただき、ご出発日の1週間前までに旅行代金をお振り込みください。
+なお、ご出発日の20日前以降のお取り消しには、キャンセル料が発生します(20日前〜8日前まで20%、7日前〜前日まで30%、当日100%)。
+ご質問などございましたら、ご連絡ください。
+
+＜ご予約内容＞
+ツアー名：京都の旅 2泊3日
+出発日：2月13日
+代金合計 86,000円（税込）
+振り込み先：あおば銀行西島支店 普通 1234567 石野旅行
+石野旅行 予約課 岩坂
+電話：051-960-7451　FAX：051-960-7452`,
+
+p_yuubin:`郵便局と聞くと、まず思いつくのは手紙や荷物の配達だろう。だが、こんな意外なサービスがあることを知っているだろうか。一人暮らしをしているお年寄りとその家族の安心のため、郵便局員がお年寄りの家を訪問する。そして、そのときのお年寄りの様子をEメールで家族に教えてくれるのだ。親になかなか会いに行けない人には、うれしいサービスだ。`,
+
+p_memo:`ナムさん
+
+来週の「会議の文法研究会」ですが、申し込みが予想より増えています。
+参加者は60名ぐらいになりそうですから、資料をあと20部お願いします。
+それから、今日、大学の事務所で、教室の予約を304から201に変えてもらいました。研究会の会員にメールでお知らせしておきますが、当日も304のドアに、教室が変わったことを知らせる紙をはったほうがいいと思うので、作っておいてください。`,
+
+p_suito:`今年の夏、初めて水筒を買った。今まで、飲み物はペットボトルを買っていたが、一ヶ月に五千円もかかっていたのだ。
+
+買ったのは、コップが付いていない、直接口をつけて飲む水筒で、飲み物の温度が長時間変わらない物だ。コップが付いている水筒もあったが、毎回コップに入れるのはめんどくさいと思ったので、①この水筒にした。
+
+夏は一日中冷たいものが飲めたので良かったのだが、冬になって熱い飲み物を入れたら、②困ったことが起きた。熱すぎて、直接は飲めなかったのだ。最初は1本あれば十分だと思っていたが、結局、コップ付きの水筒も買った。コップがあれば冷ますことができる。どちらの水筒もそれほど高くはなかったが、③最初に考えていたよりはお金がかかってしまった。でも、季節によって違う水筒を使うのも楽しいし、ペットボトルも買わなくなったのでこれでよかったと思っている。`,
+
+p_karasu:`日本では、町の中でカラスをよく見ます。カラスという鳥は平気で人間に向かって飛んできたり、食べ物を取ったりするので、嫌がる人もいます。
+
+私の町では、毎日夕方になると、たくさんのカラスが、公園の木で寝るために集まってきます。声がうるさいし、数が非常に多いので怖さを感じることもあります。それで町の人たちはとても困っています。①この問題の解決方法はあるのでしょうか。
+
+ある町では、専門家の協力で一つの②実験に成功しました。安全な状態にいるときと危険を感じたときのカラスの鳴き方の違いを利用して、「いてほしくない場所」から「集まっても問題のない場所」にカラスを移動させることができたそうです。
+
+しかし、私の町には大きな森など、カラスが「集まっても問題のない場所」はありません。ですから、同じ方法は使えそうにありません。私の町に合った解決方法が見つかればいいと思います。`,
+
+p_rousoku:`私は両親結婚記念日に毎年違うプレゼントを送っていて、実家の両親も楽しみにしてくれている。ただ、もう20年以上続けているので、だんだんアイディアがなくなってきた。今年は、前にあげたことがあるものでもしかたないと、①あきらめ始めていた。
+
+そんなとき、友達から旅行のお土産に小さい箱に入ったおしゃれなろうそくをもらった。その夜、さっそく火をつけてみた。不規則にやさしく火がゆれて、それを見ていると気持ちが落ちついた。
+
+箱には、ろうそくの効果についての②説明の紙も入っていた。ろうそくの火、嫌なにおいを消す効果があることは知っていたが、料理をおいしく見せる効果があることは初めて知った。それを読んで私は、「両親へのプレゼントにいいかもしれない」と思いついた。ろうそくはあげたことがないし、これを使えば、結婚記念日の夜のごちそうがもっとおいしく感じるだろう。
+
+しかし、しばらく火を見つめていると、ちょっと心配になってきた。食事のあとで消し忘れることもあるかもしれない。それに、両親の家では猫を飼っているので、何が起こるかわからない。
+
+③ろうそくはやっぱりやめたほうがいいと思ったが、あきらめられずに一緒に入っていたカタログを見ていた。すると、実物の火そっくりにゆれて、同じような効果もある「電気のろうそく」があるのを見つけた。これなら、安全に使えそうだ。
+
+結婚記念日まではまだ2週間ある、このタイプには、ほかにも種類があるようなので、もう少し調べてみようと思う。`,
+
+p_guitar:`中村ギター教室　生徒募集
+
+★初めての方にもわかりやすく教えます。
+★教室に通うかどうか決める前に、60分の「特別割引レッスン」(1000円)を1回90分受けることができます。
+
+「講師」中村カズオ（西日本音楽大学卒業）
+「時間」1回90分（毎日10時〜21時の間）※日時は、講師と予約を相談して決めます。
+
+「レッスンのタイプ」
+個人レッスンと、2〜3名で申し込めるグループレッスンがあります。
+
+「1ヵ月の料金」（グループレッスンは1名分の料金）
+個人：月2回 7,000円 / 月3回 10,000円 / 月4回 13,000円
+グループ：月2回 6,000円 / 月3回 8,000円 / 月4回 10,000円
+
+学生割引：学生の方は、上の表の料金から毎月1000円割引します。
+平日昼間割引：平日昼間（月〜金の17時までに終了）にレッスンを受ける方は、上の表の料金から毎月2000円割引します。
+※二つの割引を同時に使うことはできません。
+※毎月の料金は、前の月の最終日までにお支払いください。
+
+「特別割引レッスン」
+・メールに、お名前、連絡先、レッスンのタイプ、希望日時を書いてお申し込みください。
+・グループレッスンを希望する方は、代表の方がお申し込みください。
+・料金（一人1000円）は、当日お支払いください。
+・自分のギターでレッスンを受けたい方は持ってきてください。持ってこられない方には、無料で教室のギターをお貸しします。
+
+中村ギター教室〒120-5599 春中市高木町6-2-3（春中駅から徒歩1分）
+ホームページ https://nakamuraguitaryuukibui.jp　Eメール k-nakamura@guitar.com`
+
+};
+
+// =========================================================
+// SOAL N3 JULI 2022 — berdasarkan PDF soal
+// =========================================================
+const Q = [
+
+// ===== 文字・語彙 =====
+// 問題1: 読み方 (Q1-7)
+{id:1,sec:"文字・語彙",type:"問題1",
+ q:'その会社の<u>情報</u>は、インターネットで見ました。',
+ opts:["じょうほう","ちょうほう","じょうぼう","ちょうぼう"],
+ ans:0,
+ exp:"情報（じょうほう）= information。答え：1"},
+
+{id:2,sec:"文字・語彙",type:"問題1",
+ q:'兄は、<u>現在</u>は海外で働いています。',
+ opts:["けんさい","げんさい","けんざい","げんざい"],
+ ans:3,
+ exp:"現在（げんざい）= currently, at present。答え：4"},
+
+{id:3,sec:"文字・語彙",type:"問題1",
+ q:'小さくて<u>丸い</u>いすがほしい。',
+ opts:["くろい","まるい","あおい","かるい"],
+ ans:1,
+ exp:"丸い（まるい）= round, circular。答え：2"},
+
+{id:4,sec:"文字・語彙",type:"問題1",
+ q:'その歌は日本でも<u>有名</u>です。',
+ opts:["ゆめ","ゆめい","ゆうめ","ゆうめい"],
+ ans:3,
+ exp:"有名（ゆうめい）= famous, well-known。答え：4"},
+
+{id:5,sec:"文字・語彙",type:"問題1",
+ q:'そこの通りの<u>角</u>に、コンビニができるそうです。',
+ opts:["かど","そば","はし","よこ"],
+ ans:0,
+ exp:"角（かど）= corner (of a street)。答え：1"},
+
+{id:6,sec:"文字・語彙",type:"問題1",
+ q:'大切な物なので、丁寧に<u>包んで</u>ください。',
+ opts:["たたんで","はこんで","すすんで","つつんで"],
+ ans:3,
+ exp:"包む（つつむ）= to wrap。答え：4"},
+
+{id:7,sec:"文字・語彙",type:"問題1",
+ q:'それは、もう<u>計算</u>しました。',
+ opts:["けいけん","けけん","けいさん","けさん"],
+ ans:2,
+ exp:"計算（けいさん）= calculation, computation。答え：3"},
+
+// 問題2: 漢字 (Q8-13)
+{id:8,sec:"文字・語彙",type:"問題2",
+ q:'私は毎日、どのくらい歩いたか<u>きろく</u>している。',
+ opts:["基緑","記緑","基録","記録"],
+ ans:3,
+ exp:"記録（きろく）= record, log。答え：4"},
+
+{id:9,sec:"文字・語彙",type:"問題2",
+ q:'駅で新しい<u>こうこく</u>を見ました。',
+ opts:["校菅","校告","広営","広告"],
+ ans:3,
+ exp:"広告（こうこく）= advertisement。答え：4"},
+
+{id:10,sec:"文字・語彙",type:"問題2",
+ q:'体がすっかり<u>ひえて</u>しまいました。',
+ opts:["冷えて","寒えて","氷えて","低えて"],
+ ans:0,
+ exp:"冷える（ひえる）= to get cold, to chill。答え：1"},
+
+{id:11,sec:"文字・語彙",type:"問題2",
+ q:'<u>けんさ</u>はしたが何も問題はなかった。',
+ opts:["健査","検査","検察","健察"],
+ ans:1,
+ exp:"検査（けんさ）= inspection, examination, test。答え：2"},
+
+{id:12,sec:"文字・語彙",type:"問題2",
+ q:'その話は<u>たしか</u>ですか。',
+ opts:["定か","確か","必か","常か"],
+ ans:1,
+ exp:"確か（たしか）= certain, sure。答え：2"},
+
+{id:13,sec:"文字・語彙",type:"問題2",
+ q:'私の祖父は、日本の<u>かいが</u>をたくさん持っている。',
+ opts:["絵面","図面","絵画","図面"],
+ ans:2,
+ exp:"絵画（かいが）= painting, picture。答え：3"},
+
+// 問題3: 文脈 (Q14-24)
+{id:14,sec:"文字・語彙",type:"問題3",
+ q:'たまねぎとにんじんは皮を（　）から料理に使ってください。',
+ opts:["むいて","ほって","破って","離して"],
+ ans:0,
+ exp:"むく = to peel (skin/rind). 皮をむく = to peel the skin。答え：1"},
+
+{id:15,sec:"文字・語彙",type:"問題3",
+ q:'この国には石油やガスなどの（　）があまりありません。',
+ opts:["栄養","資源","内容","部品"],
+ ans:1,
+ exp:"資源（しげん）= resources, natural resources. 石油やガスなどの資源 = resources like oil and gas。答え：2"},
+
+{id:16,sec:"文字・語彙",type:"問題3",
+ q:'一生懸命頑張ったのに、試合に負けてしまって、とても（　）です。',
+ opts:["まずしかった","あやしかった","くやしかった","ずるかった"],
+ ans:2,
+ exp:"くやしい = frustrated, mortified, vexing. 負けてくやしい = frustrated at losing。答え：3"},
+
+{id:17,sec:"文字・語彙",type:"問題3",
+ q:'旅行に行けなくなったので、ホテルの予約を（　）した。',
+ opts:["ピックアップ","キャンセル","ディスカウント","チェックアウト"],
+ ans:1,
+ exp:"キャンセル = cancel. 予約をキャンセルする = to cancel a reservation。答え：2"},
+
+{id:18,sec:"文字・語彙",type:"問題3",
+ q:'コーヒーをこぼして、白いズボンに（　）ができてしまった。',
+ opts:["穴","影","こぶ","しみ"],
+ ans:3,
+ exp:"しみ = stain. コーヒーでしみができる = a coffee stain forms。答え：4"},
+
+{id:19,sec:"文字・語彙",type:"問題3",
+ q:'兄を起こすために、部屋の外からドアを強く（　）。',
+ opts:["たたいた","さわった","つかまえた","なでた"],
+ ans:0,
+ exp:"たたく = to knock, to hit. ドアをたたく = to knock on the door。答え：1"},
+
+{id:20,sec:"文字・語彙",type:"問題3",
+ q:'交通事故を（　）ために、ここに横断歩道を作るそうです。',
+ opts:["直す","逃す","防ぐ","守る"],
+ ans:2,
+ exp:"防ぐ（ふせぐ）= to prevent, to protect against. 事故を防ぐ = to prevent accidents。答え：3"},
+
+{id:21,sec:"文字・語彙",type:"問題3",
+ q:'のどが（　）ので、何か飲みたいです。',
+ opts:["へった","すいた","かわいた","やせた"],
+ ans:2,
+ exp:"かわく = to be dry/thirsty. のどがかわく = to be thirsty。答え：3"},
+
+{id:22,sec:"文字・語彙",type:"問題3",
+ q:'行きは佐藤さんと2人で来たが、帰りは（　）だった。',
+ opts:["様々","半々","別々","色々"],
+ ans:2,
+ exp:"別々（べつべつ）= separately. 帰りは別々だった = went home separately。答え：3"},
+
+{id:23,sec:"文字・語彙",type:"問題3",
+ q:'留学については、両親とよく（　）、決めるつもりだ。',
+ opts:["取り込んで","言い返して","受け取って","話し合って"],
+ ans:3,
+ exp:"話し合う（はなしあう）= to discuss, to talk things over. 両親と話し合って決める = decide after discussing with parents。答え：4"},
+
+{id:24,sec:"文字・語彙",type:"問題3",
+ q:'昨日の夜から歯が痛くて、（　）します。',
+ opts:["とんとん","ざあざあ","ずきずき","からから"],
+ ans:2,
+ exp:"ずきずき = throbbing (pain). 歯がずきずきする = teeth are throbbing with pain。答え：3"},
+
+// 問題4: 言い換え (Q25-29)
+{id:25,sec:"文字・語彙",type:"問題4",
+ q:'<u>ふだん</u>と同じようにやってください。',
+ opts:["みんな","昔","いつも","例"],
+ ans:2,
+ exp:"ふだん ≈ いつも = usually, normally, always。答え：3"},
+
+{id:26,sec:"文字・語彙",type:"問題4",
+ q:'あの人は<u>短気</u>だ。',
+ opts:["すぐ怒る","すぐ謝る","すぐ驚く","すぐ喜ぶ"],
+ ans:0,
+ exp:"短気（たんき）= short-tempered ≈ すぐ怒る = gets angry quickly。答え：1"},
+
+{id:27,sec:"文字・語彙",type:"問題4",
+ q:'12時に<u>グラウンド</u>に来てください。',
+ opts:["屋上","体育館","公園","運動場"],
+ ans:3,
+ exp:"グラウンド ≈ 運動場（うんどうじょう）= sports ground, playing field。答え：4"},
+
+{id:28,sec:"文字・語彙",type:"問題4",
+ q:'私の<u>おい</u>は東京に住んでいます。',
+ opts:["姉の息子","姉の娘","父の弟","父の妹"],
+ ans:0,
+ exp:"おい（甥）= nephew = 姉（または兄）の息子。答え：1"},
+
+{id:29,sec:"文字・語彙",type:"問題4",
+ q:'もっと<u>くわしく</u>説明してください。',
+ opts:["早く","細かく","簡単に","熱心に"],
+ ans:1,
+ exp:"くわしい ≈ 細かい（こまかい）= detailed, minute. くわしく説明する = explain in detail。答え：2"},
+
+// 問題5: 用法 (Q30-34)
+{id:30,sec:"文字・語彙",type:"問題5",
+ q:'<u>諦める</u>の正しい使い方として最もよいものを選びなさい。',
+ opts:["今日は天気がいいから、傘を諦めてよさそうだ。",
+       "台風が来そうなので、あしたの登山を諦めることにした。",
+       "家を出てすぐに、鍵をかけるのを諦めたことに気づいた。",
+       "悲しい小説だったので、泣くのを諦められなかった。"],
+ ans:1,
+ exp:"諦める（あきらめる）= to give up, to abandon. 登山を諦める = to give up mountain climbing。答え：2"},
+
+{id:31,sec:"文字・語彙",type:"問題5",
+ q:'<u>参加</u>の正しい使い方として最もよいものを選びなさい。',
+ opts:["赤ちゃんが家族に参加したので、生活が変わった。",
+       "山川さんが事故に参加して、足をけがしたそうだ。",
+       "あしたは息子と一緒にパーティーに参加するつもりだ。",
+       "父は貿易会社に参加しているので、出張は海外が多い。"],
+ ans:2,
+ exp:"参加（さんか）= participation, joining. パーティーに参加する = to participate in a party。答え：3"},
+
+{id:32,sec:"文字・語彙",type:"問題5",
+ q:'<u>盛ん</u>の正しい使い方として最もよいものを選びなさい。',
+ opts:["あしたは試合なので、今日は練習時間が盛んだった。",
+       "今日は荷物が盛んなので、大きなかばんが必要だ。",
+       "このレストランは、魚も野菜も盛んでおいしい。",
+       "この町は以前から外国人との交流が盛んだ。"],
+ ans:3,
+ exp:"盛ん（さかん）= thriving, active, flourishing. 交流が盛んだ = exchanges are thriving/active。答え：4"},
+
+{id:33,sec:"文字・語彙",type:"問題5",
+ q:'<u>整理</u>の正しい使い方として最もよいものを選びなさい。',
+ opts:["机の引き出しを整理して、いらない物を捨てました。",
+       "家の廊下が汚れていたので、ぞうきんで整理しました。",
+       "長い間使っていない部屋の窓を開けて、空気を整理した。",
+       "虫歯になると困るので、毎回、食事の後で歯を整理している。"],
+ ans:0,
+ exp:"整理（せいり）= tidying up, organizing. 机の引き出しを整理する = to organize the desk drawer。答え：1"},
+
+{id:34,sec:"文字・語彙",type:"問題5",
+ q:'<u>通り過ぎる</u>の正しい使い方として最もよいものを選びなさい。',
+ opts:["さっき店の前を自転車で通り過ぎたのは、木村さんだと思う。",
+       "バスが遅れて、待ち合わせの時間を通り過ぎてしまった。",
+       "今日はご飯の量を通り過ぎて、おなかがいっぱいだ。",
+       "締め切りを通り過ぎないように、書類は早めに出したほうがいい。"],
+ ans:0,
+ exp:"通り過ぎる（とおりすぎる）= to pass by, to go past. 店の前を通り過ぎた = passed by in front of the shop。答え：1"},
+
+// ===== 文法 =====
+// 問題1: 文法 (Q35-47)
+{id:35,sec:"文法",type:"問題1(文法)",
+ q:'友達がおいしいカレー屋があると言って連れていってくれた。\n友達と同じものを頼んだが、私（　）辛すぎた。',
+ opts:["で","へ","には","より"],
+ ans:2,
+ exp:"〜には = for ~, to ~. 私には辛すぎた = it was too spicy for me。答え：3"},
+
+{id:36,sec:"文法",type:"問題1(文法)",
+ q:'A「（　）絵本、知ってる？」\nB「うん、知ってるよ。子供のとき、大好きだった。」',
+ opts:["「大きな家」と","「大きな家」って","「大きな家」でも","「大きな家」なんか"],
+ ans:1,
+ exp:"〜って = quotation particle (casual). 「大きな家」って絵本 = a picture book called 'The Big House'。答え：2"},
+
+{id:37,sec:"文法",type:"問題1(文法)",
+ q:'昨日見た映画は、面白いと聞いていたのに（　）面白くなかった。',
+ opts:["やっと","すっかり","せっかく","ちっとも"],
+ ans:3,
+ exp:"ちっとも〜ない = not at all. ちっとも面白くなかった = wasn't interesting at all。答え：4"},
+
+{id:38,sec:"文法",type:"問題1(文法)",
+ q:'近所のパン屋は、パンの種類が多い。一年中売っているパン（　）、季節ごとに発売されるパンもある。',
+ opts:["のほかに","のことで","に比べて","について"],
+ ans:0,
+ exp:"〜のほかに = in addition to ~, besides ~. パンのほかに季節パンもある = besides regular bread, there's also seasonal bread。答え：1"},
+
+{id:39,sec:"文法",type:"問題1(文法)",
+ q:'夫は、プロのサッカー選手として活動する（　）大学院でスポーツ科学を学んでいる。',
+ opts:["点で","一方で","としたら","のだから"],
+ ans:1,
+ exp:"〜一方で = on the other hand, while also ~. 活動する一方で学んでいる = while working as an athlete, also studying。答え：2"},
+
+{id:40,sec:"文法",type:"問題1(文法)",
+ q:'もうすぐ夏だ。（　）エアコンが問題なく動くかどうか、確認しておこうと思う。',
+ opts:["暑くなるまで","暑くなる前に","暑くするまで","暑くする前に"],
+ ans:1,
+ exp:"〜前に = before ~. 暑くなる前に確認する = check before it gets hot。答え：2"},
+
+{id:41,sec:"文法",type:"問題1(文法)",
+ q:'新しいパソコンを買って1か月（　）使っていないのに、壊れてしまった。',
+ opts:["ごろしか","ごろだけ","ぐらいしか","ぐらいだけ"],
+ ans:2,
+ exp:"〜ぐらいしか〜ない = only about ~. 1か月ぐらいしか使っていない = only used it for about a month。答え：3"},
+
+{id:42,sec:"文法",type:"問題1(文法)",
+ q:'（薬局で）\n店員「この薬を1日3回、食事の後に飲んでください。飲むと眠く（　）、飲んだ後、車の運転などはしないでください。」',
+ opts:["なればいいので","なったばかりなので","なることがあるので","なってはいけないので"],
+ ans:2,
+ exp:"〜ことがある = there are times when ~. 眠くなることがある = sometimes gets sleepy。答え：3"},
+
+{id:43,sec:"文法",type:"問題1(文法)",
+ q:'（インタビューで）\n選手「優勝できたのは皆さんの応援の（　）。ありがとうございました。」',
+ opts:["はずです","ようです","ことです","おかげです"],
+ ans:3,
+ exp:"〜のおかげです = it is thanks to ~. 応援のおかげで優勝できた = won thanks to everyone's support。答え：4"},
+
+{id:44,sec:"文法",type:"問題1(文法)",
+ q:'（電話で）\n田中「はい、営業課の田中です。」\n石山「会計課の石山ですが、今ちょっとよろしいですか。」\n田中「すみません。これから会議なんです。」\n田中「わかりました。では、またあとで（　）。」',
+ opts:["かけ直します","かけ出します","かけています","かけておきます"],
+ ans:0,
+ exp:"かけ直す = to call back. またあとでかけ直します = I'll call you back later。答え：1"},
+
+{id:45,sec:"文法",type:"問題1(文法)",
+ q:'（玄関で）\n妻「あれ、出かけるの？散歩？」\n夫「うん」\n妻「じゃあ、帰りにスーパーで卵を（　）？」\n夫「わかった。」',
+ opts:["買っていってもらわない","買っていってくれない","買ってきてもらわない","買ってきてくれない"],
+ ans:3,
+ exp:"〜てきてくれない？ = won't you come back with ~? 買ってきてくれない？= Could you pick up (eggs) on your way back?。答え：4"},
+
+{id:46,sec:"文法",type:"問題1(文法)",
+ q:'村山「中野さん、3月で会社を辞めるって本当ですか。」\n中野「はい、私、4月から（　）。」',
+ opts:["留学することにしたんです","留学することにしそうです","留学したことがあるんです","留学したことがありそうです"],
+ ans:0,
+ exp:"〜ことにしたんです = I've decided to ~. 留学することにした = decided to study abroad。答え：1"},
+
+{id:47,sec:"文法",type:"問題1(文法)",
+ q:'（銀行のホームページで）\nキャッシュカードの暗証番号は決して他人に（　）。',
+ opts:["知ってはいけません","知らせにくいです","知られないようにしてください","知らないほうがいいでしょう"],
+ ans:2,
+ exp:"知られないようにしてください = please make sure it is not known (to others). 他人に知られないようにする = prevent others from finding out。答え：3"},
+
+// 問題2: 並べ替え (Q48-52)
+{id:48,sec:"文法",type:"問題2(並べ替え)",
+ q:'私は、森先生の授業を受けてから数学が好きになった ＿＿ <u>★</u> ＿＿ いないと思う。\n1 先生は　2 先生ほど　3 あの　4 わかりやすく教えてくれる',
+ opts:["あの・先生ほど・★わかりやすく教えてくれる・先生は（★=わかりやすく教えてくれる）",
+       "あの・先生は・★先生ほど・わかりやすく教えてくれる（★=先生ほど）",
+       "わかりやすく教えてくれる・あの・★先生ほど・先生は（★=先生ほど）",
+       "先生ほど・あの・★わかりやすく教えてくれる・先生は（★=わかりやすく教えてくれる）"],
+ ans:0,
+ exp:"正しい文：数学が好きになった「あの(3) 先生ほど(2) わかりやすく教えてくれる(4) 先生は(1)」いないと思う。★ = わかりやすく教えてくれる(4)。答え：1"},
+
+{id:49,sec:"文法",type:"問題2(並べ替え)",
+ q:'「今日は、コーラを使った鶏肉の煮物を紹介します。鶏肉は ＿＿ <u>★</u> ＿＿ 知っていますか。」\n1 煮ることで　2 柔らかく　3 コーラで　4 なるのを',
+ opts:["コーラで・柔らかく・★煮ることで・なるのを（★=煮ることで）",
+       "コーラで・煮ることで・★柔らかく・なるのを（★=柔らかく）",
+       "柔らかく・なるのを・★コーラで・煮ることで（★=コーラで）",
+       "煮ることで・コーラで・★なるのを・柔らかく（★=なるのを）"],
+ ans:1,
+ exp:"正しい文：鶏肉は「コーラで(3) 煮ることで(1) 柔らかく(2) なるのを(4)」知っていますか。★ = 柔らかく(2)。答え：2"},
+
+{id:50,sec:"文法",type:"問題2(並べ替え)",
+ q:'山下「今度、北森町に行くんだけど、北森町のレストランでどこかいいところ、知ってる？」\n南「私はあまり知らないんだけど、田中さん ＿＿ <u>★</u> ＿＿ どう？」\n1 が　2 聞いてみたら　3 から　4 北森町に住んでいる',
+ opts:["北森町に住んでいる・から・★が・聞いてみたら（★=が）",
+       "から・北森町に住んでいる・★が・聞いてみたら（★=が）",
+       "北森町に住んでいる・が・★から・聞いてみたら（★=から）",
+       "が・北森町に住んでいる・★から・聞いてみたら（★=から）"],
+ ans:0,
+ exp:"正しい文：田中さん「北森町に住んでいる(4) から(3) が(1) 聞いてみたら(2)」どう？★ = が(1)。答え：1"},
+
+{id:51,sec:"文法",type:"問題2(並べ替え)",
+ q:'林「タンさんは、夏休みに国へ帰りますか。」\nタン「いいえ、今年は帰りません。日本で ＿＿ <u>★</u> ＿＿ なので楽しみです。」\n1 今年が　2 過ごすのは　3 初めて　4 夏休みを',
+ opts:["夏休みを・今年が・★初めて・過ごすのは（★=初めて）",
+       "夏休みを・過ごすのは・★今年が・初めて（★=今年が）",
+       "今年が・初めて・★夏休みを・過ごすのは（★=夏休みを）",
+       "過ごすのは・夏休みを・★今年が・初めて（★=今年が）"],
+ ans:1,
+ exp:"正しい文：日本で「夏休みを(4) 過ごすのは(2) 今年が(1) 初めて(3)」なので。★ = 今年が(1)。答え：2"},
+
+{id:52,sec:"文法",type:"問題2(並べ替え)",
+ q:'さくら大学の周りには、レストランや喫茶店などの ＿＿ <u>★</u> ＿＿ ある。\n1 中心に　2 飲食店を　3 いろいろな店が　4 本屋や美容院など',
+ opts:["飲食店を・中心に・★本屋や美容院など・いろいろな店が（★=本屋や美容院など）",
+       "中心に・飲食店を・★いろいろな店が・本屋や美容院など（★=いろいろな店が）",
+       "いろいろな店が・飲食店を・★中心に・本屋や美容院など（★=中心に）",
+       "本屋や美容院など・中心に・★飲食店を・いろいろな店が（★=飲食店を）"],
+ ans:0,
+ exp:"正しい文：レストランや喫茶店などの「飲食店を(2) 中心に(1) 本屋や美容院など(4) いろいろな店が(3)」ある。★ = 本屋や美容院など(4)。答え：1"},
+
+// 問題3: 文章の文法 (Q53-56)
+{id:53,sec:"文法",type:"問題3(文章)",
+ passage:"p_koujou",
+ q:'（19）のはアイスクリームの会社の工場です。\n\n19に入る最もよいものを選びなさい。',
+ opts:["見学する","見学した","見学している","見学してある"],
+ ans:1,
+ exp:"見学した = visited (past tense). 先月ついに行くことができました → 「見学した」のは過去の行為。答え：2"},
+
+{id:54,sec:"文法",type:"問題3(文章)",
+ passage:"p_koujou",
+ q:'工場見学は本当に楽しかったです。（20）、どうして無料で見学をさせてくれるのかわかりませんでした。\n\n20に入る最もよいものを選びなさい。',
+ opts:["でも","また","すると","たとえば"],
+ ans:0,
+ exp:"でも = but, however. 楽しかった「でも」なぜ無料？という逆接。答え：1"},
+
+{id:55,sec:"文法",type:"問題3(文章)",
+ passage:"p_koujou",
+ q:'工場見学をした人の大部分が、（21）で作られている商品を好きになり\n\n21に入る最もよいものを選びなさい。',
+ opts:["これ","それ","ここ","そこ"],
+ ans:3,
+ exp:"そこ = that place (referring to the factory mentioned). 工場見学をした会社の工場 → 「そこ」で作られている商品。答え：4"},
+
+{id:56,sec:"文法",type:"問題3(文章)",
+ passage:"p_koujou",
+ q:'日本にいる間にいろいろな工場に見学に（22）。\n\n22に入る最もよいものを選びなさい。',
+ opts:["行ってみてほしいです","行ってみたがっています","行ってみるつもりです","行ってみるといいです"],
+ ans:2,
+ exp:"〜つもりです = intend to ~, plan to ~. 行ってみるつもりです = I intend to try visiting。答え：3"},
+
+// ===== 読解 =====
+// 問題4: 短い文章 (Q57-60)
+{id:57,sec:"読解",type:"問題4(1)",
+ passage:"p_mokuhyou",
+ q:'「私」はどうして目標の500字を覚えることができたと考えているか。',
+ opts:["「私」にとって簡単な目標だったから。",
+       "クラス全員で話し合って、同じ目標に決めたから。",
+       "簡単にあきらめないようにしようと、心の中で決めていたから。",
+       "決めた目標が、自分にもほかの人にも見えるようにしてあったから。"],
+ ans:3,
+ exp:"「目標を心の中で決めるだけではなく、紙に書いて教室にはったのがよかった」= 目標が自分にも他の人にも見えるようにしてあったから。答え：4"},
+
+{id:58,sec:"読解",type:"問題4(2)",
+ passage:"p_ryokou",
+ q:'旅行会社がこのメールで最も言いたい事は何か。',
+ opts:["旅行の予約内容を確認したら、連絡してください。",
+       "旅行代金を出発日の1週間前までに振り込んでください。",
+       "旅行のキャンセル料を1週間以内に支払ってください。",
+       "旅行について何かわからないことがあれば質問をしてください。"],
+ ans:1,
+ exp:"「ご出発日の1週間前までに旅行代金をお振り込みください」= 旅行代金を出発日の1週間前までに振り込む。答え：2"},
+
+{id:59,sec:"読解",type:"問題4(3)",
+ passage:"p_yuubin",
+ q:'意外なサービスとあるが、一人暮らしのお年寄りとその家族に対するどのようなサービスか。',
+ opts:["家族の指定した時間に、お年寄りに荷物を配達する。",
+       "お年寄りを訪問し、その様子を家族にEメールで連絡する。",
+       "家族からのEメールを郵便局員が受け取り、印刷してお年寄りに渡す。",
+       "ふだんなかなか会えない家族のところに、お年寄りを連れて行く。"],
+ ans:1,
+ exp:"「郵便局員がお年寄りの家を訪問する。そして、そのときのお年寄りの様子をEメールで家族に教えてくれる」= お年寄りを訪問しその様子をEメールで家族に連絡する。答え：2"},
+
+{id:60,sec:"読解",type:"問題4(4)",
+ passage:"p_memo",
+ q:'ナムさんがこのメモで頼まれていることは何か。',
+ opts:["資料を60部準備することと、教室が変わったことを全員にメールで知らせること。",
+       "準備する資料を20部増やすことと、304のドアにはる紙を作っておくこと。",
+       "教室の予約を304から201を変えることと、304のドアに紙をはること。",
+       "教室が変わったことを全員にメールで知らせることと、304のドアにはる紙を作っておくこと。"],
+ ans:1,
+ exp:"「資料をあと20部お願いします」と「304のドアに教室が変わったことを知らせる紙をはったほうがいい…作っておいてください」= 資料を20部増やすことと304のドアにはる紙を作ること。答え：2"},
+
+// 問題5: 中文 (Q61-66)
+{id:61,sec:"読解",type:"問題5(1)①",
+ passage:"p_suito",
+ q:'①この水筒とあるが、どのような水筒か。',
+ opts:["飲み物の温度が変わりにくい、直接口をつけて飲む水筒。",
+       "飲み物の温度が変わりにくい、コップが付いている水筒。",
+       "熱い飲み物を冷ましやすい、直接口をつけて飲む水筒",
+       "熱い飲み物を冷ましやすい、コップがついている水筒"],
+ ans:0,
+ exp:"「コップが付いていない、直接口をつけて飲む水筒で、飲み物の温度が長時間変わらない物」= 温度が変わりにくく直接口をつけて飲む水筒。答え：1"},
+
+{id:62,sec:"読解",type:"問題5(1)②",
+ passage:"p_suito",
+ q:'②困ったこととあるが、どのようなことか。',
+ opts:["熱い飲み物を外で飲む機会が少なくなったこと。",
+       "熱い飲み物を入れたら、水筒が壊れてしまったこと。",
+       "熱いもの飲み物が水筒から直接飲めなかったこと。",
+       "熱い飲み物がすぐに冷めてしまったこと。"],
+ ans:2,
+ exp:"「熱すぎて、直接は飲めなかったのだ」= 熱い飲み物が水筒から直接飲めなかった。答え：3"},
+
+{id:63,sec:"読解",type:"問題5(1)③",
+ passage:"p_suito",
+ q:'③最初に考えていたよりはお金がかかってしまったとあるが、それはなぜか。',
+ opts:["ペットボトルを買うことが増えたから",
+       "とても高い水筒を買うことになったから。",
+       "水筒とは別にコップも買うことになったから。",
+       "水筒を2本も買うことになったから"],
+ ans:3,
+ exp:"「結局、コップ付きの水筒も買った」= 最初1本のつもりが2本買うことになったから。答え：4"},
+
+{id:64,sec:"読解",type:"問題5(2)①",
+ passage:"p_karasu",
+ q:'①この問題とあるが、何か。',
+ opts:["日本にカラスが多すぎること。",
+       "日本にカラスを嫌がる人が多いこと。",
+       "カラスが人に向かって飛んできたり、食物を取ったりして、危険で困ること。",
+       "「私」の町の公園に、カラスが夕方たくさん集まってきて、うるさくて怖いこと。"],
+ ans:3,
+ exp:"「私の町では…たくさんのカラスが公園の木で寝るために集まってきます。声がうるさいし…怖さを感じる…町の人たちはとても困っています」= 「私」の町の公園にカラスが夕方集まってうるさくて怖い。答え：4"},
+
+{id:65,sec:"読解",type:"問題5(2)②",
+ passage:"p_karasu",
+ q:'どのような②実験か。',
+ opts:["カラスを「集まっても問題のない場所」でよく眠らせて、静かにさせる実験。",
+       "カラスが「いてほしくない場所」にいても、鳴き声は周りに聞こえないようにする実験。",
+       "カラスの苦手な食べ物を利用して、「いてほしくない場所」に来ないようにする実験。",
+       "カラスの鳴き方の違いを利用して、「集まっても問題のない場所」に行かせる実験。"],
+ ans:3,
+ exp:"「カラスの鳴き方の違いを利用して、「いてほしくない場所」から「集まっても問題のない場所」にカラスを移動させることができた」= 鳴き方の違いを利用して問題のない場所に移動させる実験。答え：4"},
+
+{id:66,sec:"読解",type:"問題5(2)テーマ",
+ passage:"p_karasu",
+ q:'「私」の町のカラスの問題について、「私」はどう考えているか。',
+ opts:["「私」の町で成功した方法を、これからも続けていきたい。",
+       "「私」の町でも、別の町で成功した方法を使って解決してほしい。",
+       "別の町で成功した方法とは違う、「私」の町に合った新しい方法が必要だ。",
+       "別の町で成功した方法は「私」の町では使えないから、解決はあきらめよう。"],
+ ans:2,
+ exp:"「同じ方法は使えそうにありません。私の町に合った解決方法が見つかればいいと思います」= 別の方法・自分の町に合った新しい方法が必要。答え：3"},
+
+// 問題6: 長文 (Q67-70)
+{id:67,sec:"読解",type:"問題6①",
+ passage:"p_rousoku",
+ q:'①「あきらめ始めていた」とあるが、何をあきらめ始めていたのか。',
+ opts:["両親に今までと違うプレゼントを送ること。",
+       "両親にいつもと同じプレゼントを送ること。",
+       "両親に結婚記念日までにプレゼントを送ること。",
+       "両親に欲しいものを決めてもらうこと。"],
+ ans:0,
+ exp:"「今年は、前にあげたことがあるものでもしかたないと、あきらめ始めていた」= 毎年違うプレゼントを贈ること（今までと違うプレゼント）をあきらめていた。答え：1"},
+
+{id:68,sec:"読解",type:"問題6②",
+ passage:"p_rousoku",
+ q:'「私」が②説明の紙を読んで知ったことは、どんなことか。',
+ opts:["ろうそくの火が、不規則なゆれ方をすること。",
+       "ろうそくの火が、人の気持ちを落ち着かせること。",
+       "ろうそくの火が、嫌なにおいを消すこと。",
+       "ろうそくの火が、料理をおいしく見せること。"],
+ ans:3,
+ exp:"「料理をおいしく見せる効果があることは初めて知った」= 説明の紙で初めて知ったのは料理をおいしく見せる効果。答え：4"},
+
+{id:69,sec:"読解",type:"問題6③",
+ passage:"p_rousoku",
+ q:'③ろうそくはやっぱりやめたほうがいいと思ったとあるが、なぜか。',
+ opts:["前に両親にろうそくをあげたことを思い出したから。",
+       "結婚記念日にろうそくあげるのは変だと思ったから。",
+       "ろうそくの火は危険かもしれないと心配になったから。",
+       "ろうそくより新しいペットをあげた方が喜ばれると思ったから。"],
+ ans:2,
+ exp:"「食事のあとで消し忘れることも…両親の家では猫を飼っているので、何が起こるかわからない」= 火の危険性が心配になったから。答え：3"},
+
+{id:70,sec:"読解",type:"問題6④",
+ passage:"p_rousoku",
+ q:'両親へのプレゼントについて、「私」は今、どのように考えているか。',
+ opts:["友達にもらったろうそくがよかったから、同じろうそくが売られているか調べよう。",
+       "安全に使える「電気ろうそく」を見つけたから、さっそく両親に送ろう。",
+       "「電気ろうそく」にしようと思うが、もう少し調べてからどれにするか決めよう。",
+       "「電気ろうそく」をあげるのはやめて、ろうそくについてもう一度調べてみよう。"],
+ ans:2,
+ exp:"「このタイプには、ほかにも種類があるようなので、もう少し調べてみようと思う」= 電気ろうそくにするつもりだがもう少し調べてから決める。答え：3"},
+
+// 問題7: 情報検索 (Q71-72)
+{id:71,sec:"読解",type:"問題7①",
+ passage:"p_guitar",
+ q:'トムさんは、同じ大学に通う友達と一緒に月に3回グループレッスンを受けたいと考えている。2人の予定が合うのは、平日の18時以降である。トムさんと友達がこの教室に通う場合、トムさんは毎月いくら支払わなければならないか。',
+ opts:["8000円から、1000円引いたものを支払う。",
+       "8000円から、2000円引いたものを支払う。",
+       "10,000円から1000円引いたものを支払う。",
+       "10,000円から2000円引いたものを支払う。"],
+ ans:0,
+ exp:"月3回グループ = 8,000円。平日18時以降 = 17時以降終了の割引対象外。大学生 = 学生割引1,000円適用。8,000円 - 1,000円 = 7,000円。答え：1"},
+
+{id:72,sec:"読解",type:"問題7②",
+ passage:"p_guitar",
+ q:'特別割引レッスンを申し込んだ人が、当日必ず持っていかなければならないものは何か。',
+ opts:["特別割引レッスンの料金と、自分のギター。",
+       "特別割引レッスンの料金。",
+       "自分のギター。",
+       "特にない。"],
+ ans:1,
+ exp:"「料金（一人1000円）は、当日お支払いください」= 料金は当日必須。「自分のギターでレッスンを受けたい方は持ってきてください。持ってこられない方には、無料で教室のギターをお貸しします」= ギターは任意。答え：2"}
+
+];
+
+let currentQ=0,questions=[],answers={},startTime=null,timerInterval=null,totalSeconds=0,mode='all';
+
+function secBadgeClass(sec){
+  if(sec==="文字・語彙")return"badge badge-moji";
+  if(sec==="文法")return"badge badge-bunpou";
+  return"badge badge-dokkai";
+}
+function getQuestions(m){
+  if(m==='all')return[...Q];
+  if(m==='moji')return Q.filter(q=>q.sec==="文字・語彙");
+  if(m==='bunpou')return Q.filter(q=>q.sec==="文法");
+  if(m==='dokkai')return Q.filter(q=>q.sec==="読解");
+  return[...Q];
+}
+function getTimeLimit(m){return {all:6300,moji:2100,bunpou:1500,dokkai:3000}[m]||6300;}
+
+function startMode(m){
+  mode=m;questions=getQuestions(m);answers={};currentQ=0;
+  startTime=Date.now();totalSeconds=getTimeLimit(m);
+  showScreen('quiz');buildProgressGrid();renderQuestion();startTimer();
+}
+function startTimer(){
+  if(timerInterval)clearInterval(timerInterval);
+  timerInterval=setInterval(()=>{
+    const elapsed=Math.floor((Date.now()-startTime)/1000);
+    const remaining=totalSeconds-elapsed;
+    if(remaining<=0){clearInterval(timerInterval);finishQuiz();return;}
+    const mm=Math.floor(remaining/60),ss=remaining%60;
+    document.getElementById('timer-text').textContent=mm+':'+ss.toString().padStart(2,'0');
+    const pct=(remaining/totalSeconds)*100;
+    const fill=document.getElementById('timer-fill');
+    fill.style.width=pct+'%';
+    fill.className='timer-fill'+(pct<25?' danger':pct<50?' warn':'');
+  },500);
+}
+function buildProgressGrid(){
+  const g=document.getElementById('prog-grid');g.innerHTML='';
+  questions.forEach((_,i)=>{
+    const d=document.createElement('div');
+    d.className='prog-dot'+(i===currentQ?' current':'');
+    d.textContent=i+1;d.onclick=()=>goToQ(i);d.id='pd-'+i;
+    g.appendChild(d);
+  });
+}
+function goToQ(i){currentQ=i;renderQuestion();}
+function renderQuestion(){
+  const q=questions[currentQ];
+  const secBadge=document.getElementById('q-sec-badge');
+  secBadge.className=secBadgeClass(q.sec);secBadge.textContent=q.sec;
+  document.getElementById('q-type-badge').textContent=q.type;
+  document.getElementById('q-num').textContent='問 '+(currentQ+1)+' / '+questions.length;
+  const correct=Object.values(answers).filter(a=>a.correct).length;
+  document.getElementById('q-score-live').textContent='正解: '+correct;
+  const pc=document.getElementById('passage-card');
+  const pt=document.getElementById('passage-text');
+  if(q.passage&&PASSAGES[q.passage]){
+    pc.style.display='';
+    pt.innerHTML=PASSAGES[q.passage].split('\n').map(l=>l?'<p>'+l+'</p>':'').join('');
+  }else{pc.style.display='none';}
+  document.getElementById('q-text').innerHTML=q.q.replace(/\n/g,'<br>');
+  const od=document.getElementById('options');od.innerHTML='';
+  q.opts.forEach((opt,i)=>{
+    const b=document.createElement('button');
+    b.className='option-btn';
+    b.innerHTML='<span style="font-family:var(--mono);color:var(--muted);margin-right:10px;">'+(i+1)+'</span>'+opt;
+    b.onclick=()=>selectAnswer(i);
+    od.appendChild(b);
+  });
+  const exp=document.getElementById('explanation');exp.style.display='none';
+  document.getElementById('next-btn').disabled=true;
+  if(answers[q.id]!==undefined){restoreAnswer(q);}
+  document.querySelectorAll('.prog-dot').forEach((d,i)=>{
+    d.className='prog-dot'+(i===currentQ?' current':'');
+    const qq=questions[i];
+    if(answers[qq.id]!==undefined){d.className+=' '+(answers[qq.id].correct?'correct':'wrong');}
+  });
+}
+function selectAnswer(idx){
+  const q=questions[currentQ];
+  if(answers[q.id]!==undefined)return;
+  const correct=idx===q.ans;
+  answers[q.id]={selected:idx,correct};
+  const btns=document.querySelectorAll('.option-btn');
+  btns.forEach((b,i)=>{
+    b.disabled=true;
+    if(i===q.ans)b.classList.add('correct');
+    else if(i===idx&&!correct)b.classList.add('wrong');
+  });
+  const exp=document.getElementById('explanation');
+  exp.style.display='';
+  exp.textContent=q.exp;
+  document.getElementById('next-btn').disabled=false;
+  const dot=document.getElementById('pd-'+currentQ);
+  if(dot){dot.className='prog-dot current '+(correct?'correct':'wrong');}
+  document.getElementById('q-score-live').textContent='正解: '+Object.values(answers).filter(a=>a.correct).length;
+}
+function restoreAnswer(q){
+  const a=answers[q.id];
+  const btns=document.querySelectorAll('.option-btn');
+  btns.forEach((b,i)=>{
+    b.disabled=true;
+    if(i===q.ans)b.classList.add('correct');
+    else if(i===a.selected&&!a.correct)b.classList.add('wrong');
+  });
+  const exp=document.getElementById('explanation');
+  exp.style.display='';exp.textContent=q.exp;
+  document.getElementById('next-btn').disabled=false;
+}
+function nextQ(){if(currentQ<questions.length-1){currentQ++;renderQuestion();}}
+function prevQ(){if(currentQ>0){currentQ--;renderQuestion();}}
+function finishQuiz(){
+  clearInterval(timerInterval);
+  const elapsed=Math.floor((Date.now()-startTime)/1000);
+  showScreen('result');
+  const total=questions.length;
+  const correct=Object.values(answers).filter(a=>a.correct).length;
+  const wrong=Object.keys(answers).length-correct;
+  const pct=Math.round(correct/total*100);
+  document.getElementById('r-correct').textContent=correct;
+  document.getElementById('r-wrong').textContent=wrong;
+  document.getElementById('r-pct').textContent=pct+'%';
+  const mm=Math.floor(elapsed/60),ss=elapsed%60;
+  document.getElementById('r-time').textContent=mm+':'+ss.toString().padStart(2,'0');
+  document.getElementById('res-date').textContent=new Date().toLocaleString('ja-JP');
+  const secs=["文字・語彙","文法","読解"];
+  const sr=document.getElementById('section-results');sr.innerHTML='';
+  secs.forEach(s=>{
+    const qs=questions.filter(q=>q.sec===s);
+    if(!qs.length)return;
+    const c=qs.filter(q=>answers[q.id]?.correct).length;
+    const div=document.createElement('div');div.className='section-result';
+    div.innerHTML='<span>'+s+'</span><span style="font-family:var(--mono)">'+c+'/'+qs.length+' ('+Math.round(c/qs.length*100)+'%)</span>';
+    sr.appendChild(div);
+  });
+  const pass=pct>=60;
+  const pb=document.getElementById('pass-banner');
+  pb.className='pass-banner '+(pass?'pass':'fail');
+  document.getElementById('pass-text').textContent=pass?'✅ 合格圏内 (推定)':'❌ 要復習';
+  document.getElementById('pass-sub').textContent=correct+'/'+total+'問正解 ('+pct+'%) — JLPT N3合格目安: 正答率60%以上';
+  document.getElementById('hs-done').textContent=total;
+  document.getElementById('hs-score').textContent=pct+'%';
+  document.getElementById('hs-pred').textContent=pass?'合格':'不合格';
+  const pd=document.getElementById('prediction-detail');
+  pd.innerHTML='<p>📊 正答率 <strong>'+pct+'%</strong> ('+correct+'/'+total+'問)</p>'
+    +'<p>JLPT N3の合格基準: 総合得点 90/180点以上 + 各セクション最低ライン通過</p>'
+    +'<p>'+(pct>=70?'✅ 合格の可能性が高いです。':pct>=60?'⚠️ 合格ラインギリギリです。引き続き練習を。':'❌ 合格には更なる学習が必要です。')+'</p>';
+  document.getElementById('print-pdf-btn').classList.add('show');
+}
+function reviewAnswers(){
+  answers={};showScreen('quiz');buildProgressGrid();
+  currentQ=0;renderQuestion();
+}
+function goHome(){
+  clearInterval(timerInterval);
+  document.getElementById('print-pdf-btn').classList.remove('show');
+  showScreen('home');
+}
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function saveSessionManual(){
+  const data={answers,currentQ,mode,elapsed:Math.floor((Date.now()-startTime)/1000)};
+  localStorage.setItem('jlpt_n3_2022_07',JSON.stringify(data));
+  alert('💾 Sesion saved!');
+}
+function loadSessionManual(){
+  const raw=localStorage.getItem('jlpt_n3_2022_07');
+  if(!raw){alert('No saved sessions.');return;}
+  const data=JSON.parse(raw);
+  mode=data.mode||'all';
+  questions=getQuestions(mode);
+  answers=data.answers||{};
+  currentQ=data.currentQ||0;
+  startTime=Date.now()-(data.elapsed||0)*1000;
+  totalSeconds=getTimeLimit(mode);
+  showScreen('quiz');buildProgressGrid();renderQuestion();startTimer();
+  alert('📂 Session loaded!');
+}
+(function(){
+  const c=document.getElementById('bg-canvas');
+  const ctx=c.getContext('2d');
+  let W,H,particles=[];
+  function resize(){W=c.width=window.innerWidth;H=c.height=window.innerHeight;}
+  function init(){
+    resize();particles=[];
+    for(let i=0;i<60;i++)particles.push({x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.5+.3,dx:(Math.random()-.5)*.3,dy:(Math.random()-.5)*.3,a:Math.random()*.5+.1});
+  }
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    particles.forEach(p=>{
+      ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fillStyle='rgba(90,169,255,'+p.a+')';ctx.fill();
+      p.x+=p.dx;p.y+=p.dy;
+      if(p.x<0||p.x>W)p.dx*=-1;
+      if(p.y<0||p.y>H)p.dy*=-1;
+    });
+    requestAnimationFrame(draw);
+  }
+  window.addEventListener('resize',init);
+  init();draw();
+})();
+</script>
+<button id="print-pdf-btn" onclick="window.print()">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:22px;height:22px;"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+  <span>Cetak / PDF</span>
+</button>
+</body>
+</html>
