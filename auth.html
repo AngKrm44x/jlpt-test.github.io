@@ -272,10 +272,10 @@ async function handleSession(session) {
   const user = session.user;
 
   let { data: usr, error: selErr } = await supabase
-    .from('users')
-    .select('status, full_name')
-    .eq('id', user.id)
-    .single();
+  .from('users')
+  .select('status, full_name, display_name')
+  .eq('id', user.id)
+  .single();
 
   console.log('User DB:', usr, 'Error:', selErr);
 
@@ -329,7 +329,7 @@ async function handleSession(session) {
 
   // ✅ Active
   localStorage.removeItem('jlpt_pending');
-  showDashboard({ ...user, user_metadata: { full_name: usr.full_name } });
+  showDashboard({ ...user, user_metadata: { full_name: usr.display_name || usr.full_name } });
 }
 
 // ============================================================
