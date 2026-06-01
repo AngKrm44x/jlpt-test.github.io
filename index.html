@@ -30,16 +30,13 @@
         window.location.replace('./auth.html');
       } else {
         // Coba ambil kolom tambahan secara terpisah, kalau gagal tidak apa-apa
-        let extraData = {};
-        try {
-          const { data: extra } = await supabase
-            .from('users')
-            .select('avatar_url, display_name')
-            .eq('id', session.user.id)
-            .single();
-          if (extra) extraData = extra;
-        } catch(e) {
-          // kolom belum ada, skip saja
+       let extraData = {};
+const { data: extra, error: extraErr } = await supabase
+  .from('users')
+  .select('avatar_url, display_name')
+  .eq('id', session.user.id)
+  .single();
+if (!extraErr && extra) extraData = extra;
         }
 
         document.documentElement.style.visibility = 'visible';
