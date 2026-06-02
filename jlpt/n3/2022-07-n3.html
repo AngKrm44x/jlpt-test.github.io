@@ -84,10 +84,10 @@ canvas{position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.35;}
     <p class="muted">72 real questions · 言語知識 (文字・語彙・文法) + 読解 · 105 minute</p>
   </div>
   <div class="stat-grid">
-    <div class="stat-card"><div class="stat-num">72</div><div class="stat-lbl">total soal</div></div>
-    <div class="stat-card"><div class="stat-num" id="hs-done">0</div><div class="stat-lbl">dikerjakan</div></div>
-    <div class="stat-card"><div class="stat-num" id="hs-score">—</div><div class="stat-lbl">skor terakhir</div></div>
-    <div class="stat-card"><div class="stat-num" id="hs-pred">—</div><div class="stat-lbl">prediksi</div></div>
+    <div class="stat-card"><div class="stat-num">72</div><div class="stat-lbl">total questions</div></div>
+    <div class="stat-card"><div class="stat-num" id="hs-done">0</div><div class="stat-lbl">done</div></div>
+    <div class="stat-card"><div class="stat-num" id="hs-score">—</div><div class="stat-lbl">final score</div></div>
+    <div class="stat-card"><div class="stat-num" id="hs-pred">—</div><div class="stat-lbl">prediction</div></div>
   </div>
   <div class="info-note">⚠️ Questions 聴解 (listening) not included because it requires audio. Total questions written: 72</div>
   <button class="mode-btn" onclick="startMode('all')"><strong>🎯 Full Exam</strong><br><span style="font-size:12px;color:var(--muted)">All 72 questions · timer 105 minute</span></button>
@@ -1011,7 +1011,7 @@ function loadSessionManual(){
 </script>
 <button id="print-pdf-btn" onclick="window.print()">
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:22px;height:22px;"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-  <span>Cetak / PDF</span>
+  <span>Print / PDF</span>
 </button>
 </body>
 </html>
