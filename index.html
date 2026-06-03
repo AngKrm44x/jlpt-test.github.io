@@ -11,25 +11,19 @@
 
   try {
     const { data: { session } } = await supabase.auth.getSession();
-
     if (!session) {
       window.location.replace('./auth.html');
     } else {
-      // Ambil semua kolom sekaligus — termasuk display_name & avatar_url
       const { data: usr, error: usrErr } = await supabase
         .from('users')
         .select('status, full_name, display_name, avatar_url')
         .eq('id', session.user.id)
         .single();
-
       if (usrErr || !usr || usr.status !== 'active') {
-        if (!usr || usr.status !== 'active') {
-          await supabase.auth.signOut();
-        }
+        if (!usr || usr.status !== 'active') await supabase.auth.signOut();
         window.location.replace('./auth.html');
       } else {
         document.documentElement.style.visibility = 'visible';
-        // Expose ke window agar script non-module bisa akses
         window._supabase = supabase;
         window._session  = session;
         window._userDb   = usr;
@@ -41,9 +35,7 @@
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) window.location.replace('./auth.html');
       else document.documentElement.style.visibility = 'visible';
-    } catch(e2) {
-      window.location.replace('./auth.html');
-    }
+    } catch(e2) { window.location.replace('./auth.html'); }
   }
 </script>
 <meta charset="UTF-8">
@@ -103,26 +95,24 @@ h1{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;letter-spacing:-
 .new-badge{position:absolute;top:16px;right:16px;background:linear-gradient(135deg,#19c37d,#0da868);color:white;font-size:10px;font-weight:800;padding:3px 9px;border-radius:999px;letter-spacing:.5px;text-transform:uppercase;}
 .card{cursor:default;}
 
+/* DONE BADGE on card */
+.done-stamp{
+  position:absolute;bottom:76px;right:16px;
+  background:rgba(25,195,125,.15);border:1.5px solid rgba(25,195,125,.4);
+  color:#5ff0b0;font-size:10px;font-weight:800;padding:4px 10px;border-radius:999px;
+  letter-spacing:.5px;text-transform:uppercase;display:none;
+  align-items:center;gap:4px;
+  animation:fadeInBadge .4s ease;
+}
+.done-stamp.show{display:flex;}
+@keyframes fadeInBadge{from{opacity:0;transform:scale(.8);}to{opacity:1;transform:scale(1);}}
+
 /* STATS */
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:18px;margin:30px 0;}
 .stat-box{background:rgba(22,33,62,.8);border:1px solid var(--border);padding:24px;border-radius:24px;text-align:center;transition:border-color .2s,transform .2s;cursor:default;}
 .stat-box:hover{border-color:#3d5a8a;transform:translateY(-2px);}
 .stat-num{font-size:42px;font-weight:800;margin-bottom:8px;font-family:'Syne',sans-serif;background:linear-gradient(135deg,#fff,#7cc0ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
 .stat-label{color:var(--muted);}
-
-/* JLPT COUNTER per level */
-.level-counter-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:20px 0 30px;}
-.lc-box{background:rgba(22,33,62,.7);border:1.5px solid var(--border);border-radius:20px;padding:16px 12px;text-align:center;transition:.2s;cursor:pointer;}
-.lc-box:hover{transform:translateY(-2px);}
-.lc-box[data-lv="N1"]{border-color:rgba(255,154,170,.25);}.lc-box[data-lv="N1"]:hover{border-color:#ff9aaa;box-shadow:0 0 20px rgba(255,154,170,.15);}
-.lc-box[data-lv="N2"]{border-color:rgba(124,192,255,.25);}.lc-box[data-lv="N2"]:hover{border-color:#7cc0ff;box-shadow:0 0 20px rgba(124,192,255,.15);}
-.lc-box[data-lv="N3"]{border-color:rgba(182,156,255,.25);}.lc-box[data-lv="N3"]:hover{border-color:#b69cff;box-shadow:0 0 20px rgba(182,156,255,.15);}
-.lc-box[data-lv="N4"]{border-color:rgba(95,240,176,.25);}.lc-box[data-lv="N4"]:hover{border-color:#5ff0b0;box-shadow:0 0 20px rgba(95,240,176,.15);}
-.lc-box[data-lv="N5"]{border-color:rgba(255,209,138,.25);}.lc-box[data-lv="N5"]:hover{border-color:#ffd18a;box-shadow:0 0 20px rgba(255,209,138,.15);}
-.lc-label{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;margin-bottom:4px;}
-.lc-box[data-lv="N1"] .lc-label{color:#ff9aaa;}.lc-box[data-lv="N2"] .lc-label{color:#7cc0ff;}.lc-box[data-lv="N3"] .lc-label{color:#b69cff;}.lc-box[data-lv="N4"] .lc-label{color:#5ff0b0;}.lc-box[data-lv="N5"] .lc-label{color:#ffd18a;}
-.lc-count{font-size:28px;font-weight:800;font-family:'Syne',sans-serif;color:var(--text);}
-.lc-sub{font-size:11px;color:var(--muted);margin-top:2px;}
 
 /* SECTION HEADER */
 .section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;gap:10px;flex-wrap:wrap;}
@@ -179,45 +169,15 @@ h1{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;letter-spacing:-
 /* =============================================
    PROFILE CARD
    ============================================= */
-.profile-card{
-  background:rgba(22,33,62,.9);
-  border:1px solid var(--border);
-  border-radius:28px;
-  padding:28px;
-  margin-bottom:30px;
-  display:flex;
-  align-items:center;
-  gap:24px;
-  position:relative;
-  overflow:hidden;
-  transition:border-color .2s;
-}
+.profile-card{background:rgba(22,33,62,.9);border:1px solid var(--border);border-radius:28px;padding:28px;margin-bottom:30px;display:flex;align-items:center;gap:24px;position:relative;overflow:hidden;transition:border-color .2s;}
 .profile-card::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.03),transparent 60%);pointer-events:none;}
 .profile-card:hover{border-color:#3d5a8a;}
-
 .avatar-wrap{position:relative;flex-shrink:0;}
-.avatar{
-  width:72px;height:72px;border-radius:50%;
-  background:linear-gradient(135deg,#3558a8,#6c3fff);
-  display:flex;align-items:center;justify-content:center;
-  font-size:28px;font-weight:800;font-family:'Syne',sans-serif;
-  color:white;cursor:pointer;overflow:hidden;
-  border:2.5px solid rgba(90,169,255,.3);
-  transition:border-color .2s,transform .2s;
-  position:relative;
-}
+.avatar{width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,#3558a8,#6c3fff);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:800;font-family:'Syne',sans-serif;color:white;cursor:pointer;overflow:hidden;border:2.5px solid rgba(90,169,255,.3);transition:border-color .2s,transform .2s;position:relative;}
 .avatar:hover{border-color:#5aa9ff;transform:scale(1.05);}
 .avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
-.avatar-edit{
-  position:absolute;bottom:0;right:0;
-  width:22px;height:22px;border-radius:50%;
-  background:#5aa9ff;border:2px solid #111a2f;
-  display:flex;align-items:center;justify-content:center;
-  font-size:10px;cursor:pointer;
-  transition:transform .2s;
-}
+.avatar-edit{position:absolute;bottom:0;right:0;width:22px;height:22px;border-radius:50%;background:#5aa9ff;border:2px solid #111a2f;display:flex;align-items:center;justify-content:center;font-size:10px;cursor:pointer;transition:transform .2s;}
 .avatar-edit:hover{transform:scale(1.15);}
-
 .profile-info{flex:1;}
 .profile-name{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;display:flex;align-items:center;gap:10px;margin-bottom:4px;}
 .profile-name-text{cursor:pointer;transition:color .2s;}
@@ -225,49 +185,20 @@ h1{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;letter-spacing:-
 .edit-name-btn{font-size:14px;cursor:pointer;opacity:.5;transition:opacity .2s;}
 .edit-name-btn:hover{opacity:1;}
 .profile-email{color:var(--muted);font-size:14px;margin-bottom:10px;}
-.profile-badge{
-  display:inline-flex;align-items:center;gap:6px;
-  background:rgba(25,195,125,.12);border:1px solid rgba(25,195,125,.3);
-  color:#5ff0b0;padding:4px 12px;border-radius:999px;font-size:12px;font-weight:700;
-}
+.profile-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(25,195,125,.12);border:1px solid rgba(25,195,125,.3);color:#5ff0b0;padding:4px 12px;border-radius:999px;font-size:12px;font-weight:700;}
 .online-dot{width:6px;height:6px;border-radius:50%;background:#19c37d;animation:pulse 1.5s infinite;}
 @keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.5;transform:scale(.7);}}
-
 .profile-actions{display:flex;flex-direction:column;gap:10px;align-items:flex-end;}
-
-/* Request Soal Button */
-.request-btn{
-  display:flex;align-items:center;gap:8px;
-  border:none;
-  background:linear-gradient(135deg,#ff6b9d,#c44dff);
-  color:white;padding:12px 20px;border-radius:16px;
-  cursor:pointer;font-weight:700;font-family:inherit;font-size:14px;
-  transition:.25s;white-space:nowrap;
-  box-shadow:0 4px 20px rgba(196,77,255,.25);
-}
+.request-btn{display:flex;align-items:center;gap:8px;border:none;background:linear-gradient(135deg,#ff6b9d,#c44dff);color:white;padding:12px 20px;border-radius:16px;cursor:pointer;font-weight:700;font-family:inherit;font-size:14px;transition:.25s;white-space:nowrap;box-shadow:0 4px 20px rgba(196,77,255,.25);}
 .request-btn:hover{transform:translateY(-2px);filter:brightness(1.1);box-shadow:0 8px 25px rgba(196,77,255,.4);}
-
-.logout-btn-sm{
-  display:flex;align-items:center;gap:6px;
-  background:rgba(255,255,255,.04);border:1px solid var(--border);
-  color:var(--muted);padding:10px 16px;border-radius:14px;
-  cursor:pointer;font-family:inherit;font-size:13px;font-weight:600;
-  transition:.2s;white-space:nowrap;
-}
+.logout-btn-sm{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--muted);padding:10px 16px;border-radius:14px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:600;transition:.2s;white-space:nowrap;}
 .logout-btn-sm:hover{border-color:var(--danger);color:var(--danger);}
 
-/* EDIT NAME MODAL */
-.modal-overlay{
-  position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);
-  z-index:10000;display:none;align-items:center;justify-content:center;
-}
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);z-index:10000;display:none;align-items:center;justify-content:center;}
 .modal-overlay.show{display:flex;}
-.modal{
-  background:#111a2f;border:1px solid var(--border);border-radius:24px;
-  padding:32px;width:90%;max-width:420px;
-  box-shadow:0 20px 60px rgba(0,0,0,.5);
-  animation:modalIn .25s ease;
-}
+.modal{background:#111a2f;border:1px solid var(--border);border-radius:24px;padding:32px;width:90%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.5);animation:modalIn .25s ease;}
+.modal.modal-wide{max-width:620px;}
 @keyframes modalIn{from{transform:scale(.9);opacity:0;}to{transform:scale(1);opacity:1;}}
 .modal-title{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;margin-bottom:20px;}
 .modal-field{margin-bottom:16px;}
@@ -280,30 +211,18 @@ h1{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;letter-spacing:-
 .modal-cancel{padding:13px 20px;border:1px solid var(--border);background:transparent;color:var(--muted);border-radius:14px;cursor:pointer;font-family:inherit;font-weight:600;transition:.2s;}
 .modal-cancel:hover{border-color:var(--danger);color:var(--danger);}
 
-/* AVATAR OPTIONS */
+/* AVATAR */
 .avatar-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin:16px 0;}
-.av-opt{
-  width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#3558a8,#6c3fff);
-  display:flex;align-items:center;justify-content:center;font-size:22px;
-  cursor:pointer;border:2px solid transparent;transition:.2s;
-}
+.av-opt{width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#3558a8,#6c3fff);display:flex;align-items:center;justify-content:center;font-size:22px;cursor:pointer;border:2px solid transparent;transition:.2s;}
 .av-opt:hover,.av-opt.selected{border-color:#5aa9ff;transform:scale(1.1);}
-.av-upload-area{
-  border:1.5px dashed var(--border);border-radius:14px;padding:16px;
-  text-align:center;cursor:pointer;color:var(--muted);font-size:13px;
-  transition:.2s;margin-top:10px;
-}
+.av-upload-area{border:1.5px dashed var(--border);border-radius:14px;padding:16px;text-align:center;cursor:pointer;color:var(--muted);font-size:13px;transition:.2s;margin-top:10px;}
 .av-upload-area:hover{border-color:#5aa9ff;color:#5aa9ff;}
 #avatarFileInput{display:none;}
 
-/* REQUEST SOAL MODAL */
+/* REQUEST MODAL */
 .req-modal .modal-title{background:linear-gradient(135deg,#ff6b9d,#c44dff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
 .req-options{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:10px 0 18px;}
-.req-lv{
-  padding:10px 6px;border-radius:14px;text-align:center;
-  border:1.5px solid var(--border);cursor:pointer;transition:.2s;
-  font-weight:700;font-size:13px;
-}
+.req-lv{padding:10px 6px;border-radius:14px;text-align:center;border:1.5px solid var(--border);cursor:pointer;transition:.2s;font-weight:700;font-size:13px;}
 .req-lv:hover,.req-lv.sel{transform:scale(1.05);}
 .req-lv[data-l="N1"]{color:#ff9aaa;}.req-lv[data-l="N1"].sel{background:rgba(255,95,115,.15);border-color:#ff9aaa;}
 .req-lv[data-l="N2"]{color:#7cc0ff;}.req-lv[data-l="N2"].sel{background:rgba(90,169,255,.15);border-color:#7cc0ff;}
@@ -315,6 +234,170 @@ h1{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;letter-spacing:-
 .req-type:hover,.req-type.sel{color:white;border-color:#5aa9ff;background:rgba(90,169,255,.12);}
 .req-note{width:100%;background:#0d1626;border:1.5px solid #2a3d60;border-radius:14px;padding:13px 16px;color:var(--text);font-family:inherit;font-size:14px;outline:none;resize:vertical;min-height:80px;transition:border-color .2s;}
 .req-note:focus{border-color:#5aa9ff;}
+
+/* =============================================
+   LANGUAGE SELECTOR
+   ============================================= */
+.lang-bar{
+  display:flex;align-items:center;gap:10px;
+  margin-bottom:20px;
+  flex-wrap:wrap;
+}
+.lang-label{font-size:13px;color:var(--muted);font-weight:600;}
+.lang-btn{
+  display:flex;align-items:center;gap:7px;
+  padding:8px 16px;border-radius:12px;border:1.5px solid var(--border);
+  background:rgba(255,255,255,.03);cursor:pointer;font-family:inherit;
+  font-size:13px;font-weight:700;color:var(--muted);transition:.2s;
+}
+.lang-btn:hover{border-color:#5aa9ff;color:#5aa9ff;background:rgba(90,169,255,.08);}
+.lang-btn.active{border-color:#5aa9ff;color:#5aa9ff;background:rgba(90,169,255,.12);}
+.lang-flag{font-size:16px;}
+
+/* =============================================
+   NOTIFICATION SYSTEM
+   ============================================= */
+.notif-btn{
+  position:relative;
+  width:44px;height:44px;border-radius:14px;
+  border:1px solid var(--border);background:rgba(255,255,255,.04);
+  color:var(--muted);cursor:pointer;font-size:18px;
+  display:flex;align-items:center;justify-content:center;
+  transition:.2s;flex-shrink:0;
+}
+.notif-btn:hover{border-color:#5aa9ff;color:#5aa9ff;background:rgba(90,169,255,.1);}
+.notif-dot{
+  position:absolute;top:8px;right:8px;
+  width:9px;height:9px;border-radius:50%;
+  background:linear-gradient(135deg,#ff6b9d,#ff5f73);
+  border:2px solid var(--bg);
+  display:none;
+  animation:pulseDot 1.8s ease infinite;
+}
+.notif-dot.show{display:block;}
+@keyframes pulseDot{0%,100%{transform:scale(1);opacity:1;}50%{transform:scale(1.4);opacity:.7;}}
+
+/* NOTIFICATION PANEL */
+.notif-panel{
+  position:fixed;top:80px;right:20px;
+  width:380px;max-width:calc(100vw - 40px);
+  background:#111a2f;border:1px solid var(--border);
+  border-radius:24px;z-index:10001;
+  box-shadow:0 20px 60px rgba(0,0,0,.6);
+  transform:translateY(-10px) scale(.97);opacity:0;
+  pointer-events:none;transition:.25s cubic-bezier(.4,0,.2,1);
+  overflow:hidden;
+}
+.notif-panel.open{transform:translateY(0) scale(1);opacity:1;pointer-events:all;}
+.notif-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:20px 22px 16px;border-bottom:1px solid rgba(255,255,255,.05);
+}
+.notif-header-title{font-family:'Syne',sans-serif;font-weight:800;font-size:17px;display:flex;align-items:center;gap:8px;}
+.notif-count-pill{
+  background:linear-gradient(135deg,#ff6b9d,#c44dff);
+  color:white;font-size:11px;font-weight:800;
+  padding:2px 8px;border-radius:999px;
+}
+.notif-mark-all{font-size:12px;color:var(--muted);cursor:pointer;transition:color .2s;font-weight:600;}
+.notif-mark-all:hover{color:#5aa9ff;}
+.notif-tabs{display:flex;gap:0;border-bottom:1px solid rgba(255,255,255,.05);}
+.notif-tab{flex:1;padding:10px;text-align:center;font-size:13px;font-weight:700;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;transition:.2s;}
+.notif-tab.active{color:#5aa9ff;border-bottom-color:#5aa9ff;}
+.notif-list{max-height:340px;overflow-y:auto;padding:8px 0;}
+.notif-list::-webkit-scrollbar{width:4px;}
+.notif-list::-webkit-scrollbar-track{background:transparent;}
+.notif-list::-webkit-scrollbar-thumb{background:#2f4370;border-radius:4px;}
+.notif-item{
+  display:flex;gap:14px;align-items:flex-start;
+  padding:14px 22px;transition:background .15s;cursor:pointer;
+  position:relative;
+}
+.notif-item:hover{background:rgba(255,255,255,.03);}
+.notif-item.unread::before{
+  content:'';position:absolute;left:10px;top:50%;transform:translateY(-50%);
+  width:5px;height:5px;border-radius:50%;background:#5aa9ff;
+}
+.notif-icon{
+  width:40px;height:40px;border-radius:12px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:18px;
+}
+.notif-icon.new-exam{background:rgba(25,195,125,.15);}
+.notif-icon.update{background:rgba(90,169,255,.15);}
+.notif-icon.system{background:rgba(255,181,71,.15);}
+.notif-icon.promo{background:rgba(196,77,255,.15);}
+.notif-body{flex:1;}
+.notif-title{font-size:14px;font-weight:700;margin-bottom:3px;line-height:1.4;}
+.notif-desc{font-size:12px;color:var(--muted);line-height:1.5;}
+.notif-time{font-size:11px;color:#5a6f99;margin-top:5px;}
+.notif-empty{text-align:center;padding:40px 20px;color:var(--muted);}
+.notif-empty-icon{font-size:38px;margin-bottom:10px;opacity:.4;}
+.notif-footer{padding:14px 22px;border-top:1px solid rgba(255,255,255,.05);text-align:center;}
+.notif-footer a{font-size:13px;color:#5aa9ff;text-decoration:none;font-weight:600;}
+
+/* =============================================
+   EXAM HISTORY MODAL
+   ============================================= */
+.history-btn{
+  display:flex;align-items:center;gap:6px;
+  background:rgba(255,255,255,.04);border:1px solid var(--border);
+  color:var(--muted);padding:10px 16px;border-radius:14px;
+  cursor:pointer;font-family:inherit;font-size:13px;font-weight:600;
+  transition:.2s;white-space:nowrap;
+}
+.history-btn:hover{border-color:#5aa9ff;color:#5aa9ff;background:rgba(90,169,255,.08);}
+
+.history-stats{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:12px;
+  margin-bottom:20px;
+}
+.hs-box{
+  background:rgba(13,22,38,.6);border:1px solid var(--border);
+  border-radius:16px;padding:16px;text-align:center;
+}
+.hs-num{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;color:var(--text);}
+.hs-label{font-size:11px;color:var(--muted);margin-top:4px;}
+
+.history-list{max-height:380px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;}
+.history-list::-webkit-scrollbar{width:4px;}
+.history-list::-webkit-scrollbar-track{background:transparent;}
+.history-list::-webkit-scrollbar-thumb{background:#2f4370;border-radius:4px;}
+.history-item{
+  display:flex;align-items:center;gap:14px;
+  background:rgba(13,22,38,.5);border:1px solid rgba(255,255,255,.05);
+  border-radius:16px;padding:14px 18px;transition:.2s;
+}
+.history-item:hover{border-color:#3d5a8a;background:rgba(22,33,62,.6);}
+.hi-level{
+  width:42px;height:42px;border-radius:12px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Syne',sans-serif;font-weight:800;font-size:14px;
+}
+.hi-level[data-lv="N1"]{background:rgba(255,95,115,.15);color:#ff9aaa;}
+.hi-level[data-lv="N2"]{background:rgba(90,169,255,.15);color:#7cc0ff;}
+.hi-level[data-lv="N3"]{background:rgba(124,77,255,.15);color:#b69cff;}
+.hi-level[data-lv="N4"]{background:rgba(25,195,125,.15);color:#5ff0b0;}
+.hi-level[data-lv="N5"]{background:rgba(255,181,71,.15);color:#ffd18a;}
+.hi-info{flex:1;}
+.hi-name{font-size:14px;font-weight:700;margin-bottom:3px;}
+.hi-meta{font-size:12px;color:var(--muted);}
+.hi-score{text-align:right;}
+.hi-score-num{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;}
+.hi-score-num.pass{color:#5ff0b0;}
+.hi-score-num.fail{color:#ff9aaa;}
+.hi-score-num.na{color:var(--muted);font-size:14px;}
+.hi-score-label{font-size:10px;color:var(--muted);margin-top:2px;}
+
+.history-empty{text-align:center;padding:50px 20px;color:var(--muted);}
+.history-empty-icon{font-size:48px;margin-bottom:14px;opacity:.35;}
+
+/* =============================================
+   HERO TOPBAR RIGHT SECTION
+   ============================================= */
+.hero-actions{
+  position:absolute;top:28px;right:28px;
+  display:flex;align-items:center;gap:10px;
+}
 
 /* FOOTER */
 .footer{margin-top:60px;border-top:1px solid var(--border);padding:30px 0;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;color:var(--muted);font-size:14px;}
@@ -329,9 +412,10 @@ h1{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;letter-spacing:-
   .container{padding:15px;}.hero{padding:25px;}h1{font-size:36px;}.subtitle{font-size:15px;}.hero-deco{display:none;}
   .grid.list-view .card{grid-template-columns:1fr;}.grid.list-view .open-btn{width:100%;}
   .footer{flex-direction:column;text-align:center;}
-  .level-counter-grid{grid-template-columns:repeat(3,1fr);}
   .profile-card{flex-wrap:wrap;}.profile-actions{width:100%;flex-direction:row;justify-content:flex-start;}
-  h1{font-size:30px;}
+  h1{font-size:30px;}.hero-actions{top:16px;right:16px;}
+  .notif-panel{right:10px;width:calc(100vw - 20px);}
+  .history-stats{grid-template-columns:repeat(3,1fr);}
 }
 </style>
 </head>
@@ -343,25 +427,70 @@ h1{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;letter-spacing:-
 
 <!-- ======== HERO ======== -->
 <div class="hero sticky-top">
-<div class="hero-deco">試験</div>
-<div class="logo-mark"><div class="logo-icon">試験</div></div>
-<h1>日本語能力　模擬試験　過去問題集</h1>
-<p class="subtitle">
-A collection of modern JLPT practice exercises and simulations with a premium interface.
-Access Reading, Grammar, and Vocabulary questions by exam year.
-</p>
-<div class="topbar">
-<input type="text" class="search-box" id="searchInput" placeholder="🔍  Search exam year...">
-<select class="search-box" id="levelFilter">
-<option value="all">All Levels</option>
-<option value="N1">N1</option><option value="N2">N2</option>
-<option value="N3">N3</option><option value="N4">N4</option><option value="N5">N5</option>
-</select>
-<select class="search-box" id="sortFilter">
-<option value="newest">Newest</option><option value="oldest">Oldest</option>
-</select>
-<button class="filter-btn" onclick="showAll()">✦ Show All</button>
+  <div class="hero-deco">試験</div>
+
+  <!-- Hero top-right actions: Language + Notification -->
+  <div class="hero-actions">
+    <!-- Language Selector -->
+    <div style="position:relative;">
+      <button class="lang-btn active" id="langToggle" onclick="toggleLangMenu()" style="gap:6px;padding:9px 14px;">
+        <span class="lang-flag" id="currentFlag">🇮🇩</span>
+        <span id="currentLangCode">ID</span>
+        <span style="font-size:10px;opacity:.6;">▾</span>
+      </button>
+      <div id="langMenu" style="position:absolute;top:52px;right:0;background:#111a2f;border:1px solid var(--border);border-radius:16px;padding:8px;min-width:160px;z-index:10002;display:none;box-shadow:0 12px 40px rgba(0,0,0,.5);animation:modalIn .18s ease;">
+        <div class="lang-opt" data-lang="id" data-flag="🇮🇩" data-label="Indonesia" onclick="setLang(this)">🇮🇩 <span>Indonesia</span></div>
+        <div class="lang-opt" data-lang="en" data-flag="🇬🇧" data-label="English" onclick="setLang(this)">🇬🇧 <span>English</span></div>
+        <div class="lang-opt" data-lang="ja" data-flag="🇯🇵" data-label="日本語" onclick="setLang(this)">🇯🇵 <span>日本語</span></div>
+      </div>
+    </div>
+    <!-- Notification Bell -->
+    <button class="notif-btn" id="notifBtn" onclick="toggleNotifPanel()" title="Notifications">
+      🔔
+      <span class="notif-dot" id="notifDot"></span>
+    </button>
+  </div>
+
+  <div class="logo-mark"><div class="logo-icon">試験</div></div>
+  <h1 data-i18n="heroTitle">日本語能力　模擬試験　過去問題集</h1>
+  <p class="subtitle" data-i18n="heroSubtitle">
+    A collection of modern JLPT practice exercises and simulations with a premium interface.
+    Access Reading, Grammar, and Vocabulary questions by exam year.
+  </p>
+  <div class="topbar">
+    <input type="text" class="search-box" id="searchInput" placeholder="🔍  Search exam year...">
+    <select class="search-box" id="levelFilter">
+      <option value="all" data-i18n="allLevels">All Levels</option>
+      <option value="N1">N1</option><option value="N2">N2</option>
+      <option value="N3">N3</option><option value="N4">N4</option><option value="N5">N5</option>
+    </select>
+    <select class="search-box" id="sortFilter">
+      <option value="newest" data-i18n="newest">Newest</option>
+      <option value="oldest" data-i18n="oldest">Oldest</option>
+    </select>
+    <button class="filter-btn" onclick="showAll()" data-i18n="showAll">✦ Show All</button>
+  </div>
 </div>
+
+<!-- NOTIFICATION PANEL (outside hero, fixed) -->
+<div class="notif-panel" id="notifPanel">
+  <div class="notif-header">
+    <div class="notif-header-title">
+      🔔 <span data-i18n="notifications">Notifications</span>
+      <span class="notif-count-pill" id="notifCountPill">0</span>
+    </div>
+    <span class="notif-mark-all" onclick="markAllRead()" data-i18n="markAllRead">Mark all read</span>
+  </div>
+  <div class="notif-tabs">
+    <div class="notif-tab active" data-tab="all" onclick="switchNotifTab(this)" data-i18n="tabAll">All</div>
+    <div class="notif-tab" data-tab="new_exam" onclick="switchNotifTab(this)" data-i18n="tabNewExam">New Exam</div>
+    <div class="notif-tab" data-tab="update" onclick="switchNotifTab(this)" data-i18n="tabUpdate">Update</div>
+    <div class="notif-tab" data-tab="system" onclick="switchNotifTab(this)" data-i18n="tabSystem">System</div>
+  </div>
+  <div class="notif-list" id="notifList"></div>
+  <div class="notif-footer">
+    <a href="#" onclick="openHistoryModal();closeNotifPanel();" data-i18n="viewHistory">📋 View Exam History</a>
+  </div>
 </div>
 
 <!-- ======== PROFILE CARD ======== -->
@@ -378,29 +507,33 @@ Access Reading, Grammar, and Vocabulary questions by exam year.
       <span class="edit-name-btn" onclick="openEditNameModal()" title="Edit name">✏️</span>
     </div>
     <div class="profile-email" id="profileEmailEl">—</div>
-    <div class="profile-badge"><span class="online-dot"></span> Active Member</div>
+    <div class="profile-badge"><span class="online-dot"></span> <span data-i18n="activeMember">Active Member</span></div>
   </div>
   <div class="profile-actions">
     <button class="request-btn" onclick="openRequestModal()">
-      📩 Request JLPT Exam
+      📩 <span data-i18n="requestExam">Request JLPT Exam</span>
+    </button>
+    <button class="history-btn" onclick="openHistoryModal()">
+      📋 <span data-i18n="examHistory">Exam History</span>
     </button>
     <button class="logout-btn-sm" onclick="doLogout()">
-      🚪 Logout
+      🚪 <span data-i18n="logout">Logout</span>
     </button>
   </div>
 </div>
 
 <!-- ======== STATS ======== -->
 <div class="stats">
-<div class="stat-box"><div class="stat-num" id="totalExam">19</div><div class="stat-label">Total Exams</div></div>
-<div class="stat-box"><div class="stat-num">N5–N1</div><div class="stat-label">JLPT Level</div></div>
-<div class="stat-box"><div class="stat-num">2026</div><div class="stat-label">Updated</div></div>
-<div class="stat-box"><div class="stat-num" id="totalLevels">5</div><div class="stat-label">Level Available</div></div>
+  <div class="stat-box"><div class="stat-num" id="totalExam">19</div><div class="stat-label" data-i18n="totalExams">Total Exams</div></div>
+  <div class="stat-box"><div class="stat-num">N5–N1</div><div class="stat-label" data-i18n="jlptLevel">JLPT Level</div></div>
+  <div class="stat-box"><div class="stat-num">2026</div><div class="stat-label" data-i18n="updated">Updated</div></div>
+  <div class="stat-box"><div class="stat-num" id="totalLevels">5</div><div class="stat-label" data-i18n="levelAvailable">Level Available</div></div>
+  <div class="stat-box" id="completedStat"><div class="stat-num" id="completedCount">0</div><div class="stat-label" data-i18n="completed">Completed</div></div>
 </div>
 
 <!-- LEVEL PILLS -->
 <div class="level-pills" id="levelPills">
-  <button class="level-pill active" data-level="all" onclick="pillFilter(this)">All</button>
+  <button class="level-pill active" data-level="all" onclick="pillFilter(this)" data-i18n="all">All</button>
   <button class="level-pill" data-level="N1" onclick="pillFilter(this)">N1</button>
   <button class="level-pill" data-level="N2" onclick="pillFilter(this)">N2</button>
   <button class="level-pill" data-level="N3" onclick="pillFilter(this)">N3</button>
@@ -410,7 +543,7 @@ Access Reading, Grammar, and Vocabulary questions by exam year.
 
 <!-- SECTION HEADER -->
 <div class="section-header">
-  <div class="section-title">📋 Exam List <span class="section-count" id="visibleCount">19 exams</span></div>
+  <div class="section-title">📋 <span data-i18n="examList">Exam List</span> <span class="section-count" id="visibleCount">19 exams</span></div>
   <div class="view-toggle">
     <button class="view-btn active" id="gridViewBtn" title="Grid View" onclick="setView('grid')">⊞</button>
     <button class="view-btn" id="listViewBtn" title="List View" onclick="setView('list')">☰</button>
@@ -420,165 +553,183 @@ Access Reading, Grammar, and Vocabulary questions by exam year.
 <!-- EXAM GRID -->
 <div class="grid" id="examGrid">
 
-<div class="card" data-name="2024-07-jlpt" data-level="N1" data-year="2024">
+<div class="card" data-name="2024-07-jlpt" data-level="N1" data-year="2024" data-examkey="n1-2024-07">
 <div class="card-kanji">N1</div><div class="new-badge">NEW</div><div class="year">2024</div>
 <div class="card-body"><div class="exam-title">JLPT N1 July 2024</div>
 <div class="badges"><span class="badge level-n1">N1</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
 <div class="exam-desc">Latest - Oldest JLPT N1 exam simulation.</div></div>
-<a href="./jlpt/n1/2024-07-n1.html" class="open-btn">OPEN EXAM <span class="open-btn-arrow">→</span></a>
+<div class="done-stamp">✓ Completed</div>
+<a href="./jlpt/n1/2024-07-n1.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
 </div>
 
-<div class="card" data-name="2025-07-jlpt" data-level="N1" data-year="2025">
+<div class="card" data-name="2025-07-jlpt" data-level="N1" data-year="2025" data-examkey="n1-2025-07">
 <div class="card-kanji">N1</div><div class="new-badge">NEW</div><div class="year">2025</div>
 <div class="card-body"><div class="exam-title">JLPT N1 July 2025</div>
 <div class="badges"><span class="badge level-n1">N1</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
 <div class="exam-desc">Latest - Oldest JLPT N1 exam simulation.</div></div>
-<a href="./jlpt/n1/2025-07-n1.html" class="open-btn">OPEN EXAM <span class="open-btn-arrow">→</span></a>
+<div class="done-stamp">✓ Completed</div>
+<a href="./jlpt/n1/2025-07-n1.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
 </div>
 
-<div class="card" data-name="2025-12-jlpt" data-level="N1" data-year="2025">
+<div class="card" data-name="2025-12-jlpt" data-level="N1" data-year="2025" data-examkey="n1-2025-12">
 <div class="card-kanji">N1</div><div class="new-badge">NEW</div><div class="year">2025</div>
 <div class="card-body"><div class="exam-title">JLPT N1 December 2025</div>
 <div class="badges"><span class="badge level-n1">N1</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
 <div class="exam-desc">Latest - Oldest JLPT N1 exam simulation.</div></div>
-<a href="./jlpt/n1/2025-12-n1.html" class="open-btn">OPEN EXAM <span class="open-btn-arrow">→</span></a>
+<div class="done-stamp">✓ Completed</div>
+<a href="./jlpt/n1/2025-12-n1.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
 </div>
 
-<div class="card" data-name="2010-07-jlpt" data-level="N2" data-year="2010">
+<div class="card" data-name="2010-07-jlpt" data-level="N2" data-year="2010" data-examkey="n2-2010-07">
 <div class="card-kanji">N2</div><div class="year">2010</div>
 <div class="card-body"><div class="exam-title">JLPT N2 July 2010</div>
 <div class="badges"><span class="badge level-n2">N2</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
 <div class="exam-desc">Latest - Oldest JLPT N2 exam simulation.</div></div>
-<a href="./jlpt/n2/2010-07-jlpt.html" class="open-btn">OPEN EXAM <span class="open-btn-arrow">→</span></a>
+<div class="done-stamp">✓ Completed</div>
+<a href="./jlpt/n2/2010-07-jlpt.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
 </div>
 
-<div class="card" data-name="2010-12-jlpt" data-level="N2" data-year="2010">
+<div class="card" data-name="2010-12-jlpt" data-level="N2" data-year="2010" data-examkey="n2-2010-12">
 <div class="card-kanji">N2</div><div class="year">2010</div>
 <div class="card-body"><div class="exam-title">JLPT N2 December 2010</div>
 <div class="badges"><span class="badge level-n2">N2</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
 <div class="exam-desc">Latest - Oldest JLPT N2 exam simulation.</div></div>
-<a href="./jlpt/n2/2010-12-jlpt.html" class="open-btn">OPEN EXAM <span class="open-btn-arrow">→</span></a>
+<div class="done-stamp">✓ Completed</div>
+<a href="./jlpt/n2/2010-12-jlpt.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
 </div>
 
-<div class="card" data-name="2011-07-jlpt" data-level="N2" data-year="2011">
+<div class="card" data-name="2011-07-jlpt" data-level="N2" data-year="2011" data-examkey="n2-2011-07">
 <div class="card-kanji">N2</div><div class="year">2011</div>
 <div class="card-body"><div class="exam-title">JLPT N2 July 2011</div>
 <div class="badges"><span class="badge level-n2">N2</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
 <div class="exam-desc">Latest - Oldest JLPT N2 exam simulation.</div></div>
-<a href="./jlpt/n2/2011-07-jlpt.html" class="open-btn">OPEN EXAM <span class="open-btn-arrow">→</span></a>
+<div class="done-stamp">✓ Completed</div>
+<a href="./jlpt/n2/2011-07-jlpt.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
 </div>
 
-<div class="card" data-name="2025-07-jlpt" data-level="N2" data-year="2025">
+<div class="card" data-name="2025-07-jlpt" data-level="N2" data-year="2025" data-examkey="n2-2025-07">
 <div class="card-kanji">N2</div><div class="new-badge">NEW</div><div class="year">2025</div>
 <div class="card-body"><div class="exam-title">JLPT N2 July 2025</div>
 <div class="badges"><span class="badge level-n2">N2</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
 <div class="exam-desc">Latest - Oldest JLPT N2 exam simulation.</div></div>
-<a href="./jlpt/n2/2025-07-jlpt.html" class="open-btn">OPEN EXAM <span class="open-btn-arrow">→</span></a>
+<div class="done-stamp">✓ Completed</div>
+<a href="./jlpt/n2/2025-07-jlpt.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
 </div>
 
-<div class="card" data-name="2025-12-jlpt" data-level="N2" data-year="2025">
+<div class="card" data-name="2025-12-jlpt" data-level="N2" data-year="2025" data-examkey="n2-2025-12">
 <div class="card-kanji">N2</div><div class="new-badge">NEW</div><div class="year">2025</div>
 <div class="card-body"><div class="exam-title">JLPT N2 December 2025</div>
 <div class="badges"><span class="badge level-n2">N2</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
 <div class="exam-desc">Latest - Oldest JLPT N2 exam simulation.</div></div>
-<a href="./jlpt/n2/2025-12-jlpt.html" class="open-btn">OPEN EXAM <span class="open-btn-arrow">→</span></a>
+<div class="done-stamp">✓ Completed</div>
+<a href="./jlpt/n2/2025-12-jlpt.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
 </div>
 
-<div class="card" data-name="2010-07-jlpt" data-level="N3" data-year="2010">
+<div class="card" data-name="2010-07-jlpt" data-level="N3" data-year="2010" data-examkey="n3-2010-07">
 <div class="card-kanji">N3</div><div class="year">2010</div>
 <div class="card-body"><div class="exam-title">JLPT N3 July 2010</div>
 <div class="badges"><span class="badge level-n3">N3</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
 <div class="exam-desc">Latest - Oldest JLPT N3 exam simulation.</div></div>
-<a href="./jlpt/n3/2010-07-n3.html" class="open-btn">OPEN EXAM <span class="open-btn-arrow">→</span></a>
+<div class="done-stamp">✓ Completed</div>
+<a href="./jlpt/n3/2010-07-n3.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
 </div>
 
-<div class="card" data-name="2025-07-jlpt" data-level="N3" data-year="2025">
+<div class="card" data-name="2025-07-jlpt" data-level="N3" data-year="2025" data-examkey="n3-2025-07">
 <div class="card-kanji">N3</div><div class="new-badge">NEW</div><div class="year">2025</div>
 <div class="card-body"><div class="exam-title">JLPT N3 July 2025</div>
 <div class="badges"><span class="badge level-n3">N3</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
 <div class="exam-desc">Latest - Oldest JLPT N3 exam simulation.</div></div>
-<a href="./jlpt/n3/2025-07-n3.html" class="open-btn">OPEN EXAM <span class="open-btn-arrow">→</span></a>
+<div class="done-stamp">✓ Completed</div>
+<a href="./jlpt/n3/2025-07-n3.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
 </div>
 
-<div class="card" data-name="2025-12-jlpt" data-level="N3" data-year="2025">
+<div class="card" data-name="2025-12-jlpt" data-level="N3" data-year="2025" data-examkey="n3-2025-12">
 <div class="card-kanji">N3</div><div class="new-badge">NEW</div><div class="year">2025</div>
 <div class="card-body"><div class="exam-title">JLPT N3 December 2025</div>
 <div class="badges"><span class="badge level-n3">N3</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
 <div class="exam-desc">Latest - Oldest JLPT N3 exam simulation.</div></div>
-<a href="./jlpt/n3/2025-12-n3.html" class="open-btn">OPEN EXAM <span class="open-btn-arrow">→</span></a>
+<div class="done-stamp">✓ Completed</div>
+<a href="./jlpt/n3/2025-12-n3.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
 </div>
 
-<div class="card" data-name="2024-07-jlpt" data-level="N3" data-year="2024">
+<div class="card" data-name="2024-07-jlpt" data-level="N3" data-year="2024" data-examkey="n3-2024-07">
 <div class="card-kanji">N3</div><div class="year">2024</div>
 <div class="card-body"><div class="exam-title">JLPT N3 July 2024</div>
 <div class="badges"><span class="badge level-n3">N3</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
 <div class="exam-desc">Latest - Oldest JLPT N3 exam simulation.</div></div>
-<a href="./jlpt/n3/2024-07-n3.html" class="open-btn">OPEN EXAM <span class="open-btn-arrow">→</span></a>
+<div class="done-stamp">✓ Completed</div>
+<a href="./jlpt/n3/2024-07-n3.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
 </div>
 
-<div class="card" data-name="2024-12-jlpt" data-level="N3" data-year="2024">
+<div class="card" data-name="2024-12-jlpt" data-level="N3" data-year="2024" data-examkey="n3-2024-12">
 <div class="card-kanji">N3</div><div class="year">2024</div>
 <div class="card-body"><div class="exam-title">JLPT N3 December 2024</div>
 <div class="badges"><span class="badge level-n3">N3</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
 <div class="exam-desc">Latest - Oldest JLPT N3 exam simulation.</div></div>
-<a href="./jlpt/n3/2024-12-n3.html" class="open-btn">OPEN EXAM <span class="open-btn-arrow">→</span></a>
+<div class="done-stamp">✓ Completed</div>
+<a href="./jlpt/n3/2024-12-n3.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
 </div>
 
-<div class="card" data-name="2023-07-jlpt" data-level="N3" data-year="2023">
+<div class="card" data-name="2023-07-jlpt" data-level="N3" data-year="2023" data-examkey="n3-2023-07">
 <div class="card-kanji">N3</div><div class="year">2023</div>
 <div class="card-body"><div class="exam-title">JLPT N3 July 2023</div>
 <div class="badges"><span class="badge level-n3">N3</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
 <div class="exam-desc">Latest - Oldest JLPT N3 exam simulation.</div></div>
-<a href="./jlpt/n3/2023-07-n3.html" class="open-btn">OPEN EXAM <span class="open-btn-arrow">→</span></a>
+<div class="done-stamp">✓ Completed</div>
+<a href="./jlpt/n3/2023-07-n3.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
 </div>
 
-<div class="card" data-name="2023-12-jlpt" data-level="N3" data-year="2023">
+<div class="card" data-name="2023-12-jlpt" data-level="N3" data-year="2023" data-examkey="n3-2023-12">
 <div class="card-kanji">N3</div><div class="year">2023</div>
 <div class="card-body"><div class="exam-title">JLPT N3 December 2023</div>
 <div class="badges"><span class="badge level-n3">N3</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
 <div class="exam-desc">Latest - Oldest JLPT N3 exam simulation.</div></div>
-<a href="./jlpt/n3/2023-12-n3.html" class="open-btn">OPEN EXAM <span class="open-btn-arrow">→</span></a>
+<div class="done-stamp">✓ Completed</div>
+<a href="./jlpt/n3/2023-12-n3.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
 </div>
 
-  <div class="card" data-name="2022-07-jlpt" data-level="N3" data-year="2022">
+<div class="card" data-name="2022-07-jlpt" data-level="N3" data-year="2022" data-examkey="n3-2022-07">
 <div class="card-kanji">N3</div><div class="year">2022</div>
 <div class="card-body"><div class="exam-title">JLPT N3 July 2022</div>
 <div class="badges"><span class="badge level-n3">N3</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
 <div class="exam-desc">Latest - Oldest JLPT N3 exam simulation.</div></div>
-<a href="./jlpt/n3/2022-07-n3.html" class="open-btn">OPEN EXAM <span class="open-btn-arrow">→</span></a>
+<div class="done-stamp">✓ Completed</div>
+<a href="./jlpt/n3/2022-07-n3.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
 </div>
 
-  <div class="card" data-name="2022-12-jlpt" data-level="N3" data-year="2022">
+<div class="card" data-name="2022-12-jlpt" data-level="N3" data-year="2022" data-examkey="n3-2022-12">
 <div class="card-kanji">N3</div><div class="year">2022</div>
 <div class="card-body"><div class="exam-title">JLPT N3 December 2022</div>
 <div class="badges"><span class="badge level-n3">N3</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
 <div class="exam-desc">Latest - Oldest JLPT N3 exam simulation.</div></div>
-<a href="./jlpt/n3/2022-12-n3.html" class="open-btn">OPEN EXAM <span class="open-btn-arrow">→</span></a>
+<div class="done-stamp">✓ Completed</div>
+<a href="./jlpt/n3/2022-12-n3.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
 </div>
 
-
-<div class="card" data-name="2021-12-jlpt" data-level="N4" data-year="2021">
+<div class="card" data-name="2021-12-jlpt" data-level="N4" data-year="2021" data-examkey="n4-2021-12">
 <div class="card-kanji">N4</div><div class="year">2021</div>
 <div class="card-body"><div class="exam-title">JLPT N4 December 2021</div>
 <div class="badges"><span class="badge level-n4">N4</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
 <div class="exam-desc">Latest - Oldest JLPT N4 exam simulation.</div></div>
-<a href="./jlpt/n4/2021-12-n4.html" class="open-btn">OPEN EXAM <span class="open-btn-arrow">→</span></a>
+<div class="done-stamp">✓ Completed</div>
+<a href="./jlpt/n4/2021-12-n4.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
 </div>
 
-<div class="card" data-name="2024-07-jlpt" data-level="N5" data-year="2024">
+<div class="card" data-name="2024-07-jlpt" data-level="N5" data-year="2024" data-examkey="n5-2024-07">
 <div class="card-kanji">N5</div><div class="year">2024</div>
 <div class="card-body"><div class="exam-title">JLPT N5 July 2024</div>
 <div class="badges"><span class="badge level-n5">N5</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
 <div class="exam-desc">Latest - Oldest JLPT N5 exam simulation.</div></div>
-<a href="./jlpt/n5/2024-07-n5.html" class="open-btn">OPEN EXAM <span class="open-btn-arrow">→</span></a>
+<div class="done-stamp">✓ Completed</div>
+<a href="./jlpt/n5/2024-07-n5.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
 </div>
 
-</div>
+</div><!-- /examGrid -->
 
 <div class="empty-state" id="emptyState">
   <div class="empty-icon">🔍</div>
-  <p style="font-size:18px;font-weight:600;margin-bottom:8px;">Exam not found</p>
-  <p>Try changing the search filters or keywords.</p>
+  <p style="font-size:18px;font-weight:600;margin-bottom:8px;" data-i18n="notFound">Exam not found</p>
+  <p data-i18n="notFoundSub">Try changing the search filters or keywords.</p>
 </div>
 
 <div class="footer">
@@ -595,14 +746,14 @@ Access Reading, Grammar, and Vocabulary questions by exam year.
 <!-- ======== EDIT NAME MODAL ======== -->
 <div class="modal-overlay" id="editNameModal">
   <div class="modal">
-    <div class="modal-title">✏️ Edit Profile Name</div>
+    <div class="modal-title">✏️ <span data-i18n="editName">Edit Profile Name</span></div>
     <div class="modal-field">
-      <label>Display Name</label>
+      <label data-i18n="displayName">Display Name</label>
       <input type="text" id="editNameInput" placeholder="Your name..." maxlength="40">
     </div>
     <div class="modal-actions">
-      <button class="modal-cancel" onclick="closeModal('editNameModal')">Cancel</button>
-      <button class="modal-save" onclick="saveDisplayName()">Save Changes</button>
+      <button class="modal-cancel" onclick="closeModal('editNameModal')" data-i18n="cancel">Cancel</button>
+      <button class="modal-save" onclick="saveDisplayName()" data-i18n="saveChanges">Save Changes</button>
     </div>
   </div>
 </div>
@@ -610,16 +761,16 @@ Access Reading, Grammar, and Vocabulary questions by exam year.
 <!-- ======== AVATAR MODAL ======== -->
 <div class="modal-overlay" id="avatarModal">
   <div class="modal">
-    <div class="modal-title">🖼️ Choose Avatar</div>
-    <p style="color:var(--muted);font-size:13px;margin-bottom:12px;">Pick an emoji or upload a photo</p>
+    <div class="modal-title">🖼️ <span data-i18n="chooseAvatar">Choose Avatar</span></div>
+    <p style="color:var(--muted);font-size:13px;margin-bottom:12px;" data-i18n="pickEmoji">Pick an emoji or upload a photo</p>
     <div class="avatar-grid" id="avatarGrid"></div>
     <div class="av-upload-area" onclick="document.getElementById('avatarFileInput').click()">
-      📁 Upload photo (JPG/PNG, max 2MB)
+      📁 <span data-i18n="uploadPhoto">Upload photo (JPG/PNG, max 2MB)</span>
     </div>
     <input type="file" id="avatarFileInput" accept="image/*" onchange="handleAvatarUpload(event)">
     <div class="modal-actions" style="margin-top:16px;">
-      <button class="modal-cancel" onclick="closeModal('avatarModal')">Cancel</button>
-      <button class="modal-save" onclick="saveAvatar()">Apply</button>
+      <button class="modal-cancel" onclick="closeModal('avatarModal')" data-i18n="cancel">Cancel</button>
+      <button class="modal-save" onclick="saveAvatar()" data-i18n="apply">Apply</button>
     </div>
   </div>
 </div>
@@ -627,10 +778,10 @@ Access Reading, Grammar, and Vocabulary questions by exam year.
 <!-- ======== REQUEST SOAL MODAL ======== -->
 <div class="modal-overlay" id="requestModal">
   <div class="modal req-modal">
-    <div class="modal-title">📩 Request JLPT Exam</div>
-    <p style="color:var(--muted);font-size:13px;margin-bottom:14px;">Select the level and type of question you want to ask the admin.</p>
+    <div class="modal-title">📩 <span data-i18n="requestExam">Request JLPT Exam</span></div>
+    <p style="color:var(--muted);font-size:13px;margin-bottom:14px;" data-i18n="requestDesc">Select the level and type of question you want to ask the admin.</p>
     <div class="modal-field">
-      <label>Level JLPT</label>
+      <label data-i18n="levelJLPT">Level JLPT</label>
       <div class="req-options">
         <div class="req-lv" data-l="N1" onclick="toggleReqLevel(this)">N1</div>
         <div class="req-lv" data-l="N2" onclick="toggleReqLevel(this)">N2</div>
@@ -640,7 +791,7 @@ Access Reading, Grammar, and Vocabulary questions by exam year.
       </div>
     </div>
     <div class="modal-field">
-      <label>Question Type</label>
+      <label data-i18n="questionType">Question Type</label>
       <div class="req-types">
         <div class="req-type" onclick="toggleReqType(this)">Reading</div>
         <div class="req-type" onclick="toggleReqType(this)">Grammar</div>
@@ -649,50 +800,433 @@ Access Reading, Grammar, and Vocabulary questions by exam year.
       </div>
     </div>
     <div class="modal-field">
-      <label>Year / Additional Notes</label>
+      <label data-i18n="additionalNotes">Year / Additional Notes</label>
       <textarea class="req-note" id="reqNote" placeholder="Example: JLPT N2 2019, or special listening questions..."></textarea>
     </div>
     <div class="modal-actions">
-      <button class="modal-cancel" onclick="closeModal('requestModal')">Cancel</button>
-      <button class="modal-save" style="background:linear-gradient(135deg,#ff6b9d,#c44dff);" onclick="submitRequest()">📨 Send Request</button>
+      <button class="modal-cancel" onclick="closeModal('requestModal')" data-i18n="cancel">Cancel</button>
+      <button class="modal-save" style="background:linear-gradient(135deg,#ff6b9d,#c44dff);" onclick="submitRequest()" data-i18n="sendRequest">📨 Send Request</button>
     </div>
   </div>
 </div>
 
+<!-- ======== EXAM HISTORY MODAL ======== -->
+<div class="modal-overlay" id="historyModal">
+  <div class="modal modal-wide">
+    <div class="modal-title" style="background:linear-gradient(135deg,#5aa9ff,#b69cff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">
+      📋 <span data-i18n="examHistory">Exam History</span>
+    </div>
+    <div class="history-stats">
+      <div class="hs-box"><div class="hs-num" id="hsTotalDone">0</div><div class="hs-label" data-i18n="totalCompleted">Total Completed</div></div>
+      <div class="hs-box"><div class="hs-num" id="hsLevels">—</div><div class="hs-label" data-i18n="levelsAttempted">Levels Attempted</div></div>
+      <div class="hs-box"><div class="hs-num" id="hsLastDate">—</div><div class="hs-label" data-i18n="lastActivity">Last Activity</div></div>
+    </div>
+    <div class="history-list" id="historyList"></div>
+    <div class="modal-actions" style="margin-top:16px;">
+      <button class="modal-cancel" style="flex:1;" onclick="closeModal('historyModal')" data-i18n="close">Close</button>
+      <button class="modal-save" style="background:rgba(255,95,115,.2);border:1px solid rgba(255,95,115,.4);color:#ff9aaa;flex:none;padding:13px 20px;" onclick="confirmClearHistory()" data-i18n="clearHistory">🗑 Clear History</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======== LANG OPTION STYLES ======== -->
+<style>
+.lang-opt{
+  display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;
+  cursor:pointer;font-size:14px;font-weight:700;color:var(--muted);transition:.15s;
+}
+.lang-opt:hover{background:rgba(90,169,255,.1);color:var(--text);}
+.lang-opt.active{color:#5aa9ff;background:rgba(90,169,255,.1);}
+</style>
+
 <!-- ======== SCRIPTS ======== -->
 <script>
 // =============================================
-// PROFILE INIT — isi data dari Supabase
+// I18N — Translation System
+// =============================================
+const TRANSLATIONS = {
+  id: {
+    heroTitle:'日本語能力　模擬試験　過去問題集',
+    heroSubtitle:'Kumpulan soal latihan JLPT modern dengan antarmuka premium. Akses soal Reading, Grammar, dan Vocabulary berdasarkan tahun ujian.',
+    notifications:'Notifikasi',markAllRead:'Tandai semua dibaca',
+    tabAll:'Semua',tabNewExam:'Ujian Baru',tabUpdate:'Pembaruan',tabSystem:'Sistem',
+    viewHistory:'📋 Lihat Riwayat Ujian',
+    activeMember:'Anggota Aktif',requestExam:'Request Soal JLPT',examHistory:'Riwayat Ujian',logout:'Keluar',
+    totalExams:'Total Ujian',jlptLevel:'Level JLPT',updated:'Diperbarui',levelAvailable:'Level Tersedia',completed:'Diselesaikan',
+    all:'Semua',examList:'Daftar Ujian',
+    editName:'Edit Nama Profil',displayName:'Nama Tampilan',saveChanges:'Simpan Perubahan',cancel:'Batal',close:'Tutup',
+    chooseAvatar:'Pilih Avatar',pickEmoji:'Pilih emoji atau unggah foto',uploadPhoto:'Unggah foto (JPG/PNG, maks 2MB)',apply:'Terapkan',
+    requestDesc:'Pilih level dan jenis soal yang ingin kamu minta ke admin.',levelJLPT:'Level JLPT',questionType:'Jenis Soal',additionalNotes:'Tahun / Catatan Tambahan',sendRequest:'📨 Kirim Request',
+    totalCompleted:'Total Selesai',levelsAttempted:'Level Dicoba',lastActivity:'Aktivitas Terakhir',clearHistory:'🗑 Hapus Riwayat',
+    notFound:'Ujian tidak ditemukan',notFoundSub:'Coba ubah filter pencarian atau kata kunci.',
+    showAll:'✦ Tampilkan Semua',allLevels:'Semua Level',newest:'Terbaru',oldest:'Terlama',
+    notifCompletedTip:'Kamu sudah menyelesaikan ujian ini',
+  },
+  en: {
+    heroTitle:'日本語能力　模擬試験　過去問題集',
+    heroSubtitle:'A collection of modern JLPT practice exercises and simulations with a premium interface. Access Reading, Grammar, and Vocabulary questions by exam year.',
+    notifications:'Notifications',markAllRead:'Mark all read',
+    tabAll:'All',tabNewExam:'New Exam',tabUpdate:'Update',tabSystem:'System',
+    viewHistory:'📋 View Exam History',
+    activeMember:'Active Member',requestExam:'Request JLPT Exam',examHistory:'Exam History',logout:'Logout',
+    totalExams:'Total Exams',jlptLevel:'JLPT Level',updated:'Updated',levelAvailable:'Level Available',completed:'Completed',
+    all:'All',examList:'Exam List',
+    editName:'Edit Profile Name',displayName:'Display Name',saveChanges:'Save Changes',cancel:'Cancel',close:'Close',
+    chooseAvatar:'Choose Avatar',pickEmoji:'Pick an emoji or upload a photo',uploadPhoto:'Upload photo (JPG/PNG, max 2MB)',apply:'Apply',
+    requestDesc:'Select the level and type of question you want to ask the admin.',levelJLPT:'Level JLPT',questionType:'Question Type',additionalNotes:'Year / Additional Notes',sendRequest:'📨 Send Request',
+    totalCompleted:'Total Completed',levelsAttempted:'Levels Attempted',lastActivity:'Last Activity',clearHistory:'🗑 Clear History',
+    notFound:'Exam not found',notFoundSub:'Try changing the search filters or keywords.',
+    showAll:'✦ Show All',allLevels:'All Levels',newest:'Newest',oldest:'Oldest',
+    notifCompletedTip:'You have completed this exam',
+  },
+  ja: {
+    heroTitle:'日本語能力　模擬試験　過去問題集',
+    heroSubtitle:'プレミアムインターフェースを備えた最新のJLPT練習問題と模擬試験のコレクション。試験年度別に読解・文法・語彙の問題にアクセスできます。',
+    notifications:'通知',markAllRead:'すべて既読にする',
+    tabAll:'すべて',tabNewExam:'新しい試験',tabUpdate:'更新',tabSystem:'システム',
+    viewHistory:'📋 受験履歴を見る',
+    activeMember:'アクティブメンバー',requestExam:'JLPT問題をリクエスト',examHistory:'受験履歴',logout:'ログアウト',
+    totalExams:'試験総数',jlptLevel:'JLPTレベル',updated:'更新',levelAvailable:'利用可能レベル',completed:'完了',
+    all:'すべて',examList:'試験一覧',
+    editName:'プロフィール名を編集',displayName:'表示名',saveChanges:'変更を保存',cancel:'キャンセル',close:'閉じる',
+    chooseAvatar:'アバターを選択',pickEmoji:'絵文字を選択するか写真をアップロード',uploadPhoto:'写真をアップロード (JPG/PNG、最大2MB)',apply:'適用',
+    requestDesc:'管理者に依頼したいレベルと問題の種類を選択してください。',levelJLPT:'JLPTレベル',questionType:'問題の種類',additionalNotes:'年度・その他のメモ',sendRequest:'📨 リクエストを送信',
+    totalCompleted:'合計完了数',levelsAttempted:'受験レベル',lastActivity:'最終活動',clearHistory:'🗑 履歴を消去',
+    notFound:'試験が見つかりません',notFoundSub:'検索フィルターやキーワードを変更してみてください。',
+    showAll:'✦ すべて表示',allLevels:'全レベル',newest:'新しい順',oldest:'古い順',
+    notifCompletedTip:'この試験を完了しました',
+  }
+};
+
+let currentLang = localStorage.getItem('jlpt_lang') || 'id';
+
+function t(key){ return (TRANSLATIONS[currentLang]||TRANSLATIONS['id'])[key] || key; }
+
+function applyLang(){
+  document.querySelectorAll('[data-i18n]').forEach(el=>{
+    const key = el.getAttribute('data-i18n');
+    const val = t(key);
+    if(val) el.textContent = val;
+  });
+  // update search placeholder
+  updatePlaceholders();
+  // update visibleCount text
+  updateVisibleCount();
+  // update lang btn display
+  const langs = {id:{flag:'🇮🇩',code:'ID'},en:{flag:'🇬🇧',code:'EN'},ja:{flag:'🇯🇵',code:'JA'}};
+  const l = langs[currentLang];
+  if(l){
+    document.getElementById('currentFlag').textContent = l.flag;
+    document.getElementById('currentLangCode').textContent = l.code;
+  }
+  // mark active in menu
+  document.querySelectorAll('.lang-opt').forEach(o=>{
+    o.classList.toggle('active', o.dataset.lang === currentLang);
+  });
+}
+
+function setLang(el){
+  currentLang = el.dataset.lang;
+  localStorage.setItem('jlpt_lang', currentLang);
+  document.getElementById('langMenu').style.display='none';
+  applyLang();
+  renderNotifList();
+  renderHistoryList();
+  showToast({ id:'🇮🇩 Bahasa Indonesia', en:'🇬🇧 English selected', ja:'🇯🇵 日本語に切り替えました' }[currentLang]);
+}
+
+function toggleLangMenu(){
+  const m = document.getElementById('langMenu');
+  m.style.display = m.style.display==='none'?'block':'none';
+}
+document.addEventListener('click', e=>{
+  if(!e.target.closest('#langToggle') && !e.target.closest('#langMenu')){
+    const m = document.getElementById('langMenu');
+    if(m) m.style.display='none';
+  }
+});
+
+// =============================================
+// NOTIFICATION DATA
+// =============================================
+const NOTIF_DATA = [
+  { id:'n1', type:'new_exam', icon:'📝', unread:true,
+    title:{ id:'Soal Baru: JLPT N1 Desember 2025', en:'New Exam: JLPT N1 December 2025', ja:'新しい試験：JLPT N1 2025年12月' },
+    desc:{ id:'Soal simulasi terbaru N1 sudah tersedia!', en:'Latest N1 simulation exam is now available!', ja:'最新のN1模擬試験が利用可能になりました！' },
+    time:'2 jam lalu' },
+  { id:'n2', type:'new_exam', icon:'📝', unread:true,
+    title:{ id:'Soal Baru: JLPT N2 Desember 2025', en:'New Exam: JLPT N2 December 2025', ja:'新しい試験：JLPT N2 2025年12月' },
+    desc:{ id:'Soal simulasi terbaru N2 sudah tersedia!', en:'Latest N2 simulation exam is now available!', ja:'最新のN2模擬試験が利用可能になりました！' },
+    time:'2 jam lalu' },
+  { id:'n3', type:'new_exam', icon:'📝', unread:true,
+    title:{ id:'Soal Baru: JLPT N3 Desember 2025', en:'New Exam: JLPT N3 December 2025', ja:'新しい試験：JLPT N3 2025年12月' },
+    desc:{ id:'Soal simulasi terbaru N3 sudah tersedia!', en:'Latest N3 simulation exam is now available!', ja:'最新のN3模擬試験が利用可能になりました！' },
+    time:'2 jam lalu' },
+  { id:'u1', type:'update', icon:'🔄', unread:true,
+    title:{ id:'Pembaruan Sistem', en:'System Update', ja:'システムアップデート' },
+    desc:{ id:'Tampilan kartu ujian diperbarui dengan indikator "Selesai".', en:'Exam cards updated with "Completed" indicator.', ja:'試験カードが「完了」インジケーター付きに更新されました。' },
+    time:'1 hari lalu' },
+  { id:'u2', type:'update', icon:'🌐', unread:false,
+    title:{ id:'Multi-Bahasa Tersedia', en:'Multi-Language Now Available', ja:'多言語対応開始' },
+    desc:{ id:'Sekarang bisa pilih antara Bahasa Indonesia, English, dan 日本語!', en:'You can now switch between Indonesian, English, and Japanese!', ja:'インドネシア語・英語・日本語に切り替えられるようになりました！' },
+    time:'1 hari lalu' },
+  { id:'s1', type:'system', icon:'🔐', unread:false,
+    title:{ id:'Login Berhasil', en:'Login Successful', ja:'ログイン成功' },
+    desc:{ id:'Selamat datang kembali! Sesi kamu aktif dan aman.', en:'Welcome back! Your session is active and secure.', ja:'おかえりなさい！セッションが有効です。' },
+    time:'Baru saja' },
+];
+
+let notifReadSet = new Set(JSON.parse(localStorage.getItem('jlpt_notif_read')||'[]'));
+let notifTabActive = 'all';
+
+function getUnreadCount(){
+  return NOTIF_DATA.filter(n=> n.unread && !notifReadSet.has(n.id)).length;
+}
+function updateNotifBadge(){
+  const count = getUnreadCount();
+  const dot = document.getElementById('notifDot');
+  const pill = document.getElementById('notifCountPill');
+  dot.classList.toggle('show', count > 0);
+  pill.textContent = count;
+  pill.style.display = count > 0 ? '' : 'none';
+}
+
+function renderNotifList(){
+  const list = document.getElementById('notifList');
+  const iconClass = {new_exam:'new-exam', update:'update', system:'system', promo:'promo'};
+  const filtered = notifTabActive === 'all' ? NOTIF_DATA : NOTIF_DATA.filter(n => n.type === notifTabActive);
+
+  if(!filtered.length){
+    list.innerHTML = `<div class="notif-empty"><div class="notif-empty-icon">🔔</div><p style="font-size:14px;">${t('notifications')} —</p></div>`;
+    return;
+  }
+  list.innerHTML = filtered.map(n => {
+    const isUnread = n.unread && !notifReadSet.has(n.id);
+    return `<div class="notif-item ${isUnread?'unread':''}" onclick="readNotif('${n.id}')">
+      <div class="notif-icon ${iconClass[n.type]||''}">${n.icon}</div>
+      <div class="notif-body">
+        <div class="notif-title">${n.title[currentLang]||n.title['en']}</div>
+        <div class="notif-desc">${n.desc[currentLang]||n.desc['en']}</div>
+        <div class="notif-time">${n.time}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function readNotif(id){
+  notifReadSet.add(id);
+  localStorage.setItem('jlpt_notif_read', JSON.stringify([...notifReadSet]));
+  updateNotifBadge();
+  renderNotifList();
+}
+
+function markAllRead(){
+  NOTIF_DATA.forEach(n => notifReadSet.add(n.id));
+  localStorage.setItem('jlpt_notif_read', JSON.stringify([...notifReadSet]));
+  updateNotifBadge();
+  renderNotifList();
+  showToast('✅ ' + t('markAllRead'));
+}
+
+function switchNotifTab(el){
+  document.querySelectorAll('.notif-tab').forEach(t2 => t2.classList.remove('active'));
+  el.classList.add('active');
+  notifTabActive = el.dataset.tab;
+  renderNotifList();
+}
+
+function toggleNotifPanel(){
+  const p = document.getElementById('notifPanel');
+  p.classList.toggle('open');
+  if(p.classList.contains('open')) renderNotifList();
+}
+function closeNotifPanel(){
+  document.getElementById('notifPanel').classList.remove('open');
+}
+document.addEventListener('click', e=>{
+  if(!e.target.closest('#notifPanel') && !e.target.closest('#notifBtn')){
+    closeNotifPanel();
+  }
+});
+
+// =============================================
+// EXAM HISTORY SYSTEM
+// =============================================
+// Storage key per user — will be set after auth
+let HISTORY_KEY = 'jlpt_history_global';
+
+function loadHistory(){
+  try{ return JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]'); }
+  catch(e){ return []; }
+}
+function saveHistory(arr){
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(arr));
+}
+
+// Mark an exam as completed (called from exam page via postMessage OR from recordExamOpen)
+// For true "completed" tracking: exam pages should postMessage back.
+// For now we track when user returns from exam (visibility change).
+let pendingExamKey = null;
+let pendingExamName = null;
+let pendingExamLevel = null;
+let pendingExamYear = null;
+
+function recordExamOpen(linkEl){
+  const card = linkEl.closest('.card');
+  if(!card) return;
+  pendingExamKey  = card.dataset.examkey;
+  pendingExamName = card.querySelector('.exam-title')?.textContent || '';
+  pendingExamLevel = card.dataset.level;
+  pendingExamYear  = card.dataset.year;
+  // Store in sessionStorage so on return we can mark complete
+  sessionStorage.setItem('jlpt_pending_exam', JSON.stringify({
+    key: pendingExamKey, name: pendingExamName, level: pendingExamLevel, year: pendingExamYear
+  }));
+}
+
+// When user returns to this tab after visiting an exam page
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState === 'visible'){
+    const pending = sessionStorage.getItem('jlpt_pending_exam');
+    if(!pending) return;
+    try{
+      const p = JSON.parse(pending);
+      // Mark as completed
+      completeExam(p.key, p.name, p.level, p.year);
+      sessionStorage.removeItem('jlpt_pending_exam');
+    }catch(e){}
+  }
+});
+
+function completeExam(examKey, examName, level, year, score){
+  const history = loadHistory();
+  // Prevent duplicate — update if exists, add if not
+  const existing = history.findIndex(h => h.key === examKey);
+  const entry = {
+    key: examKey,
+    name: examName,
+    level,
+    year,
+    score: score || null,
+    completedAt: new Date().toISOString(),
+    count: (existing >= 0 ? (history[existing].count||1)+1 : 1)
+  };
+  if(existing >= 0) history[existing] = entry;
+  else history.unshift(entry);
+  saveHistory(history);
+  updateCompletedBadges();
+  updateCompletedStat();
+}
+
+function updateCompletedBadges(){
+  const history = loadHistory();
+  const doneKeys = new Set(history.map(h => h.key));
+  document.querySelectorAll('.card').forEach(card=>{
+    const key = card.dataset.examkey;
+    const stamp = card.querySelector('.done-stamp');
+    if(stamp){
+      stamp.classList.toggle('show', doneKeys.has(key));
+    }
+  });
+}
+
+function updateCompletedStat(){
+  const history = loadHistory();
+  document.getElementById('completedCount').textContent = history.length;
+  document.getElementById('hsTotalDone').textContent = history.length;
+  // Levels attempted
+  const levels = [...new Set(history.map(h => h.level))].sort();
+  document.getElementById('hsLevels').textContent = levels.length ? levels.join(', ') : '—';
+  // Last activity
+  if(history.length){
+    const d = new Date(history[0].completedAt);
+    document.getElementById('hsLastDate').textContent = d.toLocaleDateString(currentLang==='ja'?'ja-JP':currentLang==='id'?'id-ID':'en-GB',{day:'2-digit',month:'short'});
+  } else {
+    document.getElementById('hsLastDate').textContent = '—';
+  }
+}
+
+function renderHistoryList(){
+  const history = loadHistory();
+  const list = document.getElementById('historyList');
+  updateCompletedStat();
+  if(!history.length){
+    list.innerHTML = `<div class="history-empty">
+      <div class="history-empty-icon">📭</div>
+      <p style="font-size:15px;font-weight:700;margin-bottom:6px;">${t('examHistory')}</p>
+      <p style="font-size:13px;">${t('notFoundSub')}</p>
+    </div>`;
+    return;
+  }
+  list.innerHTML = history.map(h => {
+    const d = new Date(h.completedAt);
+    const dateStr = d.toLocaleDateString(currentLang==='ja'?'ja-JP':currentLang==='id'?'id-ID':'en-GB',{year:'numeric',month:'short',day:'2-digit'});
+    const timeStr = d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+    const scoreHtml = h.score != null
+      ? `<div class="hi-score-num ${h.score>=60?'pass':'fail'}">${h.score}</div><div class="hi-score-label">pts</div>`
+      : `<div class="hi-score-num na">—</div><div class="hi-score-label">${t('completed')}</div>`;
+    const timesLabel = h.count > 1
+      ? `<span style="margin-left:6px;font-size:11px;color:#5aa9ff;">×${h.count}</span>` : '';
+    return `<div class="history-item">
+      <div class="hi-level" data-lv="${h.level}">${h.level}</div>
+      <div class="hi-info">
+        <div class="hi-name">${h.name}${timesLabel}</div>
+        <div class="hi-meta">${dateStr} · ${timeStr}</div>
+      </div>
+      <div class="hi-score">${scoreHtml}</div>
+    </div>`;
+  }).join('');
+}
+
+function openHistoryModal(){
+  renderHistoryList();
+  openModal('historyModal');
+}
+
+function confirmClearHistory(){
+  if(confirm(currentLang==='id'?'Hapus semua riwayat ujian?':currentLang==='ja'?'全ての受験履歴を削除しますか？':'Clear all exam history?')){
+    saveHistory([]);
+    updateCompletedBadges();
+    updateCompletedStat();
+    renderHistoryList();
+    showToast('🗑 ' + t('clearHistory'));
+  }
+}
+
+// =============================================
+// PROFILE INIT
 // =============================================
 const AVATAR_EMOJIS = ['🦊','🐱','🐼','🐸','🦁','🐯','🐺','🦄','🐻','🐮','🦋','🌸','🎭','⛩️','🎋','🌙','⭐','🔥','💎','🎌'];
 let selectedAvatarEmoji = null;
 let selectedAvatarDataUrl = null;
 
-// Helper: tunggu _supabase/_session/_userDb siap (module script async)
-function getSupabase() {
+function getSupabase(){
   return new Promise((resolve, reject) => {
-    if (window._supabase && window._session && window._userDb) {
-      resolve({ sb: window._supabase, session: window._session, usr: window._userDb });
-      return;
+    if(window._supabase && window._session && window._userDb){
+      resolve({ sb: window._supabase, session: window._session, usr: window._userDb }); return;
     }
     let tries = 0;
-    const t = setInterval(() => {
+    const timer = setInterval(()=>{
       tries++;
-      if (window._supabase && window._session && window._userDb) {
-        clearInterval(t);
+      if(window._supabase && window._session && window._userDb){
+        clearInterval(timer);
         resolve({ sb: window._supabase, session: window._session, usr: window._userDb });
-      } else if (tries > 50) {
-        clearInterval(t);
-        reject(new Error('Supabase not ready'));
-      }
+      } else if(tries > 50){ clearInterval(timer); reject(new Error('Supabase not ready')); }
     }, 100);
   });
 }
 
 window.addEventListener('DOMContentLoaded', async () => {
+  // Apply language first
+  applyLang();
+  updateNotifBadge();
+
   let _ctx;
   try { _ctx = await getSupabase(); } catch(e) { return; }
   const { usr, session } = _ctx;
+
+  // Set per-user history key
+  HISTORY_KEY = 'jlpt_history_' + session.user.id;
 
   const displayName = usr.display_name || usr.full_name || session.user.user_metadata?.full_name || session.user.email;
   const email = session.user.email;
@@ -701,15 +1235,12 @@ window.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('profileNameEl').textContent = displayName;
   document.getElementById('profileEmailEl').textContent = email;
 
-  // Avatar
   const avatarEl = document.getElementById('avatarEl');
-  if (avatarUrl && avatarUrl.startsWith('data:')) {
+  if(avatarUrl && avatarUrl.startsWith('data:')){
     avatarEl.innerHTML = `<img src="${avatarUrl}" alt="avatar">`;
-  } else if (avatarUrl && avatarUrl.length <= 4) {
-    // emoji
+  } else if(avatarUrl && avatarUrl.length <= 4){
     avatarEl.innerHTML = `<span style="font-size:32px">${avatarUrl}</span>`;
   } else {
-    // initials
     document.getElementById('avatarInitial').textContent = displayName.charAt(0).toUpperCase();
   }
 
@@ -717,297 +1248,269 @@ window.addEventListener('DOMContentLoaded', async () => {
   const grid = document.getElementById('avatarGrid');
   AVATAR_EMOJIS.forEach(em => {
     const d = document.createElement('div');
-    d.className = 'av-opt';
-    d.textContent = em;
+    d.className = 'av-opt'; d.textContent = em;
     d.onclick = () => {
       document.querySelectorAll('.av-opt').forEach(x => x.classList.remove('selected'));
       d.classList.add('selected');
-      selectedAvatarEmoji = em;
-      selectedAvatarDataUrl = null;
+      selectedAvatarEmoji = em; selectedAvatarDataUrl = null;
     };
     grid.appendChild(d);
   });
 
-});
+  // Check pending exam on load (in case page was refreshed)
+  const pending = sessionStorage.getItem('jlpt_pending_exam');
+  if(pending){
+    try{
+      const p = JSON.parse(pending);
+      completeExam(p.key, p.name, p.level, p.year);
+      sessionStorage.removeItem('jlpt_pending_exam');
+    }catch(e){}
+  }
 
-function animateCount(el, target) {
-  let cur = 0;
-  const step = Math.ceil(target / 20);
-  const timer = setInterval(() => {
-    cur = Math.min(cur + step, target);
-    el.textContent = cur;
-    if (cur >= target) clearInterval(timer);
-  }, 40);
-}
+  // Init completed UI
+  updateCompletedBadges();
+  updateCompletedStat();
+});
 
 // =============================================
 // LOGOUT
 // =============================================
-async function doLogout() {
-  try {
-    const { sb } = await getSupabase();
-    await sb.auth.signOut();
-  } catch(e) {}
+async function doLogout(){
+  try{ const { sb } = await getSupabase(); await sb.auth.signOut(); }catch(e){}
   window.location.replace('./auth.html');
 }
 
 // =============================================
 // EDIT NAME MODAL
 // =============================================
-function openEditNameModal() {
+function openEditNameModal(){
   document.getElementById('editNameInput').value = document.getElementById('profileNameEl').textContent;
   openModal('editNameModal');
 }
-
-async function saveDisplayName() {
+async function saveDisplayName(){
   const newName = document.getElementById('editNameInput').value.trim();
-  if (!newName) { showToast('⚠️ Name cannot be empty'); return; }
-
+  if(!newName){ showToast('⚠️ Name cannot be empty'); return; }
   let _ctx;
-  try { _ctx = await getSupabase(); } catch(e) { showToast('❌ Not authenticated'); return; }
+  try { _ctx = await getSupabase(); } catch(e){ showToast('❌ Not authenticated'); return; }
   const { sb, session } = _ctx;
-
-  const { error } = await sb
-    .from('users')
-    .update({ display_name: newName })
-    .eq('id', session.user.id);
-
-  if (error) {
-    console.error('saveDisplayName error:', error);
-    showToast('❌ ' + error.message);
-    return;
-  }
-
+  const { error } = await sb.from('users').update({ display_name: newName }).eq('id', session.user.id);
+  if(error){ showToast('❌ ' + error.message); return; }
   document.getElementById('profileNameEl').textContent = newName;
-  const avatarInitial = document.getElementById('avatarInitial');
-  if (avatarInitial) avatarInitial.textContent = newName.charAt(0).toUpperCase();
+  const ai = document.getElementById('avatarInitial');
+  if(ai) ai.textContent = newName.charAt(0).toUpperCase();
   window._userDb.display_name = newName;
-
   closeModal('editNameModal');
-  showToast('✅ Name updated');
+  showToast('✅ ' + t('saveChanges'));
 }
+
 // =============================================
 // AVATAR MODAL
 // =============================================
-function openAvatarModal() { openModal('avatarModal'); }
-
-function handleAvatarUpload(e) {
+function openAvatarModal(){ openModal('avatarModal'); }
+function handleAvatarUpload(e){
   const file = e.target.files[0];
-  if (!file) return;
-  if (file.size > 2 * 1024 * 1024) { showToast('⚠️ Max file size 2MB'); return; }
+  if(!file) return;
+  if(file.size > 2*1024*1024){ showToast('⚠️ Max file size 2MB'); return; }
   const reader = new FileReader();
   reader.onload = ev => {
-    selectedAvatarDataUrl = ev.target.result;
-    selectedAvatarEmoji = null;
+    selectedAvatarDataUrl = ev.target.result; selectedAvatarEmoji = null;
     document.querySelectorAll('.av-opt').forEach(x => x.classList.remove('selected'));
-    showToast('📸 Photo loaded — click Apply');
+    showToast('📸 Photo loaded — click ' + t('apply'));
   };
   reader.readAsDataURL(file);
 }
-
-async function saveAvatar() {
+async function saveAvatar(){
   let avatarVal = null;
-  if (selectedAvatarDataUrl) {
-    avatarVal = selectedAvatarDataUrl;
-  } else if (selectedAvatarEmoji) {
-    avatarVal = selectedAvatarEmoji;
-  } else {
-    showToast('⚠️ Pick an avatar first');
-    return;
-  }
-
+  if(selectedAvatarDataUrl) avatarVal = selectedAvatarDataUrl;
+  else if(selectedAvatarEmoji) avatarVal = selectedAvatarEmoji;
+  else { showToast('⚠️ Pick an avatar first'); return; }
   let _ctx;
-  try { _ctx = await getSupabase(); } catch(e) { showToast('❌ Not authenticated'); return; }
+  try { _ctx = await getSupabase(); } catch(e){ showToast('❌ Not authenticated'); return; }
   const { sb, session } = _ctx;
-
-  const { error } = await sb
-    .from('users')
-    .update({ avatar_url: avatarVal })
-    .eq('id', session.user.id);
-
-  if (error) {
-    console.error('saveAvatar error:', error);
-    showToast('❌ ' + error.message);
-    return;
-  }
-
+  const { error } = await sb.from('users').update({ avatar_url: avatarVal }).eq('id', session.user.id);
+  if(error){ showToast('❌ ' + error.message); return; }
   const avatarEl = document.getElementById('avatarEl');
-  if (selectedAvatarDataUrl) {
-    avatarEl.innerHTML = `<img src="${avatarVal}" alt="avatar">`;
-  } else {
-    avatarEl.innerHTML = `<span style="font-size:32px">${avatarVal}</span>`;
-  }
+  if(selectedAvatarDataUrl) avatarEl.innerHTML = `<img src="${avatarVal}" alt="avatar">`;
+  else avatarEl.innerHTML = `<span style="font-size:32px">${avatarVal}</span>`;
   window._userDb.avatar_url = avatarVal;
-
-  closeModal('avatarModal');
-  showToast('✅ Avatar updated');
+  closeModal('avatarModal'); showToast('✅ Avatar updated');
 }
 
 // =============================================
-// REQUEST SOAL MODAL
+// REQUEST MODAL
 // =============================================
-function openRequestModal() { openModal('requestModal'); }
-
-function toggleReqLevel(el) {
-  document.querySelectorAll('.req-lv').forEach(x => x.classList.remove('sel'));
-  el.classList.add('sel');
-}
-
-function toggleReqType(el) {
-  el.classList.toggle('sel');
-}
-
-async function submitRequest() {
+function openRequestModal(){ openModal('requestModal'); }
+function toggleReqLevel(el){ document.querySelectorAll('.req-lv').forEach(x=>x.classList.remove('sel')); el.classList.add('sel'); }
+function toggleReqType(el){ el.classList.toggle('sel'); }
+async function submitRequest(){
   const level = document.querySelector('.req-lv.sel')?.dataset.l;
-  const types = [...document.querySelectorAll('.req-type.sel')].map(x => x.textContent).join(', ');
+  const types = [...document.querySelectorAll('.req-type.sel')].map(x=>x.textContent).join(', ');
   const note  = document.getElementById('reqNote').value.trim();
-
-  if (!level) { showToast('⚠️ Select the level first'); return; }
-
+  if(!level){ showToast('⚠️ Select the level first'); return; }
   let _ctx2;
-  try { _ctx2 = await getSupabase(); } catch(e) { showToast('❌ Not authenticated'); return; }
+  try { _ctx2 = await getSupabase(); } catch(e){ showToast('❌ Not authenticated'); return; }
   const { session } = _ctx2;
   const usr = window._userDb;
   const name = usr.display_name || usr.full_name || session.user.email;
-
-  // Kirim ke bot Telegram via backend
   try {
     await fetch('https://jlpt-auth-bot-production.up.railway.app/request', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        uid: session.user.id,
-        name,
-        email: session.user.email,
-        level,
-        types: types || 'All',
-        note: note || '-'
-      })
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ uid:session.user.id, name, email:session.user.email, level, types:types||'All', note:note||'-' })
     });
     closeModal('requestModal');
-    showToast('📨 Request sent to admin!');
-    // Reset
-    document.querySelectorAll('.req-lv,.req-type').forEach(x => x.classList.remove('sel'));
-    document.getElementById('reqNote').value = '';
-  } catch(e) {
-    showToast('❌ Failed to send request');
-  }
+    showToast('📨 ' + t('sendRequest'));
+    document.querySelectorAll('.req-lv,.req-type').forEach(x=>x.classList.remove('sel'));
+    document.getElementById('reqNote').value='';
+  }catch(e){ showToast('❌ Failed to send request'); }
 }
 
 // =============================================
 // MODAL HELPERS
 // =============================================
-function openModal(id) { document.getElementById(id).classList.add('show'); }
-function closeModal(id) { document.getElementById(id).classList.remove('show'); }
-document.querySelectorAll('.modal-overlay').forEach(m => {
-  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('show'); });
+function openModal(id){ document.getElementById(id).classList.add('show'); }
+function closeModal(id){ document.getElementById(id).classList.remove('show'); }
+document.querySelectorAll('.modal-overlay').forEach(m=>{
+  m.addEventListener('click', e=>{ if(e.target===m) m.classList.remove('show'); });
 });
 
 // =============================================
-// LEVEL COUNTER CLICK FILTER
+// FILTER & SEARCH
 // =============================================
-function filterByLevel(lv) {
-  document.getElementById('levelFilter').value = lv;
-  document.querySelectorAll('.level-pill').forEach(p => p.classList.toggle('active', p.dataset.level === lv));
-  applyFilters();
-  showToast(`✦ Filter: ${lv}`);
-}
-
-// =============================================
-// ORIGINAL SCRIPTS (preserved)
-// =============================================
-const searchInput=document.getElementById('searchInput');
-const cards=document.querySelectorAll('.card');
-
-searchInput.addEventListener('input',()=>{
-const value=searchInput.value.toLowerCase();
-cards.forEach(card=>{
-const name=card.dataset.name.toLowerCase();
-card.style.display=name.includes(value)?'block':'none';
-});
-});
-
-function showAll(){
-cards.forEach(card=>{card.style.display='block';});
-searchInput.value='';
-document.querySelectorAll('.level-pill').forEach(p=>{p.classList.toggle('active',p.dataset.level==='all');});
-document.getElementById('levelFilter').value='all';
-updateVisibleCount();
-showToast('✦ All exams are displayed');
-}
-
-const levelFilter=document.getElementById('levelFilter');
-const sortFilter=document.getElementById('sortFilter');
+const searchInput = document.getElementById('searchInput');
+const cards = document.querySelectorAll('.card');
+const levelFilter = document.getElementById('levelFilter');
+const sortFilter = document.getElementById('sortFilter');
 
 function applyFilters(){
-const level=levelFilter.value;
-const search=searchInput.value.toLowerCase();
-cards.forEach(card=>{
-const name=card.dataset.name.toLowerCase();
-const cardLevel=card.dataset.level;
-let visible=true;
-if(level!=='all'&&cardLevel!==level){visible=false;}
-if(!name.includes(search)){visible=false;}
-card.style.display=visible?'block':'none';
-});
-sortCards();
-updateVisibleCount();
+  const level = levelFilter.value;
+  const search = searchInput.value.toLowerCase();
+  cards.forEach(card=>{
+    const name = card.dataset.name.toLowerCase();
+    const cardLevel = card.dataset.level;
+    let visible = true;
+    if(level!=='all' && cardLevel!==level) visible=false;
+    if(!name.includes(search)) visible=false;
+    card.style.display = visible?'block':'none';
+  });
+  sortCards(); updateVisibleCount();
 }
 
 function sortCards(){
-const grid=document.getElementById('examGrid');
-const sorted=[...cards].sort((a,b)=>{
-const ay=parseInt(a.dataset.year);
-const by=parseInt(b.dataset.year);
-return sortFilter.value==='newest'?by-ay:ay-by;
-});
-sorted.forEach(card=>{grid.appendChild(card);});
+  const grid = document.getElementById('examGrid');
+  const sorted = [...cards].sort((a,b)=>{
+    const ay=parseInt(a.dataset.year), by2=parseInt(b.dataset.year);
+    return sortFilter.value==='newest'?by2-ay:ay-by2;
+  });
+  sorted.forEach(card=>grid.appendChild(card));
 }
 
-levelFilter.addEventListener('change',applyFilters);
-sortFilter.addEventListener('change',applyFilters);
-searchInput.addEventListener('input',applyFilters);
+levelFilter.addEventListener('change', applyFilters);
+sortFilter.addEventListener('change', applyFilters);
+searchInput.addEventListener('input', applyFilters);
 
-const canvas=document.createElement('canvas');
+function showAll(){
+  cards.forEach(card=>{ card.style.display='block'; });
+  searchInput.value='';
+  document.querySelectorAll('.level-pill').forEach(p=>{ p.classList.toggle('active', p.dataset.level==='all'); });
+  levelFilter.value='all';
+  updateVisibleCount();
+  showToast('✦ ' + t('showAll').replace('✦ ',''));
+}
+
+function pillFilter(el){
+  document.querySelectorAll('.level-pill').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  const lv = el.dataset.level;
+  levelFilter.value = lv;
+  applyFilters();
+  showToast(lv==='all'?'✦ ' + t('allLevels'):'✦ Filter: ' + lv);
+}
+levelFilter.addEventListener('change', ()=>{
+  const lv=levelFilter.value;
+  document.querySelectorAll('.level-pill').forEach(p=>{ p.classList.toggle('active', p.dataset.level===lv); });
+});
+
+function updateVisibleCount(){
+  const visible = [...cards].filter(c=>c.style.display!=='none').length;
+  const label = currentLang==='id'?'ujian':currentLang==='ja'?'試験':'exam'+(visible!==1?'s':'');
+  document.getElementById('visibleCount').textContent = visible + ' ' + label;
+  document.getElementById('totalExam').textContent = visible;
+  document.getElementById('emptyState').classList.toggle('show', visible===0);
+}
+
+function setView(mode){
+  const grid = document.getElementById('examGrid');
+  const gBtn = document.getElementById('gridViewBtn');
+  const lBtn = document.getElementById('listViewBtn');
+  if(mode==='list'){ grid.classList.add('list-view'); gBtn.classList.remove('active'); lBtn.classList.add('active'); }
+  else { grid.classList.remove('list-view'); gBtn.classList.add('active'); lBtn.classList.remove('active'); }
+  showToast(mode==='list'?'☰ List View':'⊞ Grid View');
+}
+
+// =============================================
+// CANVAS PARTICLES
+// =============================================
+const canvas = document.createElement('canvas');
 document.body.appendChild(canvas);
-const ctx=canvas.getContext('2d');
-function resize(){canvas.width=window.innerWidth;canvas.height=window.innerHeight;}
-resize();window.addEventListener('resize',resize);
-const particles=[];
-const particleCount=window.innerWidth<768?28:45;
-for(let i=0;i<particleCount;i++){particles.push({x:Math.random()*canvas.width,y:Math.random()*canvas.height,r:Math.random()*2+1,dx:(Math.random()-0.5)*0.18,dy:(Math.random()-0.5)*0.18});}
+const ctx2 = canvas.getContext('2d');
+function resize(){ canvas.width=window.innerWidth; canvas.height=window.innerHeight; }
+resize(); window.addEventListener('resize', resize);
+const particles = [];
+const pCount = window.innerWidth<768?28:45;
+for(let i=0;i<pCount;i++) particles.push({x:Math.random()*canvas.width,y:Math.random()*canvas.height,r:Math.random()*2+1,dx:(Math.random()-.5)*.18,dy:(Math.random()-.5)*.18});
 let lastTime=0;const fps=30;const interval=1000/fps;
-function animate(timestamp){requestAnimationFrame(animate);const delta=timestamp-lastTime;if(delta<interval)return;lastTime=timestamp-(delta%interval);ctx.clearRect(0,0,canvas.width,canvas.height);particles.forEach(p=>{p.x+=p.dx;p.y+=p.dy;if(p.x<0||p.x>canvas.width)p.dx*=-1;if(p.y<0||p.y>canvas.height)p.dy*=-1;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle='rgba(120,170,255,.45)';ctx.fill();});}
+function animate(ts){ requestAnimationFrame(animate); const delta=ts-lastTime; if(delta<interval) return; lastTime=ts-(delta%interval); ctx2.clearRect(0,0,canvas.width,canvas.height); particles.forEach(p=>{ p.x+=p.dx; p.y+=p.dy; if(p.x<0||p.x>canvas.width)p.dx*=-1; if(p.y<0||p.y>canvas.height)p.dy*=-1; ctx2.beginPath();ctx2.arc(p.x,p.y,p.r,0,Math.PI*2);ctx2.fillStyle='rgba(120,170,255,.45)';ctx2.fill(); }); }
 requestAnimationFrame(animate);
 
-cards.forEach((card,index)=>{card.animate([{opacity:0,transform:'translateY(30px)'},{opacity:1,transform:'translateY(0px)'}],{duration:500,delay:index*100,fill:'forwards'});});
+// Card entrance animation
+cards.forEach((card,index)=>{
+  card.animate([{opacity:0,transform:'translateY(30px)'},{opacity:1,transform:'translateY(0)'}],
+    {duration:500,delay:index*80,fill:'forwards'});
+});
 
-const hero=document.querySelector('.hero');let lastScroll=0;let ticking=false;
-function updateHero(){const currentScroll=window.pageYOffset;if(currentScroll>120){if(currentScroll>lastScroll){hero.classList.add('hide');}else{hero.classList.remove('hide');}}else{hero.classList.remove('hide');}lastScroll=currentScroll;ticking=false;}
-window.addEventListener('scroll',()=>{if(!ticking){requestAnimationFrame(updateHero);ticking=true;}},{passive:true});
+// Sticky hero
+const hero = document.querySelector('.hero');
+let lastScroll=0; let ticking=false;
+function updateHero(){ const s=window.pageYOffset; if(s>120){ if(s>lastScroll) hero.classList.add('hide'); else hero.classList.remove('hide'); }else hero.classList.remove('hide'); lastScroll=s; ticking=false; }
+window.addEventListener('scroll',()=>{ if(!ticking){ requestAnimationFrame(updateHero); ticking=true; } },{passive:true});
 
-const progressBar=document.getElementById('scrollProgress');
-window.addEventListener('scroll',()=>{const scrollTop=window.scrollY;const docHeight=document.documentElement.scrollHeight-window.innerHeight;const pct=docHeight>0?(scrollTop/docHeight)*100:0;progressBar.style.width=pct+'%';},{passive:true});
+// Scroll progress
+const progressBar = document.getElementById('scrollProgress');
+window.addEventListener('scroll',()=>{ const st=window.scrollY; const dh=document.documentElement.scrollHeight-window.innerHeight; progressBar.style.width=(dh>0?(st/dh)*100:0)+'%'; },{passive:true});
 
-const backTop=document.getElementById('backTop');
-window.addEventListener('scroll',()=>{backTop.classList.toggle('show',window.scrollY>300);},{passive:true});
+// Back to top
+const backTop = document.getElementById('backTop');
+window.addEventListener('scroll',()=>{ backTop.classList.toggle('show',window.scrollY>300); },{passive:true});
 
+// Toast
 let toastTimer;
-function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2500);}
+function showToast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),2500); }
 
-function pillFilter(el){document.querySelectorAll('.level-pill').forEach(p=>p.classList.remove('active'));el.classList.add('active');const lv=el.dataset.level;levelFilter.value=lv;applyFilters();showToast(lv==='all'?'✦ Semua level ditampilkan':`✦ Filter: ${lv}`);}
-levelFilter.addEventListener('change',()=>{const lv=levelFilter.value;document.querySelectorAll('.level-pill').forEach(p=>{p.classList.toggle('active',p.dataset.level===lv);});});
+// Keyboard
+document.addEventListener('keydown',e=>{
+  if(e.key==='/'&&document.activeElement!==searchInput){ e.preventDefault(); searchInput.focus(); showToast('🔍 Search activated'); }
+  if(e.key==='Escape'){ searchInput.blur(); showAll(); closeNotifPanel(); }
+});
 
-function updateVisibleCount(){const visible=[...cards].filter(c=>c.style.display!=='none').length;document.getElementById('visibleCount').textContent=visible+' exam'+(visible!==1?'s':'');document.getElementById('totalExam').textContent=visible;document.getElementById('emptyState').classList.toggle('show',visible===0);}
+// Animated placeholders
+function updatePlaceholders(){
+  const placeholders = currentLang==='id'
+    ? ['🔍  Cari "2024"...','🔍  Cari "N2"...','🔍  Cari "Desember"...','🔍  Cari "Juli"...','🔍  Cari "2025"...']
+    : currentLang==='ja'
+    ? ['🔍  「2024」で検索...','🔍  「N2」で検索...','🔍  「12月」で検索...','🔍  「7月」で検索...','🔍  「2025」で検索...']
+    : ['🔍  Search "2024"...','🔍  Search "N2"...','🔍  Search "December"...','🔍  Search "July"...','🔍  Search "2025"...'];
+  window._phList = placeholders;
+}
+updatePlaceholders();
+let phIdx=0;
+setInterval(()=>{
+  if(document.activeElement!==searchInput&&!searchInput.value&&window._phList){
+    phIdx=(phIdx+1)%window._phList.length;
+    searchInput.placeholder=window._phList[phIdx];
+  }
+},2800);
+
 updateVisibleCount();
-
-function setView(mode){const grid=document.getElementById('examGrid');const gBtn=document.getElementById('gridViewBtn');const lBtn=document.getElementById('listViewBtn');if(mode==='list'){grid.classList.add('list-view');gBtn.classList.remove('active');lBtn.classList.add('active');}else{grid.classList.remove('list-view');gBtn.classList.add('active');lBtn.classList.remove('active');}showToast(mode==='list'?'☰ List View':'⊞ Grid View');}
-
-document.addEventListener('keydown',e=>{if(e.key==='/'&&document.activeElement!==searchInput){e.preventDefault();searchInput.focus();showToast('🔍 Pencarian aktif');}if(e.key==='Escape'){searchInput.blur();showAll();}});
-
-const placeholders=['🔍  Search "2024"...','🔍  Search "N2"...','🔍  Search "December"...','🔍  Search "July"...','🔍  Search "2025"...'];
-let phIdx=0;setInterval(()=>{if(document.activeElement!==searchInput&&!searchInput.value){phIdx=(phIdx+1)%placeholders.length;searchInput.placeholder=placeholders[phIdx];}},2800);
 </script>
-
 </body>
 </html>
