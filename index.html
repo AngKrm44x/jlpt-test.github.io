@@ -1288,6 +1288,9 @@ window.addEventListener('DOMContentLoaded', async () => {
   // Init completed UI
   updateCompletedBadges();
   updateCompletedStat();
+
+  // Init realtime notifikasi request soal
+  initRealtimeNotifications();
 });
 
 // =============================================
@@ -1370,16 +1373,141 @@ async function submitRequest(){
   const { session } = _ctx2;
   const usr = window._userDb;
   const name = usr.display_name || usr.full_name || session.user.email;
+
+  const sendBtn = document.querySelector('#requestModal .modal-save');
+  if(sendBtn){ sendBtn.disabled=true; sendBtn.textContent='⏳ Sending...'; }
+
   try {
-    await fetch('https://jlpt-auth-bot-production.up.railway.app/request', {
+    const res = await fetch('https://jlpt-auth-bot-production.up.railway.app/request', {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ uid:session.user.id, name, email:session.user.email, level, types:types||'All', note:note||'-' })
     });
+    const data = await res.json();
     closeModal('requestModal');
-    showToast('📨 ' + t('sendRequest'));
+    showToast('📨 Request terkirim! Admin akan segera merespons.');
     document.querySelectorAll('.req-lv,.req-type').forEach(x=>x.classList.remove('sel'));
     document.getElementById('reqNote').value='';
-  }catch(e){ showToast('❌ Failed to send request'); }
+    if(data.requestId){
+      addRequestNotif({ id:'req_'+data.requestId, requestId:data.requestId, status:'pending', level, types:types||'All', time:new Date() });
+    }
+  }catch(e){
+    showToast('❌ Failed to send request');
+  } finally {
+    if(sendBtn){ sendBtn.disabled=false; sendBtn.textContent='📨 ' + t('sendRequest'); }
+  }
+}
+
+// =============================================
+// REALTIME NOTIFIKASI REQUEST STATUS
+// =============================================
+let _realtimeChannel = null;
+
+async function initRealtimeNotifications(){
+  let _ctx;
+  try { _ctx = await getSupabase(); } catch(e){ return; }
+  const { sb, session } = _ctx;
+  const userId = session.user.id;
+
+  // Load notifikasi lama dari Supabase
+  const { data: existingNotifs } = await sb
+    .from('notifications')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(20);
+
+  if(existingNotifs?.length){
+    existingNotifs.forEach(n => {
+      if(!NOTIF_DATA.find(x => x.id === 'db_' + n.id)){
+        NOTIF_DATA.unshift(buildNotifFromDb(n));
+      }
+    });
+    updateNotifBadge();
+    renderNotifList();
+  }
+
+  // Subscribe realtime
+  if(_realtimeChannel) sb.removeChannel(_realtimeChannel);
+  _realtimeChannel = sb
+    .channel('user-notifs-' + userId)
+    .on('postgres_changes', {
+      event: 'INSERT',
+      schema: 'public',
+      table: 'notifications',
+      filter: `user_id=eq.${userId}`
+    }, payload => {
+      const notif = buildNotifFromDb(payload.new);
+      if(NOTIF_DATA.find(x => x.id === notif.id)) return;
+      NOTIF_DATA.unshift(notif);
+      updateNotifBadge();
+      renderNotifList();
+      showToast(notif.icon + ' ' + (notif.title[currentLang] || notif.title['id']));
+    })
+    .subscribe();
+}
+
+function buildNotifFromDb(n){
+  const statusIcon  = { pending:'⏳', on_progress:'🔄', done:'✅', rejected:'❌' };
+  const statusLabel = {
+    pending:     { id:'Menunggu',    en:'Pending',     ja:'保留中' },
+    on_progress: { id:'Diproses',    en:'On Progress', ja:'処理中' },
+    done:        { id:'Selesai',     en:'Done',        ja:'完了' },
+    rejected:    { id:'Ditolak',     en:'Rejected',    ja:'却下' },
+  };
+  const icon = statusIcon[n.status] || '📩';
+  const lbl  = statusLabel[n.status] || statusLabel['pending'];
+  return {
+    id: 'db_' + n.id,
+    type: 'request_status',
+    icon,
+    unread: !n.is_read,
+    title: {
+      id: `${icon} Request Soal — ${lbl['id']}`,
+      en: `${icon} Exam Request — ${lbl['en']}`,
+      ja: `${icon} 試験リクエスト — ${lbl['ja']}`,
+    },
+    desc: {
+      id: n.message || `Status request kamu: ${lbl['id']}`,
+      en: n.message || `Your request status: ${lbl['en']}`,
+      ja: n.message || `リクエストのステータス: ${lbl['ja']}`,
+    },
+    time: formatNotifTime(n.created_at),
+    dbId: n.id,
+  };
+}
+
+function addRequestNotif({ id, status, level, types, time }){
+  const notif = {
+    id,
+    type: 'request_status',
+    icon: '⏳',
+    unread: true,
+    title: {
+      id: `⏳ Request Soal JLPT ${level} — Menunggu`,
+      en: `⏳ JLPT ${level} Exam Request — Pending`,
+      ja: `⏳ JLPT ${level} 試験リクエスト — 保留中`,
+    },
+    desc: {
+      id: `Request kamu (${types}) sedang menunggu respons admin.`,
+      en: `Your request (${types}) is waiting for admin response.`,
+      ja: `リクエスト（${types}）は管理者の返答を待っています。`,
+    },
+    time: formatNotifTime(time),
+  };
+  NOTIF_DATA.unshift(notif);
+  updateNotifBadge();
+  renderNotifList();
+}
+
+function formatNotifTime(ts){
+  if(!ts) return '';
+  const d = new Date(ts);
+  const now = new Date();
+  const diff = Math.floor((now - d) / 1000);
+  if(diff < 60) return 'Baru saja';
+  if(diff < 3600) return Math.floor(diff/60) + ' menit lalu';
+  if(diff < 86400) return Math.floor(diff/3600) + ' jam lalu';
+  return d.toLocaleDateString('id-ID', { day:'2-digit', month:'short' });
 }
 
 // =============================================
