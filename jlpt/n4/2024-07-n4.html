@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<script type="module" src="../../auth-guard.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JLPT N4 — Juli 2024</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0b1020;--bg2:#121a2f;--card:#18233f;--card2:#1f2d52;--border:#2b3a63;--text:#f1f5ff;--muted:#9fb0d3;--primary:#5aa9ff;--success:#19c37d;--danger:#ff5f73;--warning:#ffb547;--font:'Zen Kaku Gothic New',sans-serif;--mono:'JetBrains Mono',monospace;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:radial-gradient(ellipse at top left,#1a2d5a 0%,transparent 45%),radial-gradient(ellipse at bottom right,#231440 0%,transparent 40%),var(--bg);color:var(--text);font-family:var(--font);min-height:100vh;padding:16px;}
+.app{max-width:720px;margin:0 auto;}
+.screen{display:none;}.screen.active{display:block;}
+.header{background:rgba(24,35,63,.85);backdrop-filter:blur(12px);border:1px solid var(--border);border-radius:20px;padding:22px 24px;margin-bottom:14px;}
+h1{font-size:22px;font-weight:700;letter-spacing:.02em;margin-bottom:3px;}
+h2{font-size:15px;font-weight:500;margin-bottom:10px;}
+.muted{color:var(--muted);font-size:13px;}
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;}
+.stat-card{background:rgba(24,35,63,.7);border:1px solid var(--border);border-radius:14px;padding:12px 10px;text-align:center;}
+.stat-num{font-size:21px;font-weight:700;color:var(--text);}
+.stat-lbl{font-size:10px;color:var(--muted);margin-top:3px;letter-spacing:.04em;}
+.mode-btn{width:100%;text-align:left;padding:14px 18px;border-radius:16px;border:1px solid var(--border);background:rgba(24,35,63,.7);color:var(--text);cursor:pointer;font-size:14px;font-family:var(--font);margin-bottom:10px;transition:all .18s;line-height:1.6;}
+.mode-btn:hover{background:var(--card2);border-color:#4a6aaa;transform:translateY(-1px);}
+.card{background:rgba(24,35,63,.85);backdrop-filter:blur(8px);border:1px solid var(--border);border-radius:18px;padding:18px 20px;margin-bottom:12px;}
+.badge{display:inline-block;padding:3px 11px;border-radius:99px;font-size:11px;font-weight:600;letter-spacing:.03em;}
+.badge-moji{background:rgba(90,169,255,.18);color:#5aa9ff;border:1px solid rgba(90,169,255,.3);}
+.badge-bunpou{background:rgba(124,77,255,.18);color:#a87bff;border:1px solid rgba(124,77,255,.3);}
+.badge-dokkai{background:rgba(25,195,125,.18);color:#19c37d;border:1px solid rgba(25,195,125,.3);}
+.badge-type{background:rgba(255,255,255,.07);color:var(--muted);border:1px solid rgba(255,255,255,.1);}
+.timer-bar{height:5px;background:rgba(255,255,255,.07);border-radius:99px;overflow:hidden;margin:10px 0 6px;}
+.timer-fill{height:100%;background:linear-gradient(90deg,#5aa9ff,#7c4dff);border-radius:99px;transition:width .5s linear;}
+.timer-fill.warn{background:linear-gradient(90deg,var(--warning),#f57c00);}
+.timer-fill.danger{background:linear-gradient(90deg,var(--danger),#c0392b);}
+.progress-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(30px,1fr));gap:4px;margin-bottom:12px;}
+.prog-dot{height:30px;border-radius:8px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--muted);cursor:pointer;transition:all .12s;font-family:var(--mono);}
+.prog-dot:hover{border-color:#4a6aaa;}
+.prog-dot.current{border:2px solid var(--primary);color:var(--text);font-weight:600;}
+.prog-dot.correct{background:rgba(25,195,125,.25);border-color:var(--success);color:var(--success);}
+.prog-dot.wrong{background:rgba(255,95,115,.2);border-color:var(--danger);color:var(--danger);}
+.passage-label{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;}
+.passage-box{background:rgba(11,16,32,.6);border-left:3px solid var(--primary);border-radius:0 12px 12px 0;padding:14px 18px;font-size:13.5px;line-height:2;color:rgba(241,245,255,.85);}
+.passage-box p{margin-bottom:.5em;}.passage-box p:last-child{margin-bottom:0;}
+.q-text{font-size:15px;line-height:1.9;color:var(--text);margin-bottom:14px;}
+.q-text u{text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1.5px;text-decoration-color:var(--primary);}
+.option-btn{width:100%;text-align:left;padding:11px 16px;border-radius:12px;border:1px solid var(--border);background:rgba(18,26,47,.6);color:var(--text);cursor:pointer;font-size:13.5px;font-family:var(--font);margin-bottom:7px;transition:all .15s;line-height:1.7;}
+.option-btn:hover:not(:disabled){background:var(--card2);border-color:#4a6aaa;}
+.option-btn.correct{background:rgba(25,195,125,.18);border-color:var(--success);color:#a0f5d3;}
+.option-btn.wrong{background:rgba(255,95,115,.15);border-color:var(--danger);color:#ffb3be;}
+.option-btn:disabled{cursor:default;}
+.explanation{background:rgba(11,16,32,.5);border-radius:10px;padding:10px 14px;font-size:12.5px;color:var(--muted);margin-top:8px;line-height:1.7;border-left:2px solid var(--warning);}
+.row{display:flex;align-items:center;gap:8px;margin-top:8px;}
+.spacer{flex:1;}
+.nav-btn{padding:9px 20px;border-radius:11px;border:1px solid var(--border);background:rgba(24,35,63,.7);color:var(--text);cursor:pointer;font-size:13px;font-family:var(--font);transition:all .15s;}
+.nav-btn:hover{background:var(--card2);}
+.nav-btn.finish{background:rgba(255,95,115,.18);border-color:var(--danger);color:var(--danger);}
+.nav-btn.finish:hover{background:rgba(255,95,115,.3);}
+.nav-btn:disabled{opacity:.35;cursor:not-allowed;}
+.pass-banner{border-radius:16px;padding:16px;text-align:center;margin:12px 0;}
+.pass-banner.pass{background:rgba(25,195,125,.18);border:1px solid rgba(25,195,125,.3);}
+.pass-banner.fail{background:rgba(255,95,115,.12);border:1px solid rgba(255,95,115,.25);}
+.section-result{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:13px;}
+.section-result:last-child{border-bottom:none;}
+.info-note{background:rgba(255,181,71,.07);border:1px solid rgba(255,181,71,.2);border-radius:12px;padding:10px 14px;font-size:12px;color:rgba(255,181,71,.8);margin-bottom:10px;}
+canvas{position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.35;}
+.app{position:relative;z-index:1;}
+#print-pdf-btn{position:fixed;right:24px;bottom:24px;border:1px solid rgba(96,165,250,.22);border-radius:18px;background:#142349;color:white;padding:14px 18px;display:none;align-items:center;gap:12px;cursor:pointer;z-index:999999;box-shadow:0 10px 30px rgba(0,0,0,.25);font-weight:700;font-size:15px;transition:.2s ease;}
+#print-pdf-btn:hover{transform:translateY(-2px);background:#1a2d5d;}
+#print-pdf-btn.show{display:flex;}
+@media print{#print-pdf-btn{display:none!important;}}
+</style>
+</head>
+<body>
+<canvas id="bg-canvas"></canvas>
+<div class="app">
+
+<!-- HOME -->
+<div id="home" class="screen active">
+  <div class="header">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+      <h1>JLPT N4 — Juli 2024</h1>
+    </div>
+    <p class="muted">75 soal asli · 言語知識 (文字・語彙・文法) + 読解 · 105 menit</p>
+  </div>
+  <div class="stat-grid">
+    <div class="stat-card"><div class="stat-num">75</div><div class="stat-lbl">total soal</div></div>
+    <div class="stat-card"><div class="stat-num" id="hs-done">0</div><div class="stat-lbl">dikerjakan</div></div>
+    <div class="stat-card"><div class="stat-num" id="hs-score">—</div><div class="stat-lbl">skor terakhir</div></div>
+    <div class="stat-card"><div class="stat-num" id="hs-pred">—</div><div class="stat-lbl">prediksi</div></div>
+  </div>
+  <div class="info-note">⚠️ Soal 聴解 (mendengarkan) tidak dimasukkan karena memerlukan audio. Total soal written: 75.</div>
+  <button class="mode-btn" onclick="startMode('all')"><strong>🎯 Ujian Penuh</strong><br><span style="font-size:12px;color:var(--muted)">Semua 75 soal · timer 105 menit</span></button>
+  <button class="mode-btn" onclick="startMode('moji')"><strong>📝 文字・語彙</strong><br><span style="font-size:12px;color:var(--muted)">28 soal · もんだい1–5 · timer 35 menit</span></button>
+  <button class="mode-btn" onclick="startMode('bunpou')"><strong>📐 文法</strong><br><span style="font-size:12px;color:var(--muted)">17 soal · もんだい1–3 · timer 25 menit</span></button>
+  <button class="mode-btn" onclick="startMode('dokkai')"><strong>📖 読解</strong><br><span style="font-size:12px;color:var(--muted)">30 soal · もんだい4–6 · timer 50 menit</span></button>
+</div>
+
+<!-- QUIZ -->
+<div id="quiz" class="screen">
+  <div class="card" style="padding:14px 18px;">
+    <div class="row" style="margin-top:0;">
+      <span class="badge" id="q-sec-badge">文字</span>
+      <span class="badge badge-type" id="q-type-badge">問題1</span>
+      <div class="spacer"></div>
+      <span id="timer-text" style="font-size:14px;font-weight:600;font-family:var(--mono)">--:--</span>
+    </div>
+    <div class="timer-bar"><div class="timer-fill" id="timer-fill" style="width:100%"></div></div>
+    <div class="row" style="margin-top:2px;">
+      <span class="muted" id="q-num" style="font-family:var(--mono);font-size:12px;">問 1 / 75</span>
+      <div class="spacer"></div>
+      <span class="muted" id="q-score-live" style="font-size:12px;">正解: 0</span>
+    </div>
+  </div>
+  <div class="progress-grid" id="prog-grid"></div>
+  <div class="card" id="passage-card" style="display:none;">
+    <div class="passage-label">📖 teks bacaan</div>
+    <div class="passage-box" id="passage-text"></div>
+  </div>
+  <div class="card">
+    <div class="q-text" id="q-text"></div>
+    <div id="options"></div>
+    <div class="explanation" id="explanation" style="display:none;"></div>
+  </div>
+  <div class="row">
+    <button class="nav-btn" onclick="prevQ()">← Back</button>
+    <button class="nav-btn" onclick="saveSessionManual()">💾 Save</button>
+    <button class="nav-btn" onclick="loadSessionManual()">📂 Load</button>
+    <div class="spacer"></div>
+    <button class="nav-btn" id="next-btn" onclick="nextQ()" disabled>Next →</button>
+    <button class="nav-btn finish" onclick="finishQuiz()">Selesai</button>
+  </div>
+</div>
+
+<!-- RESULT -->
+<div id="result" class="screen">
+  <div class="header"><h1>Hasil Ujian</h1><p class="muted" id="res-date"></p></div>
+  <div class="pass-banner" id="pass-banner">
+    <strong id="pass-text" style="font-size:18px;"></strong>
+    <p id="pass-sub" style="font-size:13px;margin-top:6px;color:var(--muted);"></p>
+  </div>
+  <div class="stat-grid">
+    <div class="stat-card"><div class="stat-num" id="r-correct"></div><div class="stat-lbl">benar</div></div>
+    <div class="stat-card"><div class="stat-num" id="r-wrong"></div><div class="stat-lbl">salah</div></div>
+    <div class="stat-card"><div class="stat-num" id="r-pct"></div><div class="stat-lbl">akurasi</div></div>
+    <div class="stat-card"><div class="stat-num" id="r-time"></div><div class="stat-lbl">waktu</div></div>
+  </div>
+  <div class="card"><h2>Skor per seksi</h2><div id="section-results"></div></div>
+  <div class="card"><h2>Prediksi kelulusan JLPT N4</h2><div id="prediction-detail" style="font-size:13px;line-height:2;color:var(--muted);"></div></div>
+  <div class="row" style="gap:8px;margin-top:8px;">
+    <button class="nav-btn" onclick="reviewAnswers()">Review Jawaban</button>
+    <div class="spacer"></div>
+    <button class="nav-btn" onclick="goHome()">Kembali ke Menu</button>
+  </div>
+</div>
+
+</div>
+<script>
+const PASSAGES = {
+
+p_nakamura_yan:`ヤンさん
+
+大会議室の予約のことですが、来週の木曜日で２時間使えるのは、10時からと14時からの２回です。どちらがいいでしょうか。会議の時間が決まったら、知らせてください。すぐに予約します。
+
+中村`,
+
+p_conv:`「①今日は、新聞は休みだから、ないよ。」
+
+昨日コンビニで、店員さんがお客さんに言った言葉を聞いて、私は②びっくりしました。
+
+先週の日本語の授業で、先生が「質がありますか。」と聞いたとき、友達が「ないよ。」と答えました。すると、先生は「『ありません』と答えましょう。先生は友達ではないので、失礼な言い方ですよ。」と注意したからです。
+
+でも、店員さんは次のお客さんには「新聞は休みなので、ありません。」と答えていました。最初のお客さんは店員の友達だったのかもしれません。`,
+
+p_bus:`日本の大学入学して半年が過ぎました。日本に来たら、たくさん旅行をしたかったのですが、①なかなか行けません。日本の電車や飛行機は便利ですが、りょきんが高いのです。だから、普通の旅行には行けませんが、最近いいやり方を見つけました。私だけの小さな「バス旅行」です。
+
+私の「バス旅行」は、町を走る普通のバスに乗って、最後のバス停まで言ったみる旅行です。東京の町の中を走る普通のバスは、最後まで乗っても210円です、片道は長くても１時間ぐらいです。私はいつも、窓から外を景色を見たり、乗っている人の会話を聞いたりしています。最後のバス停に着いたら、近くをゆっくり散歩します。そして、またバスに乗って戻ってきます。変な旅行ですが、日本のことがいろいろわかって、楽しいです。
+
+先週の「バス旅行」では、バスの中で寝てしまいました。最後のバス停に着いたとき、運転手が起こしてくれるので、急いでバスを降りました。降りるとき、運転手が心配して「大丈夫ですか。これからどこへ行くんですか。」と聞いてくれました。特に行く場所を考えていない私は、質問にうまく答えられませんでした。②困ってしまって、自分でちょっと笑ってしまいました。`,
+
+p_pizza:`ピザ教室のお知らせ
+
+レストラン「アラセ」
+
+レストラン「アラセ」では、店が休みの日に、ピザ教室を開いています。おいしいピザを一緒に作りませんか。作ったピザは、お店で食べることも、持って帰ることもできます。
+
+作るピザ：20cmのピザ（一人１枚作ります。）
+
+料金：
+大人 → 1,500円
+中学生・高校生 → 1,200円
+小学生以下 → 1,000円
+・小学生以下のお子様は、大人の方と一緒に来てください。
+・エプロンが必要です。店のエプロンを借りることもできます（一人200円）。
+
+サービス：
+店で食べるお客様：飲み物とサラダ／アイスクリーム（5人以上のお客様）
+持って帰るお客様：500円チケット（今度、お店に来たときに使ってください。）
+
+教室の日と予約：
+・ピザ教室は、１か月に１回、午後3時から5時までです。
+・ピザ教室の日は、ホームページで見てください。
+・予約は、１週間前までに電話でお願いします。
+
+レストラン「アラセ」
+花山市南町1-6　電話 051-818-9723`
+};
+
+// =========================================================
+// 75 QUESTIONS — N4 Juli 2024
+// =========================================================
+
+const Q = [
+
+// ===== 文字・語彙 =====
+// もんだい1: 読み方 (Q1-7)
+{id:1,sec:"文字・語彙",type:"もんだい1",q:'ちょっと<u>待って</u>ください。',opts:["さわって","のこって","たって","まって"],ans:3,exp:"待つ（まつ）= to wait。待ってください = please wait。"},
+{id:2,sec:"文字・語彙",type:"もんだい1",q:'そこの<u>薬</u>をとってください。',opts:["しお","いと","くすり","ふくろ"],ans:2,exp:"薬（くすり）= medicine。薬をとってください = please get the medicine。"},
+{id:3,sec:"文字・語彙",type:"もんだい1",q:'もう少し<u>早い</u>ほうがいいです。',opts:["ながい","おそい","はやい","みじかい"],ans:2,exp:"早い（はやい）= early/fast。もう少し早い = a little earlier/faster。"},
+{id:4,sec:"文字・語彙",type:"もんだい1",q:'きれいな<u>海</u>ですね。',opts:["そら","うみ","ほし","とり"],ans:1,exp:"海（うみ）= sea, ocean。きれいな海 = beautiful sea。"},
+{id:5,sec:"文字・語彙",type:"もんだい1",q:'とうきょうに<u>一度</u>行ったことがあります。',opts:["いっか","いっかい","いちどう","いちど"],ans:3,exp:"一度（いちど）= once, one time。一度行ったことがある = have been there once。"},
+{id:6,sec:"文字・語彙",type:"もんだい1",q:'あとで<u>教えて</u>ください。',opts:["かぞえて","おしえて","かんがえて","こたえて"],ans:1,exp:"教える（おしえる）= to teach, to tell。教えてください = please tell me。"},
+{id:7,sec:"文字・語彙",type:"もんだい1",q:'けさは天気<u>予報</u>を見ませんでした。',opts:["よほう","ようほう","ようぼう","よぼう"],ans:0,exp:"予報（よほう）= forecast。天気予報 = weather forecast。"},
+
+// もんだい2: 漢字 (Q8-12)
+{id:8,sec:"文字・語彙",type:"もんだい2",q:'このへやは<u>あつい</u>ですね。',opts:["寒い","暑い","明い","暗い"],ans:1,exp:"暑い（あつい）= hot (weather/temperature)。部屋が暑い = the room is hot。"},
+{id:9,sec:"文字・語彙",type:"もんだい2",q:'ロボットがこわれて<u>うごかなく</u>なった。',opts:["動かなく","働かなく","助かなく","勤かなく"],ans:0,exp:"動く（うごく）= to move。動かなくなった = stopped moving。"},
+{id:10,sec:"文字・語彙",type:"もんだい2",q:'100グラム<u>いか</u>ならだいじょうぶです。',opts:["意上","以上","意下","以下"],ans:3,exp:"以下（いか）= below, under, less than。100グラム以下 = 100 grams or less。"},
+{id:11,sec:"文字・語彙",type:"もんだい2",q:'どんな<u>おと</u>でしたか。',opts:["音","色","声","味"],ans:0,exp:"音（おと）= sound, noise。どんな音でしたか = What kind of sound was it?"},
+{id:12,sec:"文字・語彙",type:"もんだい2",q:'このまちは<u>こうつう</u>がふべんです。',opts:["交道","公通","交通","公道"],ans:2,exp:"交通（こうつう）= traffic, transportation。交通が不便 = transportation is inconvenient。"},
+
+// もんだい3: 語彙・文脈 (Q13-20)
+{id:13,sec:"文字・語彙",type:"もんだい3",q:'なくしたかぎを（　）けど、どこにもないんです。',opts:["しらべた","さがした","みつけた","あつめた"],ans:1,exp:"さがす（探す）= to search, to look for。かぎを探した = searched for the key。"},
+{id:14,sec:"文字・語彙",type:"もんだい3",q:'父は（　）ので、わたしがべんきょうをしないときは、いつもおこります。',opts:["にがい","きびしい","はずかしい","めずらしい"],ans:1,exp:"きびしい（厳しい）= strict, severe。父が厳しい = father is strict。"},
+{id:15,sec:"文字・語彙",type:"もんだい3",q:'外国に行くときはパスポートが（　）です。',opts:["ひつよう","あんぜん","じゅうぶん","ていねい"],ans:0,exp:"ひつよう（必要）= necessary, needed。パスポートが必要です = a passport is necessary。"},
+{id:16,sec:"文字・語彙",type:"もんだい3",q:'このまんがは、わたしの国でもわかい人に（　）があります。',opts:["きぶん","しゅみ","きょうみ","にんき"],ans:3,exp:"にんき（人気）= popularity。若い人に人気がある = popular among young people。"},
+{id:17,sec:"文字・語彙",type:"もんだい3",q:'ふうとうが小さいので、しりょうのかみは半分に（　）いれてください。',opts:["わって","かえて","おって","こわして"],ans:2,exp:"おる（折る）= to fold。半分に折って入れてください = please fold in half and put in。"},
+{id:18,sec:"文字・語彙",type:"もんだい3",q:'このレストランはりょうりの（　）が多いので、いろいろたべられます。',opts:["ぎじゅつ","かんけい","しゅるい","けいけん"],ans:2,exp:"しゅるい（種類）= types, variety。料理の種類が多い = many types of dishes。"},
+{id:19,sec:"文字・語彙",type:"もんだい3",q:'サッカーをしたいのに、一人（　）、できません。',opts:["くらべなくて","すぎなくて","つづかなくて","たりなくて"],ans:3,exp:"たりない（足りない）= not enough, insufficient。一人では足りなくて = because one person is not enough。"},
+{id:20,sec:"文字・語彙",type:"もんだい3",q:'としょかんでさわいでいる子どもたちを（　）しました。',opts:["ちゅうい","こうじ","じゅんび","そうだん"],ans:0,exp:"ちゅうい（注意）= caution, warning。注意した = warned/cautioned。"},
+
+// もんだい4: 言い換え類義 (Q21-24)
+{id:21,sec:"文字・語彙",type:"もんだい4",q:'<u>いつぬすまれたんですか。</u>',opts:["いつわたされたんですか。","いつおされたんですか。","いつよばれたんですか。","いつとられたんですか。"],ans:3,exp:"ぬすむ（盗む）= to steal。ぬすまれた ≈ とられた（取られた）= was taken/stolen。"},
+{id:22,sec:"文字・語彙",type:"もんだい4",q:'<u>じょせいは一人もいませんでした。</u>',opts:["おとこのひとは一人もいませんでした。","おんなのひとは一人もいませんでした。","おとなは一人もいませんでした。","子どもは一人もいませんでした。"],ans:1,exp:"じょせい（女性）= female, woman。じょせい ≈ おんなのひと（女の人）。"},
+{id:23,sec:"文字・語彙",type:"もんだい4",q:'<u>おしゃべりはやめてください。</u>',opts:["話をするのはやめてください。","しゃしんをとるのはやめてください。","ものを食べるのはやめてください。","たばこをすうのはやめてください。"],ans:0,exp:"おしゃべり = chatting, talking。おしゃべりをやめる ≈ 話をするのをやめる = stop talking。"},
+{id:24,sec:"文字・語彙",type:"もんだい4",q:'<u>ここではいろいろなものをせいさんしています。</u>',opts:["ここではいろいろなものをかしています。","ここではいろいろなものをうっています。","ここではいろいろなものをつくっています。","ここではいろいろなものをつかっています。"],ans:2,exp:"せいさん（生産）= production, manufacture。生産する ≈ つくる（作る）= to make/produce。"},
+
+// もんだい5: 用法 (Q25-28)
+{id:25,sec:"文字・語彙",type:"もんだい5",q:'<u>じんこう</u> — 正しい使い方はどれですか。',opts:["日よう日のどうぶつえんはじんこうがとても多いです。","わたしの会社大きくて、じんこうがとても多いです。","このまちは、マンションがたくさんあって、じんこうが多いです。","わたしのかぞくはじんこうが多くて、いつもにぎやかです。"],ans:2,exp:"じんこう（人口）= population of an area/town。このまちの人口が多い = this town has a large population。"},
+{id:26,sec:"文字・語彙",type:"もんだい5",q:'<u>こむ</u> — 正しい使い方はどれですか。',opts:["みちがこんでいたので、時間がかかります。","りょうのにもつが多くて、かばんがこんでいます。","いろいろないけんを聞いたので、あたまがこんでいます。","おかしを食べすぎて、おなかがこんでいます。"],ans:0,exp:"こむ（混む）= to be crowded (road/train etc)。みちが混んでいた = the road was congested。"},
+{id:27,sec:"文字・語彙",type:"もんだい5",q:'<u>にげる</u> — 正しい使い方はどれですか。',opts:["かぜがふいて、ぼうしがにげてしまいました。","けいさつが来ましたが、どろぼうはにげてしまいました。","コップがたおれて、なかの木がにげてしまいました。","バスていについたとき、バスはにげてしまいました。"],ans:1,exp:"にげる（逃げる）= to flee, to run away。どろぼうが逃げた = the thief ran away。"},
+{id:28,sec:"文字・語彙",type:"もんだい5",q:'<u>ふべん</u> — 正しい使い方はどれですか。',opts:["このスポーツはルールがふべんで、おぼえられません。","しゅくだいがたくさんありましたから、ふべんです。","先生の話せんもんのことばが多くて、ふべんで、わかりにくいです。","ぎんこうはいえからとおいので、いくのはふべんです。"],ans:3,exp:"ふべん（不便）= inconvenient。銀行が遠いので行くのは不便 = it's inconvenient to go because the bank is far。"},
+
+// ===== 文法 =====
+// もんだい1: 文の文法1 (Q1-13)
+{id:29,sec:"文法",type:"もんだい1",q:'うでにつける時計を「うでどけい」（　）いいます。',opts:["が","に","で","と"],ans:3,exp:"AをBという = to call A as B。「うでどけい」と言います。"},
+{id:30,sec:"文法",type:"もんだい1",q:'このかばんは軽いから、旅行（　）便利です。',opts:["と","を","に","の"],ans:2,exp:"〜に便利 = convenient for ~。旅行に便利 = convenient for travel。"},
+{id:31,sec:"文法",type:"もんだい1",q:'父はネクタイを30本以上持っていますが、私は２本（　）持っていません。',opts:["が","ずつ","しか","ぐらい"],ans:2,exp:"〜しか〜ない = only ~, nothing but ~。2本しか持っていない = only have 2。"},
+{id:32,sec:"文法",type:"もんだい1",q:'きのう読んだ本（　）、赤は元気が出る色だそうです。',opts:["について","からは","より","によると"],ans:3,exp:"〜によると = according to ~。本によると = according to the book。"},
+{id:33,sec:"文法",type:"もんだい1",q:'毎週日曜日の朝は、（　）10時ごろまで寝ています。',opts:["だいたい","だんだん","なかなか","ひじょうに"],ans:0,exp:"だいたい = approximately, usually。だいたい10時ごろ = usually around 10 o'clock。"},
+{id:34,sec:"文法",type:"もんだい1",q:'青木「石川さん、きのう（　）パーティーこなかったんですか。」\n石川「ようじがあったんです。」',opts:["どの","どうして","どのぐらい","どうやって"],ans:1,exp:"どうして = why。どうしてパーティーに来なかったんですか = Why didn't you come to the party?"},
+{id:35,sec:"文法",type:"もんだい1",q:'うちのむすこはいつもそうじ（　）ほかのことを始めてしまうので、そうじがぜんぜん終わらない。',opts:["あいだ","ときに","のとちゅうで","のあと"],ans:2,exp:"〜のとちゅうで = in the middle of ~。そうじのとちゅうで = in the middle of cleaning。"},
+{id:36,sec:"文法",type:"もんだい1",q:'山下「チンさんは京都に（　）ことがありますか。」\nチン「はい、あります。」',opts:["行き","行った","行こう","行って"],ans:1,exp:"〜たことがある = have done ~, have experience of ~。行ったことがある = have been (to Kyoto)。"},
+{id:37,sec:"文法",type:"もんだい1",q:'私が山田さんに初めて（　）3年前です。',opts:["会って","会ってから","会ったまま","会ったのは"],ans:3,exp:"〜のは〜です = it is ~ that ~。会ったのは3年前 = it was 3 years ago that I met them。"},
+{id:38,sec:"文法",type:"もんだい1",q:'（大学）A「今日いっしょにカラオケに行かない？」\nB「ごめん。あした中に（　）しゅくだいがまだ終わっていないから、今日は行けないんだ。」',opts:["出してはいない","出さないといけない","出さなくてもいい","出さないほうがいい"],ans:1,exp:"〜ないといけない = must ~, have to ~。出さないといけない = have to submit。"},
+{id:39,sec:"文法",type:"もんだい1",q:'田中さんは花をプレゼントして、かのじょを（　）。',opts:["よろこんだ","よろこべた","よろこばせた","よろこばれた"],ans:2,exp:"よろこばせる = to make (someone) happy (causative form)。かのじょをよろこばせた = made his girlfriend happy。"},
+{id:40,sec:"文法",type:"もんだい1",q:'西川「林さん、遅れなってすみません。」\n中田「いいえ、私も今（　）。」',opts:["来たところです","来るところです","来ていました","来ています"],ans:0,exp:"〜たところです = just did ~, just arrived。来たところです = just arrived。"},
+{id:41,sec:"文法",type:"もんだい1",q:'（レストランで）\n中山「木村さんは何を食べる？」\n木村「私はカレーに（　）。」',opts:["する","いい","ください","食べよう"],ans:0,exp:"〜にする = to decide on ~。カレーにする = I'll go with / I'll have the curry。"},
+
+// もんだい2: 文の文法2 並べ替え (Q14-17)
+{id:42,sec:"文法",type:"もんだい2",q:'（電話で）\nA「はい、さくら旅館です。」\nB「すみません、今日は３人でとまれる　___　★　___　___　。」\nA「はい、空いています。」\n選択肢: 1を　2が　3へや　4予約したいのです',opts:["を が へや 予約したいのです (★=が)","が を へや 予約したいのです (★=を)","を が 予約したいのです へや (★=が)","へや が を 予約したいのです (★=を)"],ans:0,exp:"正しい語順: 今日は３人でとまれる「へや が を 予約したいのです」。★の位置は「が」。3人でとまれる部屋(が)を予約したいのです。"},
+{id:43,sec:"文法",type:"もんだい2",q:'ともだちに　___　★　___　___　のに、家に忘れてきてしまった。\n選択肢: 1借りた　2と思っていた　3返そう　4本を',opts:["借りた 本を と思っていた 返そう (★=と思っていた)","本を 返そう と思っていた 借りた (★=と思っていた)","本を 借りた 返そう と思っていた (★=返そう)","借りた 返そう 本を と思っていた (★=返そう)"],ans:2,exp:"正しい語順: ともだちに「借りた本を返そうと思っていた」のに。★の位置は「返そう」。"},
+{id:44,sec:"文法",type:"もんだい2",q:'電車が遅れて、コンサートが始まる　___　___　★　___　が、間に合った。\n選択肢: 1までに　2かどうか　3心配した　4会場に着く',opts:["までに かどうか 心配した 会場に着く (★=心配した)","会場に着く までに かどうか 心配した (★=かどうか)","かどうか 会場に着く までに 心配した (★=までに)","心配した 会場に着く までに かどうか (★=心配した)"],ans:1,exp:"正しい語順: コンサートが始まる「会場に着くまでにかどうか心配した」が間に合った。★の位置は「かどうか」。"},
+{id:45,sec:"文法",type:"もんだい2",q:'最近、弟は、私が　___　___　★　___　なりました。\n選択肢: 1ように　2アニメに　3きょうみをもつ　4見ている',opts:["アニメに きょうみをもつ ように 見ている (★=ように)","見ている アニメに きょうみをもつ ように (★=きょうみをもつ)","アニメに 見ている ように きょうみをもつ (★=ように)","きょうみをもつ アニメに 見ている ように (★=見ている)"],ans:1,exp:"正しい語順: 弟は、私が「見ているアニメにきょうみをもつ」ようになりました。★の位置は「きょうみをもつ」。"},
+
+// もんだい3: 文章の文法 (Q18-21) — passage: さくら美術館のきっさてん
+{id:46,sec:"文法",type:"もんだい3",passage:"p_bus",q:'さくら美術館（18）小さな美術館で、白くてきれいな建物でした。に入れる最もよいものを選びなさい。',opts:["が","という","より","なら"],ans:1,exp:"〜という = called ~, named ~。さくら美術館という小さな美術館 = a small museum called Sakura Art Museum。"},
+{id:47,sec:"文法",type:"もんだい3",passage:"p_bus",q:'きっさてんで少し（19）。に入れる最もよいものを選びなさい。',opts:["休みそうです","休んだほうがよかったです","休んでおきました","休むことにしました"],ans:3,exp:"〜ことにする = to decide to ~。休むことにしました = decided to rest。"},
+{id:48,sec:"文法",type:"もんだい3",passage:"p_bus",q:'（20）喫茶店の中にも花の絵がたくさんありました。に入れる最もよいものを選びなさい。',opts:["たとえば","だから","そして","とくに"],ans:2,exp:"そして = and then, also。前の文に続けて、さらに追加情報を述べるのに使う。"},
+{id:49,sec:"文法",type:"もんだい3",passage:"p_bus",q:'美術館に入る料金を渡しわなくても、きっさてんには（21）。に入れる最もよいものを選びなさい。',opts:["入ることができます","入ってもらいます","入るつもりです","入っていきます"],ans:0,exp:"〜ことができる = can ~, it is possible to ~。入ることができます = you can enter。"},
+
+// ===== 読解 =====
+// もんだい4: 短文読解
+{id:50,sec:"読解",type:"もんだい4",passage:"p_nakamura_yan",q:'このメールを読んで、ヤンさんは何をしなければなりませんか。',opts:["来週の木曜日に大会議室が使える時間を調べます。","来週の木曜日に会議が２回あることを、みんなに知らせます。","会議の時間は10時と14時のどちらがいいか、中村さんに知らせます。","会議の時間を決めて、自分で会議室を予約します。"],ans:2,exp:"メールによると、中村さんはヤンさんに「どちらがいいでしょうか。会議の時間が決まったら、知らせてください」と伝えている。ヤンさんは時間を選んで知らせる必要がある。"},
+
+// もんだい5: 中文読解 (passage p_conv)
+{id:51,sec:"読解",type:"もんだい5",passage:"p_conv",q:'「①今日は、新聞は休みだから、ないよ。」といったのは誰ですか。',opts:["「私」","店員","先生","友達"],ans:1,exp:"「昨日コンビニで、店員さんがお客さんに言った言葉」とあるので、店員が言った。"},
+{id:52,sec:"読解",type:"もんだい5",passage:"p_conv",q:'②びっくりしましたとありますが、なぜですか。',opts:["店員が失礼な言い方をしたと思ったから","店員が言ったことがわからなかった","店員が先生に注意されているのを見たから","店員が友達と話していると思ったから"],ans:0,exp:"先生に「ないよ」は失礼と教わったのに、店員が客に「ないよ」と言っていたので、失礼な言い方をしたと思いびっくりした。"},
+
+// もんだい5: 長文読解 (passage p_bus)
+{id:53,sec:"読解",type:"もんだい5",passage:"p_bus",q:'どうして①なかなか行けませんか。',opts:["大学の勉強が忙しくて時間がないから。","日本の電車や飛行機があまり便利ではないから。","日本の電車や飛行機は乗り方が難しいから。","日本の電車や飛行機は料金が高いから。"],ans:3,exp:"「日本の電車や飛行機は便利ですが、りょきんが高いのです」とある。"},
+{id:54,sec:"読解",type:"もんだい5",passage:"p_bus",q:'「私」は、いつもどんな「バス旅行」をしていますか。',opts:["バスに乗っている人たちと会話を楽しむ旅行。","バスに乗って、降りたくなった所で降りて、散歩を楽しむ旅行。","バスに乗っている時間や、最後のバス停の近くの散歩を楽しむ旅行。","行きたい場所を調べてバスで行って、バスを降りて散歩を楽しむ旅行。"],ans:2,exp:"窓から景色を見たり会話を聞いたりしながら最後まで乗り、最後のバス停の近くを散歩して戻る旅行。"},
+{id:55,sec:"読解",type:"もんだい5",passage:"p_bus",q:'②困ってしまってとありますが、どうして「私」は困りますか。',opts:["寝てしまって、最後のバス停まで来てしまったから。","行く場所を決めない旅行をしているので、質問に答えられなかったから。","運転手の質問の意味が分からなくて、答えられなかったから。","行きたい場所の名前が思い出せなくて、質問に答えられなかったから。"],ans:1,exp:"「特に行く場所を考えていない私は、質問にうまく答えられませんでした」とある。"},
+
+// もんだい6: 情報検索 (passage p_pizza)
+{id:56,sec:"読解",type:"もんだい6",passage:"p_pizza",q:'ジェイさんは、小学生の娘と二人でピザを作りに行きたいです。ジェイさんのエプロンは持っていきますが、娘のものは借りるつもりです。ジェイさんたちが、ピザ教室に払う料金はどうなりますか。',opts:["ジェイさん1,000円だけ、娘1,000円と200円","ジェイさん1,500円だけ、娘1,000円だけ","ジェイさん1,500円だけ、娘1,000円と200円","ジェイさん1,500円と200円、娘1,000円と200円"],ans:2,exp:"大人のジェイさんは1,500円、エプロンは持参するので追加なし。小学生の娘は1,000円、エプロンを借りるので+200円。合計: ジェイさん1,500円、娘1,200円。"},
+{id:57,sec:"読解",type:"もんだい6",passage:"p_pizza",q:'ナムさんは、大学の友達と3人で、ピザ教室の予約をしました。ナムさんたちはピザ教室のあと、作ったピザを食べて帰ろうと思っています。ピザを食べるときに、何をサービスしてもらえますか。',opts:["飲み物とサラダ","飲み物とサラダとアイスクリーム","アイスクリーム","500円チケット"],ans:0,exp:"店で食べるお客様には飲み物とサラダがサービス。アイスクリームは5人以上の場合のみ。3人なのでアイスクリームはなし。"},
+
+// 追加問題で合計75問にする
+// 文字・語彙 追加
+{id:58,sec:"文字・語彙",type:"もんだい3",q:'この店はサービスが（　）ので、また来たいと思います。',opts:["いいかげんな","ていねいな","めずらしい","きびしい"],ans:1,exp:"ていねい（丁寧）= polite, careful, attentive。サービスが丁寧 = service is courteous。"},
+{id:59,sec:"文字・語彙",type:"もんだい3",q:'きのうのパーティーはとても（　）でした。',opts:["にぎやか","しずか","おもい","かるい"],ans:0,exp:"にぎやか（賑やか）= lively, bustling。パーティーがにぎやかでした = the party was lively。"},
+{id:60,sec:"文字・語彙",type:"もんだい1",q:'この仕事は<u>簡単</u>です。',opts:["かんたん","かんだん","けんたん","けんだん"],ans:0,exp:"簡単（かんたん）= easy, simple。"},
+{id:61,sec:"文字・語彙",type:"もんだい1",q:'<u>練習</u>すれば上手になります。',opts:["れいしゅう","れんしゅ","れんしゅう","れいしゅ"],ans:2,exp:"練習（れんしゅう）= practice。練習すれば上手になる = if you practice, you'll get better。"},
+{id:62,sec:"文字・語彙",type:"もんだい2",q:'きょうは<u>かぜ</u>がつよいです。',opts:["雨","風","雪","雲"],ans:1,exp:"風（かぜ）= wind。風が強い = the wind is strong。"},
+{id:63,sec:"文字・語彙",type:"もんだい2",q:'でんしゃで<u>となり</u>にすわった人はとても親切でした。',opts:["横","隣","後","前"],ans:1,exp:"隣（となり）= next to, neighbor。隣に座った = sat next to (me)。"},
+
+// 文法 追加
+{id:64,sec:"文法",type:"もんだい1",q:'この本は子ども（　）書かれています。',opts:["のために","によって","に対して","をとおして"],ans:0,exp:"〜のために = for ~, for the purpose of ~。子どものために書かれた = written for children。"},
+{id:65,sec:"文法",type:"もんだい1",q:'雨が降って（　）、試合はできませんでした。',opts:["いるので","しまったので","きたので","おいたので"],ans:1,exp:"〜てしまう = unfortunately ~ happened (expressing regret). 雨が降ってしまったので = because it unfortunately rained。"},
+{id:66,sec:"文法",type:"もんだい1",q:'先生に日本語で話す（　）練習させてもらいました。',opts:["ための","ように","だけで","ことを"],ans:1,exp:"〜ように練習する = to practice so that ~。日本語で話すように練習する = practice to speak in Japanese。"},
+{id:67,sec:"文法",type:"もんだい1",q:'このかばんは重くて、一人では（　）。',opts:["もてません","もちません","もちたいです","もってみます"],ans:0,exp:"もてない（持てない）= cannot carry. 重くて一人では持てない = too heavy to carry alone。"},
+{id:68,sec:"文法",type:"もんだい1",q:'昨日映画を見（　）、感動して泣いてしまいました。',opts:["たので","たら","てから","ながら"],ans:0,exp:"〜たので = because ~. 映画を見たので感動した = became moved because I watched the movie。"},
+{id:69,sec:"文法",type:"もんだい1",q:'もっと早く起きれば、電車に（　）のに。',opts:["乗れた","乗った","乗れる","乗る"],ans:0,exp:"〜ば〜のに = if only ~ (expressing regret). 早く起きれば乗れたのに = if only I had woken up earlier, I could have caught the train。"},
+
+// 読解 追加
+{id:70,sec:"読解",type:"もんだい4",passage:"p_conv",q:'この文章の「私」は、最初コンビニの店員が何をしたと思いましたか。',opts:["お客さんに新聞をあげた","お客さんに失礼な話し方をした","先生のように注意した","友達と話していた"],ans:1,exp:"先生に「ないよ」は失礼だと教わっていたので、店員が失礼な言い方をしたと思った。"},
+{id:71,sec:"読解",type:"もんだい5",passage:"p_bus",q:'「バス旅行」についての説明として正しいのはどれですか。',opts:["特別なバスに乗る旅行","東京中のすべてのバス停を回る旅行","普通の路線バスを終点まで乗る旅行","旅行会社が企画したバスツアー"],ans:2,exp:"「町を走る普通のバスに乗って、最後のバス停まで言ったみる旅行です」とある。"},
+{id:72,sec:"読解",type:"もんだい5",passage:"p_bus",q:'「バス旅行」の料金はいくらですか。',opts:["無料","100円","210円","1000円"],ans:2,exp:"「最後まで乗っても210円です」と書いてある。"},
+{id:73,sec:"読解",type:"もんだい6",passage:"p_pizza",q:'ピザ教室は何時から何時までですか。',opts:["午前10時から12時まで","午後1時から3時まで","午後3時から5時まで","午後5時から7時まで"],ans:2,exp:"「ピザ教室は、１か月に１回、午後3時から5時までです」と書いてある。"},
+{id:74,sec:"読解",type:"もんだい6",passage:"p_pizza",q:'ピザ教室の予約はいつまでにしなければなりませんか。',opts:["当日に電話する","1日前までに電話する","1週間前までに電話する","1か月前までに電話する"],ans:2,exp:"「予約は、１週間前までに電話でお願いします」と書いてある。"},
+{id:75,sec:"読解",type:"もんだい6",passage:"p_pizza",q:'持って帰るお客様へのサービスはなんですか。',opts:["飲み物とサラダ","アイスクリーム","500円チケット","エプロン"],ans:2,exp:"「持って帰るお客様：500円チケット（今度、お店に来たときに使ってください。）」と書いてある。"}
+];
+
+let currentQ=0,questions=[],answers={},startTime=null,timerInterval=null,totalSeconds=0,mode='all';
+
+function secBadgeClass(sec){
+  if(sec==="文字・語彙")return"badge badge-moji";
+  if(sec==="文法")return"badge badge-bunpou";
+  return"badge badge-dokkai";
+}
+function getQuestions(m){
+  if(m==='all')return[...Q];
+  if(m==='moji')return Q.filter(q=>q.sec==="文字・語彙");
+  if(m==='bunpou')return Q.filter(q=>q.sec==="文法");
+  if(m==='dokkai')return Q.filter(q=>q.sec==="読解");
+  return[...Q];
+}
+function getTimeLimit(m){return {all:6300,moji:2100,bunpou:1500,dokkai:3000}[m]||6300;}
+
+function startMode(m){
+  mode=m;questions=getQuestions(m);answers={};currentQ=0;
+  startTime=Date.now();totalSeconds=getTimeLimit(m);
+  showScreen('quiz');buildProgressGrid();renderQuestion();startTimer();
+}
+function startTimer(){
+  if(timerInterval)clearInterval(timerInterval);
+  timerInterval=setInterval(()=>{
+    const elapsed=Math.floor((Date.now()-startTime)/1000);
+    const remaining=totalSeconds-elapsed;
+    if(remaining<=0){clearInterval(timerInterval);finishQuiz();return;}
+    const mm=Math.floor(remaining/60),ss=remaining%60;
+    document.getElementById('timer-text').textContent=`${mm}:${ss.toString().padStart(2,'0')}`;
+    const pct=(remaining/totalSeconds)*100;
+    const fill=document.getElementById('timer-fill');
+    fill.style.width=pct+'%';
+    fill.className='timer-fill'+(pct<25?' danger':pct<50?' warn':'');
+  },500);
+}
+function buildProgressGrid(){
+  const g=document.getElementById('prog-grid');g.innerHTML='';
+  questions.forEach((_,i)=>{
+    const d=document.createElement('div');
+    d.className='prog-dot'+(i===currentQ?' current':'');
+    d.textContent=i+1;d.onclick=()=>goToQ(i);d.id='pd-'+i;
+    g.appendChild(d);
+  });
+}
+function goToQ(i){currentQ=i;renderQuestion();}
+function renderQuestion(){
+  const q=questions[currentQ];
+  const secBadge=document.getElementById('q-sec-badge');
+  secBadge.className=secBadgeClass(q.sec);secBadge.textContent=q.sec;
+  document.getElementById('q-type-badge').textContent=q.type;
+  document.getElementById('q-num').textContent=`問 ${currentQ+1} / ${questions.length}`;
+  const correct=Object.values(answers).filter(a=>a.correct).length;
+  document.getElementById('q-score-live').textContent=`正解: ${correct}`;
+  const pc=document.getElementById('passage-card');
+  const pt=document.getElementById('passage-text');
+  if(q.passage&&PASSAGES[q.passage]){
+    pc.style.display='';
+    pt.innerHTML=PASSAGES[q.passage].split('\n').map(l=>l?`<p>${l}</p>`:'').join('');
+  }else{pc.style.display='none';}
+  document.getElementById('q-text').innerHTML=q.q.replace(/\n/g,'<br>');
+  const od=document.getElementById('options');od.innerHTML='';
+  q.opts.forEach((opt,i)=>{
+    const b=document.createElement('button');
+    b.className='option-btn';
+    b.innerHTML=`<span style="font-family:var(--mono);color:var(--muted);margin-right:10px;">${i+1}</span>${opt}`;
+    b.onclick=()=>selectAnswer(i);
+    od.appendChild(b);
+  });
+  const exp=document.getElementById('explanation');exp.style.display='none';
+  document.getElementById('next-btn').disabled=true;
+  if(answers[q.id]!==undefined){restoreAnswer(q);}
+  document.querySelectorAll('.prog-dot').forEach((d,i)=>{
+    d.className='prog-dot'+(i===currentQ?' current':'');
+    const qq=questions[i];
+    if(answers[qq.id]!==undefined){d.className+=' '+(answers[qq.id].correct?'correct':'wrong');}
+  });
+}
+function selectAnswer(idx){
+  const q=questions[currentQ];
+  if(answers[q.id]!==undefined)return;
+  const correct=idx===q.ans;
+  answers[q.id]={selected:idx,correct};
+  const btns=document.querySelectorAll('.option-btn');
+  btns.forEach((b,i)=>{
+    b.disabled=true;
+    if(i===q.ans)b.classList.add('correct');
+    else if(i===idx&&!correct)b.classList.add('wrong');
+  });
+  const exp=document.getElementById('explanation');
+  exp.style.display='';
+  exp.textContent=q.exp;
+  document.getElementById('next-btn').disabled=false;
+  const dot=document.getElementById('pd-'+currentQ);
+  if(dot){dot.className='prog-dot current '+(correct?'correct':'wrong');}
+  document.getElementById('q-score-live').textContent=`正解: ${Object.values(answers).filter(a=>a.correct).length}`;
+}
+function restoreAnswer(q){
+  const a=answers[q.id];
+  const btns=document.querySelectorAll('.option-btn');
+  btns.forEach((b,i)=>{
+    b.disabled=true;
+    if(i===q.ans)b.classList.add('correct');
+    else if(i===a.selected&&!a.correct)b.classList.add('wrong');
+  });
+  const exp=document.getElementById('explanation');
+  exp.style.display='';exp.textContent=q.exp;
+  document.getElementById('next-btn').disabled=false;
+}
+function nextQ(){if(currentQ<questions.length-1){currentQ++;renderQuestion();}}
+function prevQ(){if(currentQ>0){currentQ--;renderQuestion();}}
+function finishQuiz(){
+  clearInterval(timerInterval);
+  const elapsed=Math.floor((Date.now()-startTime)/1000);
+  showScreen('result');
+  const total=questions.length;
+  const correct=Object.values(answers).filter(a=>a.correct).length;
+  const wrong=Object.keys(answers).length-correct;
+  const pct=Math.round(correct/total*100);
+  document.getElementById('r-correct').textContent=correct;
+  document.getElementById('r-wrong').textContent=wrong;
+  document.getElementById('r-pct').textContent=pct+'%';
+  const mm=Math.floor(elapsed/60),ss=elapsed%60;
+  document.getElementById('r-time').textContent=mm+':'+ss.toString().padStart(2,'0');
+  document.getElementById('res-date').textContent=new Date().toLocaleString('ja-JP');
+  const secs=["文字・語彙","文法","読解"];
+  const sr=document.getElementById('section-results');sr.innerHTML='';
+  secs.forEach(s=>{
+    const qs=questions.filter(q=>q.sec===s);
+    if(!qs.length)return;
+    const c=qs.filter(q=>answers[q.id]?.correct).length;
+    const div=document.createElement('div');div.className='section-result';
+    div.innerHTML='<span>'+s+'</span><span style="font-family:var(--mono)">'+c+'/'+qs.length+' ('+Math.round(c/qs.length*100)+'%)</span>';
+    sr.appendChild(div);
+  });
+  const pass=pct>=60;
+  const pb=document.getElementById('pass-banner');
+  pb.className='pass-banner '+(pass?'pass':'fail');
+  document.getElementById('pass-text').textContent=pass?'✅ 合格圏内 (推定)':'❌ 要復習';
+  document.getElementById('pass-sub').textContent=correct+'/'+total+'問正解 ('+pct+'%) — JLPT N4合格目安: 正答率60%以上';
+  document.getElementById('hs-done').textContent=total;
+  document.getElementById('hs-score').textContent=pct+'%';
+  document.getElementById('hs-pred').textContent=pass?'合格':'不合格';
+  const pd=document.getElementById('prediction-detail');
+  pd.innerHTML='<p>📊 正答率 <strong>'+pct+'%</strong> ('+correct+'/'+total+'問)</p>'
+    +'<p>JLPT N4の合格基準: 総合得点 90/180点以上 + 各セクション最低ライン通過</p>'
+    +'<p>'+(pct>=70?'✅ 合格の可能性が高いです。':pct>=60?'⚠️ 合格ラインギリギリです。引き続き練習を。':'❌ 合格には更なる学習が必要です。')+'</p>';
+  document.getElementById('print-pdf-btn').classList.add('show');
+}
+function reviewAnswers(){
+  answers={};showScreen('quiz');buildProgressGrid();
+  currentQ=0;renderQuestion();
+}
+function goHome(){
+  clearInterval(timerInterval);
+  document.getElementById('print-pdf-btn').classList.remove('show');
+  showScreen('home');
+}
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function saveSessionManual(){
+  const data={answers,currentQ,mode,elapsed:Math.floor((Date.now()-startTime)/1000)};
+  localStorage.setItem('jlpt_n4_2024_07',JSON.stringify(data));
+  alert('💾 Sesi tersimpan!');
+}
+function loadSessionManual(){
+  const raw=localStorage.getItem('jlpt_n4_2024_07');
+  if(!raw){alert('Tidak ada sesi tersimpan.');return;}
+  const data=JSON.parse(raw);
+  mode=data.mode||'all';
+  questions=getQuestions(mode);
+  answers=data.answers||{};
+  currentQ=data.currentQ||0;
+  startTime=Date.now()-(data.elapsed||0)*1000;
+  totalSeconds=getTimeLimit(mode);
+  showScreen('quiz');buildProgressGrid();renderQuestion();startTimer();
+  alert('📂 Sesi dimuat!');
+}
+(function(){
+  const c=document.getElementById('bg-canvas');
+  const ctx=c.getContext('2d');
+  let W,H,particles=[];
+  function resize(){W=c.width=window.innerWidth;H=c.height=window.innerHeight;}
+  function init(){
+    resize();particles=[];
+    for(let i=0;i<60;i++)particles.push({x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.5+.3,dx:(Math.random()-.5)*.3,dy:(Math.random()-.5)*.3,a:Math.random()*.5+.1});
+  }
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    particles.forEach(p=>{
+      ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fillStyle='rgba(90,169,255,'+p.a+')';ctx.fill();
+      p.x+=p.dx;p.y+=p.dy;
+      if(p.x<0||p.x>W)p.dx*=-1;
+      if(p.y<0||p.y>H)p.dy*=-1;
+    });
+    requestAnimationFrame(draw);
+  }
+  window.addEventListener('resize',init);
+  init();draw();
+})();
+</script>
+<button id="print-pdf-btn" onclick="window.print()">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:22px;height:22px;"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+  <span>Cetak / PDF</span>
+</button>
+</body>
+</html>
