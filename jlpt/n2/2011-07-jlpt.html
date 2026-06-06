@@ -517,7 +517,7 @@ const I18N = {
     save_msg:'💾 Sesi tersimpan!',load_msg:'📂 Sesi dimuat!',no_session:'Tidak ada sesi tersimpan.',
     correct_live:'Benar:',q_label:'Soal',q_of:'/',
     report_title:'🚩 Laporkan Soal Bermasalah',report_placeholder:'Jelaskan masalah pada soal ini (jawaban salah, teks tidak jelas, dll)...',
-    report_send:'Kirim ke Bot',report_cancel:'Batal',report_thinking:'🤖 Bot sedang menganalisis...',
+    report_send:'📤 Kirim Laporan',report_cancel:'Batal',report_thinking:'📤 Mengirim laporan...',
     pred_pass_high:'✅ Kemungkinan lulus sangat tinggi.',pred_pass_mid:'⚠️ Tepat di batas lulus. Terus berlatih.',pred_fail:'❌ Perlu belajar lebih banyak untuk lulus.'
   },
   en: {
@@ -535,7 +535,7 @@ const I18N = {
     save_msg:'💾 Session saved!',load_msg:'📂 Session loaded!',no_session:'No saved session found.',
     correct_live:'Correct:',q_label:'Q',q_of:'/',
     report_title:'🚩 Report a Problem',report_placeholder:'Describe the issue (wrong answer, unclear text, etc.)...',
-    report_send:'Send to Bot',report_cancel:'Cancel',report_thinking:'🤖 Bot is analyzing...',
+    report_send:'📤 Send Report',report_cancel:'Cancel',report_thinking:'📤 Sending report...',
     pred_pass_high:'✅ Very likely to pass.',pred_pass_mid:'⚠️ Right on the passing line. Keep practicing.',pred_fail:'❌ More study needed to pass.'
   },
   jp: {
@@ -553,7 +553,7 @@ const I18N = {
     save_msg:'💾 セッションを保存しました！',load_msg:'📂 セッションを読み込みました！',no_session:'保存されたセッションがありません。',
     correct_live:'正解：',q_label:'問',q_of:'/',
     report_title:'🚩 問題を報告',report_placeholder:'問題の内容を説明してください（誤答、不明瞭なテキストなど）...',
-    report_send:'ボットに送信',report_cancel:'キャンセル',report_thinking:'🤖 ボットが分析中...',
+    report_send:'📤 報告を送信',report_cancel:'キャンセル',report_thinking:'📤 送信中...',
     pred_pass_high:'✅ 合格の可能性が非常に高いです。',pred_pass_mid:'⚠️ 合格ラインギリギリです。引き続き練習を。',pred_fail:'❌ 合格には更なる学習が必要です。'
   }
 };
@@ -617,51 +617,90 @@ function getModeData() {
   };
 }
 
-// ===== REPORT BUTTON =====
+
+// ===== REPORT BUTTON (Telegram) =====
 let reportingQId = null;
+const TG_TOKEN = '8888482473:AAG-Q5m8KnDQTvE1dCP-H7bncT8V9okiIuE';
+const TG_CHAT_ID = '7106616890';
+
 function openReport() {
   const q = questions[currentQ];
   if(!q) return;
   reportingQId = q.id;
   document.getElementById('report-qinfo').textContent = 'Q' + q.id + ' · ' + q.sec + ' · ' + q.type;
   document.getElementById('report-text').value = '';
-  document.getElementById('report-bot-area').style.display = 'none';
-  document.getElementById('report-bot-area').innerHTML = '';
+  const botArea = document.getElementById('report-bot-area');
+  botArea.style.display = 'none';
+  botArea.innerHTML = '';
   document.getElementById('report-modal').classList.add('open');
   document.getElementById('report-title').textContent = T('report_title');
   document.getElementById('report-text').placeholder = T('report_placeholder');
   document.getElementById('report-send-btn').textContent = T('report_send');
 }
+
 function closeReport() {
   document.getElementById('report-modal').classList.remove('open');
   reportingQId = null;
 }
+
 async function sendReport() {
   const q = questions.find(x => x.id === reportingQId);
   if(!q) return;
   const userMsg = document.getElementById('report-text').value.trim();
   if(!userMsg) { document.getElementById('report-text').focus(); return; }
+
   const botArea = document.getElementById('report-bot-area');
   botArea.style.display = 'block';
   botArea.textContent = T('report_thinking');
   document.getElementById('report-send-btn').disabled = true;
-  const qText = q.q.replace(/<[^>]+>/g,'').replace(/\n/g,'\n');
-  const opts = q.opts.map((o,i) => '  ' + (i+1) + '. ' + o).join('\n');
-  const prompt = 'You are a helpful JLPT Japanese language exam assistant. A student has reported a potential issue.\n\nEXAM QUESTION (ID: ' + q.id + '):\nSection: ' + q.sec + ' | Type: ' + q.type + '\nQuestion: ' + qText + '\nOptions:\n' + opts + '\nCorrect Answer (index ' + q.ans + '): ' + q.opts[q.ans] + '\nExplanation: ' + (q.exp||'') + '\n\nSTUDENT REPORT: "' + userMsg + '"\n\nPlease: 1) Verify if the issue is valid 2) Provide correct answer with explanation if needed 3) Respond in the same language as the student. Be concise (max 150 words).';
+
+  // Build message for Telegram
+  const pageTitle = document.title || 'JLPT Quiz';
+  const qText = q.q.replace(/<[^>]+>/g, '').replace(/\n/g, ' ').trim();
+  const opts = q.opts.map((o, i) => (i === q.ans ? '✅ ' : '  ') + (i+1) + '. ' + o).join('\n');
+
+  const message = [
+    '🚩 *LAPORAN SOAL — ' + pageTitle + '*',
+    '',
+    '📋 *Info Soal*',
+    '• ID: Q' + q.id,
+    '• Seksi: ' + q.sec,
+    '• Tipe: ' + q.type,
+    '',
+    '❓ *Pertanyaan*',
+    qText.substring(0, 300) + (qText.length > 300 ? '...' : ''),
+    '',
+    '🔢 *Pilihan Jawaban*',
+    opts,
+    '',
+    '💬 *Laporan User*',
+    userMsg
+  ].join('\n');
+
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetch('https://api.telegram.org/bot' + TG_TOKEN + '/sendMessage', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 1000, messages: [{ role: 'user', content: prompt }] })
+      body: JSON.stringify({
+        chat_id: TG_CHAT_ID,
+        text: message,
+        parse_mode: 'Markdown'
+      })
     });
     const data = await res.json();
-    const text = (data.content||[]).map(c=>c.text||'').join('');
-    botArea.textContent = text || '(No response)';
+    if(data.ok) {
+      botArea.textContent = T('report_success');
+      document.getElementById('report-text').value = '';
+      setTimeout(closeReport, 2000);
+    } else {
+      botArea.textContent = '⚠️ Gagal kirim: ' + (data.description || 'Unknown error');
+    }
   } catch(err) {
-    botArea.textContent = '⚠️ Failed to connect to bot. Please try again.';
+    botArea.textContent = '⚠️ ' + T('report_fail');
   }
   document.getElementById('report-send-btn').disabled = false;
 }
+
 document.getElementById('report-modal').addEventListener('click', function(e) {
   if(e.target === this) closeReport();
 });
