@@ -1,8 +1,193 @@
 <!DOCTYPE html>
-
 <html lang="ja">
 <head>
-<script src="../../auth-guard.js" type="module">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JLPT N2 — Desember 2024</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0b1020;--bg2:#121a2f;--card:#18233f;--card2:#1f2d52;--border:#2b3a63;--text:#f1f5ff;--muted:#9fb0d3;--primary:#5aa9ff;--success:#19c37d;--danger:#ff5f73;--warning:#ffb547;--font:'Zen Kaku Gothic New',sans-serif;--mono:'JetBrains Mono',monospace;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:radial-gradient(ellipse at top left,#1a2d5a 0%,transparent 45%),radial-gradient(ellipse at bottom right,#231440 0%,transparent 40%),var(--bg);color:var(--text);font-family:var(--font);padding:16px;padding-bottom:calc(16px + env(safe-area-inset-bottom, 0px));}
+.app{max-width:720px;margin:0 auto;}
+.screen{display:none;}.screen.active{display:block;}
+.header{background:rgba(24,35,63,.85);backdrop-filter:blur(12px);border:1px solid var(--border);border-radius:20px;padding:22px 24px;margin-bottom:14px;}
+h1{font-size:22px;font-weight:700;letter-spacing:.02em;margin-bottom:3px;}
+h2{font-size:15px;font-weight:500;margin-bottom:10px;}
+.muted{color:var(--muted);font-size:13px;}
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;}
+.stat-card{background:rgba(24,35,63,.7);border:1px solid var(--border);border-radius:14px;padding:12px 10px;text-align:center;}
+.stat-num{font-size:21px;font-weight:700;color:var(--text);}
+.stat-lbl{font-size:10px;color:var(--muted);margin-top:3px;letter-spacing:.04em;}
+.mode-btn{width:100%;text-align:left;padding:14px 18px;border-radius:16px;border:1px solid var(--border);background:rgba(24,35,63,.7);color:var(--text);cursor:pointer;font-size:14px;font-family:var(--font);margin-bottom:10px;transition:all .18s;line-height:1.6;}
+.mode-btn:hover{background:var(--card2);border-color:#4a6aaa;transform:translateY(-1px);}
+.card{background:rgba(24,35,63,.85);backdrop-filter:blur(8px);border:1px solid var(--border);border-radius:18px;padding:18px 20px;margin-bottom:12px;}
+.badge{display:inline-block;padding:3px 11px;border-radius:99px;font-size:11px;font-weight:600;letter-spacing:.03em;}
+.badge-moji{background:rgba(90,169,255,.18);color:#5aa9ff;border:1px solid rgba(90,169,255,.3);}
+.badge-bunpou{background:rgba(124,77,255,.18);color:#a87bff;border:1px solid rgba(124,77,255,.3);}
+.badge-dokkai{background:rgba(25,195,125,.18);color:#19c37d;border:1px solid rgba(25,195,125,.3);}
+.badge-type{background:rgba(255,255,255,.07);color:var(--muted);border:1px solid rgba(255,255,255,.1);}
+.timer-bar{height:5px;background:rgba(255,255,255,.07);border-radius:99px;overflow:hidden;margin:10px 0 6px;}
+.timer-fill{height:100%;background:linear-gradient(90deg,#5aa9ff,#7c4dff);border-radius:99px;transition:width .5s linear;}
+.timer-fill.warn{background:linear-gradient(90deg,var(--warning),#f57c00);}
+.timer-fill.danger{background:linear-gradient(90deg,var(--danger),#c0392b);}
+.progress-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(30px,1fr));gap:4px;margin-bottom:12px;}
+.prog-dot{height:30px;border-radius:8px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--muted);cursor:pointer;transition:all .12s;font-family:var(--mono);}
+.prog-dot:hover{border-color:#4a6aaa;}
+.prog-dot.current{border:2px solid var(--primary);color:var(--text);font-weight:600;}
+.prog-dot.correct{background:rgba(25,195,125,.25);border-color:var(--success);color:var(--success);}
+.prog-dot.wrong{background:rgba(255,95,115,.2);border-color:var(--danger);color:var(--danger);}
+.passage-label{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;}
+.passage-box{background:rgba(11,16,32,.6);border-left:3px solid var(--primary);border-radius:0 12px 12px 0;padding:14px 18px;font-size:13.5px;line-height:2;color:rgba(241,245,255,.85);}
+.passage-box p{margin-bottom:.5em;}.passage-box p:last-child{margin-bottom:0;}
+.q-text{font-size:15px;line-height:1.9;color:var(--text);margin-bottom:14px;}
+.q-text u{text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1.5px;text-decoration-color:var(--primary);}
+.option-btn{width:100%;text-align:left;padding:11px 16px;border-radius:12px;border:1px solid var(--border);background:rgba(18,26,47,.6);color:var(--text);cursor:pointer;font-size:13.5px;font-family:var(--font);margin-bottom:7px;transition:all .15s;line-height:1.7;}
+.option-btn:hover:not(:disabled){background:var(--card2);border-color:#4a6aaa;}
+.option-btn.correct{background:rgba(25,195,125,.18);border-color:var(--success);color:#a0f5d3;}
+.option-btn.wrong{background:rgba(255,95,115,.15);border-color:var(--danger);color:#ffb3be;}
+.option-btn:disabled{cursor:default;}
+.explanation{background:rgba(11,16,32,.5);border-radius:10px;padding:10px 14px;font-size:12.5px;color:var(--muted);margin-top:8px;line-height:1.7;border-left:2px solid var(--warning);}
+.row{display:flex;align-items:center;gap:6px;margin-top:8px;flex-wrap:wrap;}
+.spacer{flex:1;}
+.nav-btn{padding:8px 12px;border-radius:11px;border:1px solid var(--border);background:rgba(24,35,63,.7);color:var(--text);cursor:pointer;font-size:12px;font-family:var(--font);transition:all .15s;white-space:nowrap;}
+.nav-btn:hover{background:var(--card2);}
+.nav-btn.finish{background:rgba(255,95,115,.18);border-color:var(--danger);color:var(--danger);}
+.nav-btn.finish:hover{background:rgba(255,95,115,.3);}
+.nav-btn:disabled{opacity:.35;cursor:not-allowed;}
+.pass-banner{border-radius:16px;padding:16px;text-align:center;margin:12px 0;}
+.pass-banner.pass{background:rgba(25,195,125,.18);border:1px solid rgba(25,195,125,.3);}
+.pass-banner.fail{background:rgba(255,95,115,.12);border:1px solid rgba(255,95,115,.25);}
+.section-result{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:13px;}
+.section-result:last-child{border-bottom:none;}
+.info-note{background:rgba(255,181,71,.07);border:1px solid rgba(255,181,71,.2);border-radius:12px;padding:10px 14px;font-size:12px;color:rgba(255,181,71,.8);margin-bottom:10px;}
+.lang-selector{display:flex;gap:6px;align-items:center;margin-bottom:14px;}
+.lang-btn{padding:6px 14px;border-radius:99px;border:1px solid var(--border);background:rgba(24,35,63,.7);color:var(--muted);cursor:pointer;font-size:12px;font-family:var(--font);font-weight:600;transition:all .18s;letter-spacing:.03em;}
+.lang-btn:hover{background:var(--card2);color:var(--text);}
+.lang-btn.active{background:rgba(90,169,255,.18);border-color:rgba(90,169,255,.4);color:#5aa9ff;}
+.report-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);z-index:10000;display:none;align-items:center;justify-content:center;padding:16px;}
+.report-modal-overlay.open{display:flex;}
+.report-modal{background:#121a2f;border:1px solid var(--border);border-radius:20px;padding:22px;max-width:480px;width:100%;position:relative;}
+.report-modal h3{font-size:16px;font-weight:700;margin-bottom:12px;}
+.report-modal textarea{width:100%;background:rgba(11,16,32,.7);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:var(--font);font-size:13px;padding:10px 12px;resize:vertical;min-height:90px;outline:none;line-height:1.6;}
+.report-modal textarea:focus{border-color:#4a6aaa;}
+.report-bot-area{margin-top:10px;background:rgba(11,16,32,.5);border-radius:10px;padding:10px 12px;font-size:12.5px;color:var(--muted);min-height:50px;max-height:200px;overflow-y:auto;line-height:1.7;border-left:2px solid var(--primary);}
+.report-modal .row{margin-top:12px;}
+.report-close{position:absolute;top:14px;right:16px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;line-height:1;}
+.report-close:hover{color:var(--text);}
+.report-btn-row{display:flex;gap:8px;margin-top:10px;}
+.report-send-btn{padding:9px 18px;border-radius:10px;border:1px solid rgba(90,169,255,.4);background:rgba(90,169,255,.18);color:#5aa9ff;cursor:pointer;font-size:13px;font-family:var(--font);font-weight:600;transition:all .15s;}
+.report-send-btn:hover{background:rgba(90,169,255,.3);}
+.report-send-btn:disabled{opacity:.4;cursor:not-allowed;}
+.report-cancel-btn{padding:9px 18px;border-radius:10px;border:1px solid var(--border);background:rgba(24,35,63,.7);color:var(--muted);cursor:pointer;font-size:13px;font-family:var(--font);}
+canvas{position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.35;}
+.app{position:relative;z-index:1;}
+#print-pdf-btn{position:fixed;right:24px;bottom:24px;border:1px solid rgba(96,165,250,.22);border-radius:18px;background:#142349;color:white;padding:14px 18px;display:none;align-items:center;gap:12px;cursor:pointer;z-index:999999;box-shadow:0 10px 30px rgba(0,0,0,.25);font-weight:700;font-size:15px;transition:.2s ease;}
+#print-pdf-btn:hover{transform:translateY(-2px);background:#1a2d5d;}
+#print-pdf-btn.show{display:flex;}
+@media print{#print-pdf-btn{display:none!important;}}
+</style>
+</head>
+<body>
+<canvas id="bg-canvas"></canvas>
+<div class="lang-selector">
+  <span style="font-size:11px;color:var(--muted);letter-spacing:.05em;">🌐</span>
+  <button class="lang-btn active" onclick="setLang('id')">ID</button>
+  <button class="lang-btn" onclick="setLang('en')">EN</button>
+  <button class="lang-btn" onclick="setLang('jp')">日本語</button>
+</div>
+<div class="report-modal-overlay" id="report-modal">
+  <div class="report-modal">
+    <button class="report-close" onclick="closeReport()">✕</button>
+    <h3 id="report-title">🚩 Laporkan Soal Bermasalah</h3>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:8px;" id="report-qinfo"></div>
+    <textarea id="report-text" placeholder="Jelaskan masalah pada soal ini (jawaban salah, teks tidak jelas, dll)..."></textarea>
+    <div id="report-bot-area" class="report-bot-area" style="display:none;"></div>
+    <div class="report-btn-row">
+      <button class="report-send-btn" id="report-send-btn" onclick="sendReport()">Kirim ke Bot</button>
+      <button class="report-cancel-btn" onclick="closeReport()">Batal</button>
+    </div>
+  </div>
+</div>
+<div class="app">
+<div id="home" class="screen active">
+  <div class="header">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+      <h1>JLPT N2 — Desember 2024</h1>
+    </div>
+    <p class="muted">71 soal asli · 言語知識 (文字・語彙・文法) + 読解 · 105 menit</p>
+  </div>
+  <div class="stat-grid">
+    <div class="stat-card"><div class="stat-num">71</div><div class="stat-lbl" data-i18n="stat_total">total soal</div></div>
+    <div class="stat-card"><div class="stat-num" id="hs-done">0</div><div class="stat-lbl" data-i18n="stat_done">dikerjakan</div></div>
+    <div class="stat-card"><div class="stat-num" id="hs-score">—</div><div class="stat-lbl" data-i18n="stat_score">skor terakhir</div></div>
+    <div class="stat-card"><div class="stat-num" id="hs-pred">—</div><div class="stat-lbl" data-i18n="stat_pred">prediksi</div></div>
+  </div>
+  <div class="info-note">⚠️ Soal 聴解 tidak dimasukkan karena memerlukan audio. Ini adalah soal asli JLPT N2 Desember 2024.</div>
+  <button class="mode-btn" onclick="startMode('all')"><strong>🎯 Ujian Penuh</strong><br><span style="font-size:12px;color:var(--muted)">Semua 71 soal · timer 105 menit</span></button>
+  <button class="mode-btn" onclick="startMode('moji')"><strong>📝 文字・語彙</strong><br><span style="font-size:12px;color:var(--muted)">30 soal · 問題1–6 · timer 35 menit</span></button>
+  <button class="mode-btn" onclick="startMode('bunpou')"><strong>📐 文法</strong><br><span style="font-size:12px;color:var(--muted)">21 soal · 問題7–9 · timer 25 menit</span></button>
+  <button class="mode-btn" onclick="startMode('dokkai')"><strong>📖 読解</strong><br><span style="font-size:12px;color:var(--muted)">20 soal · 問題10–14 · timer 50 menit</span></button>
+</div>
+<div id="quiz" class="screen">
+  <div class="card" style="padding:14px 18px;">
+    <div class="row" style="margin-top:0;">
+      <span class="badge" id="q-sec-badge">文字</span>
+      <span class="badge badge-type" id="q-type-badge">問題1</span>
+      <div class="spacer"></div>
+      <span id="timer-text" style="font-size:14px;font-weight:600;font-family:var(--mono)">--:--</span>
+    </div>
+    <div class="timer-bar"><div class="timer-fill" id="timer-fill" style="width:100%"></div></div>
+    <div class="row" style="margin-top:2px;">
+      <span class="muted" id="q-num" style="font-family:var(--mono);font-size:12px;">問 1 / 71</span>
+      <div class="spacer"></div>
+      <span class="muted" id="q-score-live" style="font-size:12px;">正解: 0</span>
+    </div>
+  </div>
+  <div class="progress-grid" id="prog-grid"></div>
+  <div class="card" id="passage-card" style="display:none;">
+    <div class="passage-label" data-i18n="passage_label">📖 teks bacaan</div>
+    <div class="passage-box" id="passage-text"></div>
+  </div>
+  <div class="card">
+    <div class="q-text" id="q-text"></div>
+    <div id="options"></div>
+    <div class="explanation" id="explanation" style="display:none;"></div>
+  </div>
+  <div class="row">
+    <button class="nav-btn" onclick="prevQ()" data-i18n="btn_back">← Kembali</button>
+    <button class="nav-btn" onclick="saveSessionManual()" data-i18n="btn_save">💾 Simpan</button>
+    <button class="nav-btn" onclick="loadSessionManual()" data-i18n="btn_load">📂 Muat</button>
+    <div class="spacer"></div>
+    <button class="nav-btn" onclick="openReport()" data-i18n="btn_report" style="background:rgba(255,181,71,.12);border-color:rgba(255,181,71,.3);color:var(--warning);">🚩 Laporkan</button>
+    <button class="nav-btn" id="next-btn" onclick="nextQ()" data-i18n="btn_next" disabled>Lanjut →</button>
+    <button class="nav-btn finish" onclick="finishQuiz()" data-i18n="btn_finish">Selesai</button>
+  </div>
+</div>
+<div id="result" class="screen">
+  <div class="header"><h1 data-i18n="res_title">Hasil Ujian</h1><p class="muted" id="res-date"></p></div>
+  <div class="pass-banner" id="pass-banner">
+    <strong id="pass-text" style="font-size:18px;"></strong>
+    <p id="pass-sub" style="font-size:13px;margin-top:6px;color:var(--muted);"></p>
+  </div>
+  <div class="stat-grid">
+    <div class="stat-card"><div class="stat-num" id="r-correct"></div><div class="stat-lbl" data-i18n="res_correct">benar</div></div>
+    <div class="stat-card"><div class="stat-num" id="r-wrong"></div><div class="stat-lbl" data-i18n="res_wrong">salah</div></div>
+    <div class="stat-card"><div class="stat-num" id="r-pct"></div><div class="stat-lbl" data-i18n="res_accuracy">akurasi</div></div>
+    <div class="stat-card"><div class="stat-num" id="r-time"></div><div class="stat-lbl" data-i18n="res_time">waktu</div></div>
+  </div>
+  <div class="card"><h2 data-i18n="res_section">Skor per seksi</h2><div id="section-results"></div></div>
+  <div class="card"><h2 id="res-pred-h2">Prediksi kelulusan JLPT N2</h2><div id="prediction-detail" style="font-size:13px;line-height:2;color:var(--muted);"></div></div>
+  <div class="row" style="gap:8px;margin-top:8px;">
+    <button class="nav-btn" onclick="reviewAnswers()" data-i18n="btn_review">Tinjau Jawaban</button>
+    <div class="spacer"></div>
+    <button class="nav-btn" onclick="goHome()" data-i18n="btn_home">Kembali ke Menu</button>
+  </div>
+</div>
+</div>
+<script>
 const PASSAGES={
 p_nougyo:`農業ボランティア／ゴメス　フランシスコ
 
@@ -464,18 +649,10 @@ document.addEventListener('DOMContentLoaded', function() {
     b.classList.toggle('active', b.getAttribute('onclick') === "setLang('" + saved + "')");
   });
 });
-function getModeData() {
-  return {
-    all: 71 + ' ' + T('stat_total') + ' · ' + 105 + ' ' + T('mode_all_unit'),
-    moji: '30 ' + T('mode_sub_menit') + ' 35 ' + T('mode_all_unit'),
-    bunpou: '21 ' + T('mode_sub_menit') + ' 25 ' + T('mode_all_unit'),
-    dokkai: '20 ' + T('mode_sub_menit') + ' 50 ' + T('mode_all_unit'),
-  };
-}
-
 (function(){const c=document.getElementById('bg-canvas'),ctx=c.getContext('2d');let W,H,P=[];function resize(){W=c.width=window.innerWidth;H=c.height=window.innerHeight;}function init(){resize();P=[];for(let i=0;i<60;i++)P.push({x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.5+.3,dx:(Math.random()-.5)*.3,dy:(Math.random()-.5)*.3,a:Math.random()*.5+.1});}function draw(){ctx.clearRect(0,0,W,H);P.forEach(p=>{ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle=`rgba(90,169,255,${p.a})`;ctx.fill();p.x+=p.dx;p.y+=p.dy;if(p.x<0||p.x>W)p.dx*=-1;if(p.y<0||p.y>H)p.dy*=-1;});requestAnimationFrame(draw);}window.addEventListener('resize',init);init();draw();})();</script>
+
 <button id="print-pdf-btn" onclick="window.print()">
-<svg fill="none" stroke="currentColor" stroke-width="2" style="width:22px;height:22px;" viewbox="0 0 24 24"><path d="M6 9V2h12v7"></path><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect height="8" width="12" x="6" y="14"></rect></svg>
+<svg fill="none" stroke="currentColor" stroke-width="2" style="width:22px;height:22px;" viewBox="0 0 24 24"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect height="8" width="12" x="6" y="14"/></svg>
 <span>Cetak / PDF</span>
 </button>
 </body>
