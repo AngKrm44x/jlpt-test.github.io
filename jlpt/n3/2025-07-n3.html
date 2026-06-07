@@ -11,7 +11,7 @@
 <style>
 :root{--bg:#0b1020;--bg2:#121a2f;--card:#18233f;--card2:#1f2d52;--border:#2b3a63;--text:#f1f5ff;--muted:#9fb0d3;--primary:#5aa9ff;--success:#19c37d;--danger:#ff5f73;--warning:#ffb547;--font:'Zen Kaku Gothic New',sans-serif;--mono:'JetBrains Mono',monospace;}
 *{margin:0;padding:0;box-sizing:border-box;}
-body{background:radial-gradient(ellipse at top left,#1a2d5a 0%,transparent 45%),radial-gradient(ellipse at bottom right,#231440 0%,transparent 40%),var(--bg);color:var(--text);font-family:var(--font);min-height:100vh;padding:16px;}
+body{background:radial-gradient(ellipse at top left,#1a2d5a 0%,transparent 45%),radial-gradient(ellipse at bottom right,#231440 0%,transparent 40%),var(--bg);color:var(--text);font-family:var(--font);padding:16px;padding-bottom:calc(16px + env(safe-area-inset-bottom, 0px));}
 .app{max-width:720px;margin:0 auto;}
 .screen{display:none;}.screen.active{display:block;}
 .header{background:rgba(24,35,63,.85);backdrop-filter:blur(12px);border:1px solid var(--border);border-radius:20px;padding:22px 24px;margin-bottom:14px;}
@@ -51,9 +51,9 @@ h2{font-size:15px;font-weight:500;margin-bottom:10px;}
 .option-btn.wrong{background:rgba(255,95,115,.15);border-color:var(--danger);color:#ffb3be;}
 .option-btn:disabled{cursor:default;}
 .explanation{background:rgba(11,16,32,.5);border-radius:10px;padding:10px 14px;font-size:12.5px;color:var(--muted);margin-top:8px;line-height:1.7;border-left:2px solid var(--warning);}
-.row{display:flex;align-items:center;gap:8px;margin-top:8px;}
+.row{display:flex;align-items:center;gap:6px;margin-top:8px;flex-wrap:wrap;}
 .spacer{flex:1;}
-.nav-btn{padding:9px 20px;border-radius:11px;border:1px solid var(--border);background:rgba(24,35,63,.7);color:var(--text);cursor:pointer;font-size:13px;font-family:var(--font);transition:all .15s;}
+.nav-btn{padding:8px 12px;border-radius:11px;border:1px solid var(--border);background:rgba(24,35,63,.7);color:var(--text);cursor:pointer;font-size:12px;font-family:var(--font);transition:all .15s;white-space:nowrap;}
 .nav-btn:hover{background:var(--card2);}
 .nav-btn.finish{background:rgba(255,95,115,.18);border-color:var(--danger);color:var(--danger);}
 .nav-btn.finish:hover{background:rgba(255,95,115,.3);}
@@ -741,9 +741,6 @@ function getModeData() {
 
 // ===== REPORT BUTTON (Telegram) =====
 let reportingQId = null;
-const TG_TOKEN = '8888482473:AAG-Q5m8KnDQTvE1dCP-H7bncT8V9okiIuE';
-const TG_CHAT_ID = '7106616890';
-
 function openReport() {
   const q = questions[currentQ];
   if(!q) return;
@@ -799,14 +796,10 @@ async function sendReport() {
   ].join('\n');
 
   try {
-    const res = await fetch('https://api.telegram.org/bot' + TG_TOKEN + '/sendMessage', {
+    const res = await fetch('https://jlpt-auth-bot-production.up.railway.app/report', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: TG_CHAT_ID,
-        text: message,
-        parse_mode: 'Markdown'
-      })
+      body: JSON.stringify({ text: message, exam: pageTitle })
     });
     const data = await res.json();
     if(data.ok) {

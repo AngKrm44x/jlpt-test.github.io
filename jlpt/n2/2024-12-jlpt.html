@@ -378,9 +378,6 @@ function getModeData() {
 
 // ===== REPORT BUTTON (Telegram) =====
 let reportingQId = null;
-const TG_TOKEN = '8888482473:AAG-Q5m8KnDQTvE1dCP-H7bncT8V9okiIuE';
-const TG_CHAT_ID = '7106616890';
-
 function openReport() {
   const q = questions[currentQ];
   if(!q) return;
@@ -436,14 +433,10 @@ async function sendReport() {
   ].join('\n');
 
   try {
-    const res = await fetch('https://api.telegram.org/bot' + TG_TOKEN + '/sendMessage', {
+    const res = await fetch('https://jlpt-auth-bot-production.up.railway.app/report', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: TG_CHAT_ID,
-        text: message,
-        parse_mode: 'Markdown'
-      })
+      body: JSON.stringify({ text: message, exam: pageTitle })
     });
     const data = await res.json();
     if(data.ok) {
