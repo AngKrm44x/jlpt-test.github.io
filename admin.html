@@ -4,7 +4,7 @@
 <!-- ADMIN AUTH GUARD -->
 <script type="module">
   import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
-  const SUPABASE_URL  = 'https://uincqpdexdenjcmwdfsv.supabase.co';
+  const SUPABASE_URL  = 'https://uincqpdexdenjcmwdfsv.getSupabase().co';
   const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpbmNxcGRleGRlbmpjbXdkZnN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5MjM4ODEsImV4cCI6MjA5NTQ5OTg4MX0.Lf1N_P_iiNQ2hnRJhd-Quy9MLKlZFSzbnXtXCnmRCS0';
   const supabase = createClient(SUPABASE_URL, SUPABASE_ANON);
   document.documentElement.style.visibility = 'hidden';
@@ -16,7 +16,7 @@
   const ADMIN_EMAIL       = 'admin@example.com';       // ← ganti email admin biasa
 
   try {
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { session } } = await getSupabase().auth.getSession();
     if (!session) { window.location.replace('./auth.html'); }
     else {
       const email = session.user.email;
@@ -24,7 +24,7 @@
         alert('⛔ Akses ditolak. Halaman ini khusus admin.');
         window.location.replace('./index.html');
       } else {
-        const { data: usr } = await supabase.from('users').select('*').eq('id', session.user.id).single();
+        const { data: usr } = await getSupabase().from('users').select('*').eq('id', session.user.id).single();
         document.documentElement.style.visibility = 'visible';
         window._supabase      = supabase;
         window._session       = session;
@@ -651,7 +651,7 @@ select.form-input option{background:#0b1120;color:var(--text);}
         <div class="form-group" style="margin-bottom:20px;">
           <label>File HTML Soal</label>
           <div class="drop-zone" id="dropZone">
-            <input type="file" id="fileInput" accept=".html">
+            <input type="file" id="fileInput" accept=".html" onchange="if(this.files[0]) handleFileSelect(this.files[0])">
             <div class="drop-icon">📄</div>
             <div class="drop-text">Drag & Drop file HTML di sini</div>
             <div class="drop-sub">atau klik untuk memilih file · Hanya .html</div>
@@ -807,18 +807,18 @@ select.form-input option{background:#0b1120;color:var(--text);}
         <div class="config-title">🔑 Konfigurasi GitHub</div>
         <div class="config-desc">
           Token GitHub diperlukan untuk upload file dan update <code>index.html</code> secara otomatis.<br><br>
-          <strong>Gunakan Classic Token (bukan Fine-grained):</strong><br>
-          Buka <strong>GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic)</strong><br>
-          Klik <strong>"Generate new token (classic)"</strong>, lalu centang scope: <code>repo</code> (full control of private repositories).<br><br>
-          ⚠️ Jangan gunakan Fine-grained token — Fine-grained token tidak mendukung GitHub Contents API yang digunakan untuk push file.<br>
-          ✅ Token disimpan di <code>localStorage</code> browser ini saja, tidak dikirim ke server apapun selain GitHub API langsung.
+          <strong>⚠️ Gunakan Classic Token, bukan Fine-grained!</strong><br>
+          Buka: <strong>GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic)</strong><br>
+          Klik <em>"Generate new token (classic)"</em>, centang scope: <code>repo</code> (full control).<br><br>
+          Format token yang benar dimulai dengan <code>ghp_</code> — bukan <code>github_pat_</code>.<br>
+          ✅ Token hanya disimpan di <code>localStorage</code> browser ini, tidak dikirim ke server manapun selain GitHub API.
         </div>
         <div class="form-row">
           <div class="form-group">
-            <label>GitHub Token (Classic PAT)</label>
+            <label>GitHub Classic Token (ghp_...)</label>
             <div style="position:relative;">
               <input class="form-input" type="password" id="cfgToken" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" style="padding-right:44px;">
-              <button type="button" onclick="togglePwd('cfgToken',this)" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;" title="Tampilkan/sembunyikan token">👁️</button>
+              <button type="button" onclick="togglePwd('cfgToken',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;">👁️</button>
             </div>
           </div>
           <div class="form-group">
@@ -857,7 +857,7 @@ select.form-input option{background:#0b1120;color:var(--text);}
             <label>Bot Token</label>
             <div style="position:relative;">
               <input class="form-input" type="password" id="cfgTgToken" placeholder="1234567890:XXXXXXXXXXXXXXXX" style="padding-right:44px;">
-              <button type="button" onclick="togglePwd('cfgTgToken',this)" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;" title="Tampilkan/sembunyikan token">👁️</button>
+              <button type="button" onclick="togglePwd('cfgTgToken',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;">👁️</button>
             </div>
           </div>
           <div class="form-group">
@@ -959,14 +959,27 @@ select.form-input option{background:#0b1120;color:var(--text);}
 <div id="toast"></div>
 
 <!-- ============= SCRIPTS ============= -->
-<script type="module">
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
-
+<script>
 // =============================================
 // CONFIG — diambil dari window yang diset auth guard
 // =============================================
-const supabase = window._supabase;
-const isSuperAdmin = window._isSuperAdmin;
+// Pakai getter agar selalu ambil nilai terbaru setelah auth guard selesai
+function getSupabase(){ return window._supabase; }
+function getIsSuperAdmin(){ return window._isSuperAdmin; }
+
+// Load config values into form fields — dipanggil di initApp dan saat goto('github')
+function loadConfigToForm(){
+  const gh = getGHConfig();
+  var el;
+  if((el=document.getElementById('cfgToken')))     el.value = gh.token;
+  if((el=document.getElementById('cfgOwner')))     el.value = gh.owner;
+  if((el=document.getElementById('cfgRepo')))      el.value = gh.repo;
+  if((el=document.getElementById('cfgBranch')))    el.value = gh.branch;
+  if((el=document.getElementById('cfgIndexPath'))) el.value = gh.indexPath;
+  const tg = getTGConfig();
+  if((el=document.getElementById('cfgTgToken')))   el.value = tg.token;
+  if((el=document.getElementById('cfgTgChatId')))  el.value = tg.chatId;
+}
 
 // GitHub config dari localStorage
 function getGHConfig(){
@@ -990,20 +1003,6 @@ function getTGConfig(){
 // =============================================
 // INIT
 // =============================================
-// Load config values into form fields (called after DOM ready)
-function loadConfigToForm(){
-  const gh = getGHConfig();
-  document.getElementById('cfgToken').value     = gh.token;
-  document.getElementById('cfgOwner').value     = gh.owner;
-  document.getElementById('cfgRepo').value      = gh.repo;
-  document.getElementById('cfgBranch').value    = gh.branch;
-  document.getElementById('cfgIndexPath').value = gh.indexPath;
-  const tg = getTGConfig();
-  document.getElementById('cfgTgToken').value   = tg.token;
-  document.getElementById('cfgTgChatId').value  = tg.chatId;
-}
-
-// Init — runs after auth guard has confirmed access (document.body already exists)
 async function initApp(){
   // Tampilkan info admin
   const session = window._session;
@@ -1021,7 +1020,7 @@ async function initApp(){
     document.getElementById('navPending').style.display='none';
   }
 
-  // Load config ke form (dari localStorage, jadi tidak hilang saat reload)
+  // Load config ke form dari localStorage
   loadConfigToForm();
 
   await Promise.all([
@@ -1060,11 +1059,11 @@ async function initApp(){
   });
 }
 
-// Jalankan setelah DOM siap — gunakan requestAnimationFrame agar elemen form sudah dirender
+// Tunggu auth guard selesai, lalu jalankan init
+// Auth guard di head sudah selesai saat script body ini dieksekusi
 if(document.readyState === 'loading'){
   document.addEventListener('DOMContentLoaded', initApp);
 } else {
-  // DOM sudah siap (karena auth guard async selesai belakangan)
   initApp();
 }
 
@@ -1076,6 +1075,8 @@ window.goto = (pane)=>{
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById('pane-'+pane).classList.add('active');
   document.querySelector(`.nav-item[onclick="goto('${pane}')"]`)?.classList.add('active');
+  // Reload config form setiap kali membuka tab github
+  if(pane === 'github') loadConfigToForm();
   const titles = {
     dashboard:'Dashboard', upload:'Upload Soal Baru', exams:'Kelola Soal',
     editor:'Editor Soal', reports:'Laporan Error Soal', users:'Semua User',
@@ -1103,8 +1104,8 @@ window.showToast = (msg, type='')=>{
 // =============================================
 async function loadDashboard(){
   const [usersRes, pendingRes] = await Promise.all([
-    supabase.from('users').select('*').order('created_at',{ascending:false}),
-    supabase.from('users').select('id').eq('status','pending'),
+    getSupabase().from('users').select('*').order('created_at',{ascending:false}),
+    getSupabase().from('users').select('id').eq('status','pending'),
   ]);
   const users = usersRes.data||[];
   const pending = pendingRes.data||[];
@@ -1119,7 +1120,7 @@ async function loadDashboard(){
   document.getElementById('dPendingUser').textContent = pending.length;
 
   // Reports count
-  const {data: rpts} = await supabase.from('exam_reports').select('id').eq('status','pending');
+  const {data: rpts} = await getSupabase().from('exam_reports').select('id').eq('status','pending');
   const rc = (rpts||[]).length;
   document.getElementById('dReports').textContent = rc;
   document.getElementById('reportBadge').textContent = rc;
@@ -1144,7 +1145,7 @@ async function loadDashboard(){
 let _allUsers = [];
 
 async function loadAllUsers(){
-  const {data, error} = await supabase.from('users').select('*').order('created_at',{ascending:false});
+  const {data, error} = await getSupabase().from('users').select('*').order('created_at',{ascending:false});
   if(error){ showToast('❌ Gagal memuat users: '+error.message,'error'); return; }
   _allUsers = data||[];
   renderAllUsers(_allUsers);
@@ -1192,7 +1193,7 @@ window.filterUserTable = ()=>{
 };
 
 async function loadPendingUsers(){
-  const {data} = await supabase.from('users').select('*').eq('status','pending').order('created_at',{ascending:false});
+  const {data} = await getSupabase().from('users').select('*').eq('status','pending').order('created_at',{ascending:false});
   const users = data||[];
   document.getElementById('pendingBadge').textContent = users.length;
   const tbody = document.getElementById('pendingUserTable');
@@ -1220,7 +1221,7 @@ async function loadPendingUsers(){
 }
 
 window.changeUserStatus = async(id, status)=>{
-  const {error} = await supabase.from('users').update({status}).eq('id',id);
+  const {error} = await getSupabase().from('users').update({status}).eq('id',id);
   if(error){ showToast('❌ Gagal: '+error.message,'error'); return; }
   showToast(`✅ Status diubah ke "${status}"`, 'success');
   await Promise.all([loadAllUsers(), loadPendingUsers(), loadDashboard()]);
@@ -1243,7 +1244,7 @@ window.saveEditUser = async()=>{
     display_name: document.getElementById('euDisplayName').value.trim(),
     status: document.getElementById('euStatus').value,
   };
-  const {error} = await supabase.from('users').update(updates).eq('id',id);
+  const {error} = await getSupabase().from('users').update(updates).eq('id',id);
   if(error){ showToast('❌ Gagal menyimpan: '+error.message,'error'); return; }
   showToast('✅ User berhasil diperbarui','success');
   closeModal('editUserModal');
@@ -1253,7 +1254,7 @@ window.saveEditUser = async()=>{
 window.confirmDeleteUser = (id, name)=>{
   document.getElementById('confirmText').innerHTML = `Hapus user <strong>${escHtml(name)}</strong>?<br><span style="color:var(--danger);">Aksi ini tidak dapat dibatalkan.</span>`;
   document.getElementById('confirmOkBtn').onclick = async()=>{
-    const {error} = await supabase.from('users').delete().eq('id',id);
+    const {error} = await getSupabase().from('users').delete().eq('id',id);
     if(error){ showToast('❌ Gagal: '+error.message,'error'); return; }
     showToast('🗑️ User dihapus','success');
     closeModal('confirmModal');
@@ -1266,7 +1267,7 @@ window.approveAll = async()=>{
   const pending = _allUsers.filter(u=>u.status==='pending');
   if(!pending.length){ showToast('Tidak ada user pending'); return; }
   for(const u of pending){
-    await supabase.from('users').update({status:'active'}).eq('id',u.id);
+    await getSupabase().from('users').update({status:'active'}).eq('id',u.id);
   }
   showToast(`✅ ${pending.length} user di-approve!`,'success');
   await Promise.all([loadAllUsers(), loadPendingUsers(), loadDashboard()]);
@@ -1552,7 +1553,7 @@ window.confirmDeleteExam = (key, title)=>{
 // =============================================
 window.loadReports = async()=>{
   const filter = document.getElementById('reportFilter').value;
-  let query = supabase.from('exam_reports').select('*').order('created_at',{ascending:false});
+  let query = getSupabase().from('exam_reports').select('*').order('created_at',{ascending:false});
   if(filter!=='all') query = query.eq('status',filter);
   const {data,error} = await query;
   if(error){
@@ -1605,13 +1606,13 @@ CREATE TABLE exam_reports (
 };
 
 window.resolveReport = async(id)=>{
-  await supabase.from('exam_reports').update({status:'resolved'}).eq('id',id);
+  await getSupabase().from('exam_reports').update({status:'resolved'}).eq('id',id);
   showToast('✅ Laporan ditandai resolved','success');
   await loadReports();
 };
 
 window.deleteReport = async(id)=>{
-  await supabase.from('exam_reports').delete().eq('id',id);
+  await getSupabase().from('exam_reports').delete().eq('id',id);
   showToast('🗑️ Laporan dihapus');
   await loadReports();
 };
@@ -1622,7 +1623,7 @@ window.deleteReport = async(id)=>{
 let _fileContent = null;
 let _fileName = '';
 
-function handleFileSelect(file){
+window.handleFileSelect = function(file){
   if(!file.name.endsWith('.html')){ showToast('⚠️ Hanya file .html yang diterima','error'); return; }
   _fileName = file.name;
   document.getElementById('dropFileName').textContent = '📄 '+file.name;
@@ -1632,14 +1633,14 @@ function handleFileSelect(file){
   reader.readAsText(file, 'UTF-8');
 }
 
-window.usePastedContent = ()=>{
+window.usePastedContent = function(){
   const content = document.getElementById('pasteContent').value.trim();
   if(!content){ showToast('⚠️ Paste konten HTML dulu','error'); return; }
   _fileContent = content;
   showToast('✅ Konten HTML siap digunakan','success');
 };
 
-function updatePathPreview(){
+window.updatePathPreview = function(){
   const level = (document.getElementById('upLevel').value||'').toLowerCase();
   const year  = document.getElementById('upYear').value||'';
   const month = document.getElementById('upMonth').value||'';
@@ -1854,7 +1855,7 @@ window.testGithubConnection = async()=>{
 // LOGOUT
 // =============================================
 window.doLogout = async()=>{
-  await supabase.auth.signOut();
+  await getSupabase().auth.signOut();
   window.location.replace('./auth.html');
 };
 
@@ -1872,10 +1873,9 @@ document.querySelectorAll('.modal-overlay').forEach(o=>{
 // =============================================
 function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function fmtDate(d){ if(!d) return '—'; const dt=new Date(d); return dt.toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}); }
-
-// Toggle visibility untuk field password/token
-window.togglePwd = (inputId, btn)=>{
-  const el = document.getElementById(inputId);
+// Toggle visibility password/token
+window.togglePwd = function(inputId, btn){
+  var el = document.getElementById(inputId);
   if(el.type === 'password'){ el.type = 'text'; btn.textContent = '🙈'; }
   else { el.type = 'password'; btn.textContent = '👁️'; }
 };
