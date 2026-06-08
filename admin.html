@@ -1,6 +1,15 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
+<!-- STUB: goto tersedia segera agar inline onclick tidak error sebelum script utama load -->
+<script>
+window.goto = function(pane){
+  // Akan di-override oleh script utama. Ini hanya placeholder.
+  document.querySelectorAll('.pane').forEach(function(p){p.classList.remove('active');});
+  var el = document.getElementById('pane-'+pane);
+  if(el) el.classList.add('active');
+};
+</script>
 <!-- ADMIN AUTH GUARD -->
 <script type="module">
   import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
@@ -1077,10 +1086,20 @@ async function initApp(){
 
 // Tunggu auth guard selesai, lalu jalankan init
 // Auth guard di head sudah selesai saat script body ini dieksekusi
+function waitForAuthGuard(cb, maxMs = 8000) {
+  const start = Date.now();
+  const check = () => {
+    if (window._supabase && window._session) { cb(); return; }
+    if (Date.now() - start > maxMs) { console.warn('Auth guard timeout'); cb(); return; }
+    setTimeout(check, 80);
+  };
+  check();
+}
+
 if(document.readyState === 'loading'){
-  document.addEventListener('DOMContentLoaded', initApp);
+  document.addEventListener('DOMContentLoaded', () => waitForAuthGuard(initApp));
 } else {
-  initApp();
+  waitForAuthGuard(initApp);
 }
 
 // =============================================
@@ -1950,6 +1969,9 @@ window.togglePwd = window.toggleFieldPwd = function(id, btn){
   const ACTIVITY_KEY = 'jlpt_admin_activity_v3';
   const ACTIVITY_LIMIT = 60;
 
+  // Alias agar bisa akses window._supabase tanpa depend fungsi dari script luar
+  const getSupabase = () => window._supabase;
+
   let realtimeChannel = null;
   let refreshTimer = null;
   let examPollTimer = null;
@@ -2578,9 +2600,8 @@ window.togglePwd = window.toggleFieldPwd = function(id, btn){
   // ----- Realtime subscriptions
   async function startRealtime(){
     try {
-      const ctx = await getSupabase();
-      const sb = ctx.sb || ctx;
-      if (!sb?.channel) return;
+      const sb = window._supabase;
+      if (!sb || !sb.channel) return;
 
       if (realtimeChannel) {
         try { await sb.removeChannel(realtimeChannel); } catch {}
@@ -2723,10 +2744,21 @@ window.togglePwd = window.toggleFieldPwd = function(id, btn){
     await startRealtime();
   };
 
+  // Tunggu sampai auth guard selesai set window._supabase
+  function waitForSupabase(cb, maxMs = 8000) {
+    const start = Date.now();
+    const check = () => {
+      if (window._supabase) { cb(); return; }
+      if (Date.now() - start > maxMs) { console.warn('Supabase tidak tersedia setelah', maxMs, 'ms'); return; }
+      setTimeout(check, 100);
+    };
+    check();
+  }
+
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => window.__adminRealtimeBoot?.(), { once: true });
+    document.addEventListener('DOMContentLoaded', () => waitForSupabase(() => window.__adminRealtimeBoot?.()), { once: true });
   } else {
-    window.__adminRealtimeBoot?.();
+    waitForSupabase(() => window.__adminRealtimeBoot?.());
   }
 })();
 </script>
