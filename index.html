@@ -15,12 +15,12 @@
       window.location.replace('./auth.html');
     } else {
       // =============================================
-      // ADMIN EMAILS Ã¢ÂÂ ganti dengan email kamu
+      // ADMIN EMAILS — ganti dengan email kamu
       // =============================================
-      const SUPER_ADMIN_EMAIL = 'sidiqangga44@gmail.com'; // Ã¢ÂÂ ganti
-      const ADMIN_EMAIL       = 'admin@example.com';       // Ã¢ÂÂ ganti
+      const SUPER_ADMIN_EMAIL = 'sidiqangga44@gmail.com'; // ← ganti
+      const ADMIN_EMAIL       = 'admin@example.com';       // ← ganti
 
-      // Kalau email admin Ã¢ÂÂ redirect langsung ke admin.html
+      // Kalau email admin → redirect langsung ke admin.html
       if (session.user.email === SUPER_ADMIN_EMAIL || session.user.email === ADMIN_EMAIL) {
         window.location.replace('./admin.html');
       } else {
@@ -51,7 +51,7 @@
 </script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ã¦Â¨Â¡Ã¦ÂÂ¬Ã¨Â©Â¦Ã©Â¨ÂÃ£ÂÂÃ©ÂÂÃ¥ÂÂ»Ã¥ÂÂÃ©Â¡Â</title>
+<title>模擬試験　過去問題</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+JP:wght@300;400;500;700&family=Space+Grotesk:wght@400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
@@ -438,38 +438,38 @@ h1{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;letter-spacing:-
 
 <!-- ======== HERO ======== -->
 <div class="hero sticky-top">
-  <div class="hero-deco">Ã¨Â©Â¦Ã©Â¨Â</div>
+  <div class="hero-deco">試験</div>
 
   <!-- Hero top-right actions: Language + Notification -->
   <div class="hero-actions">
     <!-- Language Selector -->
     <div style="position:relative;">
       <button class="lang-btn active" id="langToggle" onclick="toggleLangMenu()" style="gap:6px;padding:9px 14px;">
-        <span class="lang-flag" id="currentFlag">Ã°ÂÂÂ®Ã°ÂÂÂ©</span>
+        <span class="lang-flag" id="currentFlag">🇮🇩</span>
         <span id="currentLangCode">ID</span>
-        <span style="font-size:10px;opacity:.6;">Ã¢ÂÂ¾</span>
+        <span style="font-size:10px;opacity:.6;">▾</span>
       </button>
       <div id="langMenu" style="position:absolute;top:52px;right:0;background:#111a2f;border:1px solid var(--border);border-radius:16px;padding:8px;min-width:160px;z-index:10002;display:none;box-shadow:0 12px 40px rgba(0,0,0,.5);animation:modalIn .18s ease;">
-        <div class="lang-opt" data-lang="id" data-flag="Ã°ÂÂÂ®Ã°ÂÂÂ©" data-label="Indonesia" onclick="setLang(this)">Ã°ÂÂÂ®Ã°ÂÂÂ© <span>Indonesia</span></div>
-        <div class="lang-opt" data-lang="en" data-flag="Ã°ÂÂÂ¬Ã°ÂÂÂ§" data-label="English" onclick="setLang(this)">Ã°ÂÂÂ¬Ã°ÂÂÂ§ <span>English</span></div>
-        <div class="lang-opt" data-lang="ja" data-flag="Ã°ÂÂÂ¯Ã°ÂÂÂµ" data-label="Ã¦ÂÂ¥Ã¦ÂÂ¬Ã¨ÂªÂ" onclick="setLang(this)">Ã°ÂÂÂ¯Ã°ÂÂÂµ <span>Ã¦ÂÂ¥Ã¦ÂÂ¬Ã¨ÂªÂ</span></div>
+        <div class="lang-opt" data-lang="id" data-flag="🇮🇩" data-label="Indonesia" onclick="setLang(this)">🇮🇩 <span>Indonesia</span></div>
+        <div class="lang-opt" data-lang="en" data-flag="🇬🇧" data-label="English" onclick="setLang(this)">🇬🇧 <span>English</span></div>
+        <div class="lang-opt" data-lang="ja" data-flag="🇯🇵" data-label="日本語" onclick="setLang(this)">🇯🇵 <span>日本語</span></div>
       </div>
     </div>
     <!-- Notification Bell -->
     <button class="notif-btn" id="notifBtn" onclick="toggleNotifPanel()" title="Notifications">
-      Ã°ÂÂÂ
+      🔔
       <span class="notif-dot" id="notifDot"></span>
     </button>
   </div>
 
-  <div class="logo-mark"><div class="logo-icon">Ã¨Â©Â¦Ã©Â¨Â</div></div>
-  <h1 data-i18n="heroTitle">Ã¦ÂÂ¥Ã¦ÂÂ¬Ã¨ÂªÂÃ¨ÂÂ½Ã¥ÂÂÃ£ÂÂÃ¦Â¨Â¡Ã¦ÂÂ¬Ã¨Â©Â¦Ã©Â¨ÂÃ£ÂÂÃ©ÂÂÃ¥ÂÂ»Ã¥ÂÂÃ©Â¡ÂÃ©ÂÂ</h1>
+  <div class="logo-mark"><div class="logo-icon">試験</div></div>
+  <h1 data-i18n="heroTitle">日本語能力　模擬試験　過去問題集</h1>
   <p class="subtitle" data-i18n="heroSubtitle">
     A collection of modern JLPT practice exercises and simulations with a premium interface.
     Access Reading, Grammar, and Vocabulary questions by exam year.
   </p>
   <div class="topbar">
-    <input type="text" class="search-box" id="searchInput" placeholder="Ã°ÂÂÂ  Search exam year...">
+    <input type="text" class="search-box" id="searchInput" placeholder="🔍  Search exam year...">
     <select class="search-box" id="levelFilter">
       <option value="all" data-i18n="allLevels">All Levels</option>
       <option value="N1">N1</option><option value="N2">N2</option>
@@ -479,7 +479,7 @@ h1{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;letter-spacing:-
       <option value="newest" data-i18n="newest">Newest</option>
       <option value="oldest" data-i18n="oldest">Oldest</option>
     </select>
-    <button class="filter-btn" onclick="showAll()" data-i18n="showAll">Ã¢ÂÂ¦ Show All</button>
+    <button class="filter-btn" onclick="showAll()" data-i18n="showAll">✦ Show All</button>
   </div>
 </div>
 
@@ -487,7 +487,7 @@ h1{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;letter-spacing:-
 <div class="notif-panel" id="notifPanel">
   <div class="notif-header">
     <div class="notif-header-title">
-      Ã°ÂÂÂ <span data-i18n="notifications">Notifications</span>
+      🔔 <span data-i18n="notifications">Notifications</span>
       <span class="notif-count-pill" id="notifCountPill">0</span>
     </div>
     <span class="notif-mark-all" onclick="markAllRead()" data-i18n="markAllRead">Mark all read</span>
@@ -500,7 +500,7 @@ h1{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;letter-spacing:-
   </div>
   <div class="notif-list" id="notifList"></div>
   <div class="notif-footer">
-    <a href="#" onclick="openHistoryModal();closeNotifPanel();" data-i18n="viewHistory">Ã°ÂÂÂ View Exam History</a>
+    <a href="#" onclick="openHistoryModal();closeNotifPanel();" data-i18n="viewHistory">📋 View Exam History</a>
   </div>
 </div>
 
@@ -510,25 +510,25 @@ h1{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;letter-spacing:-
     <div class="avatar" id="avatarEl" onclick="openAvatarModal()">
       <span id="avatarInitial">?</span>
     </div>
-    <div class="avatar-edit" onclick="openAvatarModal()" title="Edit avatar">Ã¢ÂÂÃ¯Â¸Â</div>
+    <div class="avatar-edit" onclick="openAvatarModal()" title="Edit avatar">✏️</div>
   </div>
   <div class="profile-info">
     <div class="profile-name">
       <span class="profile-name-text" id="profileNameEl" onclick="openEditNameModal()">Loading...</span>
-      <span class="edit-name-btn" onclick="openEditNameModal()" title="Edit name">Ã¢ÂÂÃ¯Â¸Â</span>
+      <span class="edit-name-btn" onclick="openEditNameModal()" title="Edit name">✏️</span>
     </div>
-    <div class="profile-email" id="profileEmailEl">Ã¢ÂÂ</div>
+    <div class="profile-email" id="profileEmailEl">—</div>
     <div class="profile-badge"><span class="online-dot"></span> <span data-i18n="activeMember">Active Member</span></div>
   </div>
   <div class="profile-actions">
     <button class="request-btn" onclick="openRequestModal()">
-      Ã°ÂÂÂ© <span data-i18n="requestExam">Request JLPT Exam</span>
+      📩 <span data-i18n="requestExam">Request JLPT Exam</span>
     </button>
     <button class="history-btn" onclick="openHistoryModal()">
-      Ã°ÂÂÂ <span data-i18n="examHistory">Exam History</span>
+      📋 <span data-i18n="examHistory">Exam History</span>
     </button>
     <button class="logout-btn-sm" onclick="doLogout()">
-      Ã°ÂÂÂª <span data-i18n="logout">Logout</span>
+      🚪 <span data-i18n="logout">Logout</span>
     </button>
   </div>
 </div>
@@ -536,7 +536,7 @@ h1{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;letter-spacing:-
 <!-- ======== STATS ======== -->
 <div class="stats">
   <div class="stat-box"><div class="stat-num" id="totalExam">29</div><div class="stat-label" data-i18n="totalExams">Total Exams</div></div>
-  <div class="stat-box"><div class="stat-num">N5Ã¢ÂÂN1</div><div class="stat-label" data-i18n="jlptLevel">JLPT Level</div></div>
+  <div class="stat-box"><div class="stat-num">N5–N1</div><div class="stat-label" data-i18n="jlptLevel">JLPT Level</div></div>
   <div class="stat-box"><div class="stat-num">2026</div><div class="stat-label" data-i18n="updated">Updated</div></div>
   <div class="stat-box"><div class="stat-num" id="totalLevels">5</div><div class="stat-label" data-i18n="levelAvailable">Level Available</div></div>
   <div class="stat-box" id="completedStat"><div class="stat-num" id="completedCount">0</div><div class="stat-label" data-i18n="completed">Completed</div></div>
@@ -554,46 +554,300 @@ h1{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;letter-spacing:-
 
 <!-- SECTION HEADER -->
 <div class="section-header">
-  <div class="section-title">Ã°ÂÂÂ <span data-i18n="examList">Exam List</span> <span class="section-count" id="visibleCount">29 exams</span></div>
+  <div class="section-title">📋 <span data-i18n="examList">Exam List</span> <span class="section-count" id="visibleCount">29 exams</span></div>
   <div class="view-toggle">
-    <button class="view-btn active" id="gridViewBtn" title="Grid View" onclick="setView('grid')">Ã¢ÂÂ</button>
-    <button class="view-btn" id="listViewBtn" title="List View" onclick="setView('list')">Ã¢ÂÂ°</button>
+    <button class="view-btn active" id="gridViewBtn" title="Grid View" onclick="setView('grid')">⊞</button>
+    <button class="view-btn" id="listViewBtn" title="List View" onclick="setView('list')">☰</button>
   </div>
 </div>
 
 <!-- EXAM GRID -->
 <div class="grid" id="examGrid">
 
+<div class="card" data-name="2024-07-jlpt" data-level="N1" data-year="2024" data-examkey="n1-2024-07">
+<div class="card-kanji">N1</div><div class="new-badge">NEW</div><div class="year">2024</div>
+<div class="card-body"><div class="exam-title">JLPT N1 July 2024</div>
+<div class="badges"><span class="badge level-n1">N1</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
+<div class="exam-desc">Latest - Oldest JLPT N1 exam simulation.</div></div>
+<div class="done-stamp">✓ Completed</div>
+<a href="./jlpt/n1/2024-07-n1.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
+</div>
+
+<div class="card" data-name="2025-07-jlpt" data-level="N1" data-year="2025" data-examkey="n1-2025-07">
+<div class="card-kanji">N1</div><div class="new-badge">NEW</div><div class="year">2025</div>
+<div class="card-body"><div class="exam-title">JLPT N1 July 2025</div>
+<div class="badges"><span class="badge level-n1">N1</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
+<div class="exam-desc">Latest - Oldest JLPT N1 exam simulation.</div></div>
+<div class="done-stamp">✓ Completed</div>
+<a href="./jlpt/n1/2025-07-n1.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
+</div>
+
+<div class="card" data-name="2025-12-jlpt" data-level="N1" data-year="2025" data-examkey="n1-2025-12">
+<div class="card-kanji">N1</div><div class="new-badge">NEW</div><div class="year">2025</div>
+<div class="card-body"><div class="exam-title">JLPT N1 December 2025</div>
+<div class="badges"><span class="badge level-n1">N1</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
+<div class="exam-desc">Latest - Oldest JLPT N1 exam simulation.</div></div>
+<div class="done-stamp">✓ Completed</div>
+<a href="./jlpt/n1/2025-12-n1.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
+</div>
+
+<div class="card" data-name="2010-07-jlpt" data-level="N2" data-year="2010" data-examkey="n2-2010-07">
+<div class="card-kanji">N2</div><div class="year">2010</div>
+<div class="card-body"><div class="exam-title">JLPT N2 July 2010</div>
+<div class="badges"><span class="badge level-n2">N2</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
+<div class="exam-desc">Latest - Oldest JLPT N2 exam simulation.</div></div>
+<div class="done-stamp">✓ Completed</div>
+<a href="./jlpt/n2/2010-07-jlpt.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
+</div>
+
+<div class="card" data-name="2010-12-jlpt" data-level="N2" data-year="2010" data-examkey="n2-2010-12">
+<div class="card-kanji">N2</div><div class="year">2010</div>
+<div class="card-body"><div class="exam-title">JLPT N2 December 2010</div>
+<div class="badges"><span class="badge level-n2">N2</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
+<div class="exam-desc">Latest - Oldest JLPT N2 exam simulation.</div></div>
+<div class="done-stamp">✓ Completed</div>
+<a href="./jlpt/n2/2010-12-jlpt.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
+</div>
+
+<div class="card" data-name="2011-07-jlpt" data-level="N2" data-year="2011" data-examkey="n2-2011-07">
+<div class="card-kanji">N2</div><div class="year">2011</div>
+<div class="card-body"><div class="exam-title">JLPT N2 July 2011</div>
+<div class="badges"><span class="badge level-n2">N2</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
+<div class="exam-desc">Latest - Oldest JLPT N2 exam simulation.</div></div>
+<div class="done-stamp">✓ Completed</div>
+<a href="./jlpt/n2/2011-07-jlpt.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
+</div>
+
+<div class="card" data-name="2011-12-jlpt" data-level="N2" data-year="2011" data-examkey="n2-2011-12">
+<div class="card-kanji">N2</div><div class="year">2011</div>
+<div class="card-body"><div class="exam-title">JLPT N2 December 2011</div>
+<div class="badges"><span class="badge level-n2">N2</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
+<div class="exam-desc">Latest - Oldest JLPT N2 exam simulation.</div></div>
+<div class="done-stamp">✓ Completed</div>
+<a href="./jlpt/n2/2011-12-jlpt.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
+</div>
+
+<div class="card" data-name="2024-07-jlpt" data-level="N2" data-year="2024" data-examkey="n2-2024-07">
+<div class="card-kanji">N2</div><div class="new-badge">NEW</div><div class="year">2024</div>
+<div class="card-body"><div class="exam-title">JLPT N2 July 2024</div>
+<div class="badges"><span class="badge level-n2">N2</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
+<div class="exam-desc">Latest - Oldest JLPT N2 exam simulation.</div></div>
+<div class="done-stamp">✓ Completed</div>
+<a href="./jlpt/n2/2024-07-jlpt.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
+</div>
+
+<div class="card" data-name="2024-12-jlpt" data-level="N2" data-year="2024" data-examkey="n2-2024-12">
+<div class="card-kanji">N2</div><div class="new-badge">NEW</div><div class="year">2024</div>
+<div class="card-body"><div class="exam-title">JLPT N2 December 2024</div>
+<div class="badges"><span class="badge level-n2">N2</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
+<div class="exam-desc">Latest - Oldest JLPT N2 exam simulation.</div></div>
+<div class="done-stamp">✓ Completed</div>
+<a href="./jlpt/n2/2024-12-jlpt.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
+</div>
+  
+<div class="card" data-name="2025-07-jlpt" data-level="N2" data-year="2025" data-examkey="n2-2025-07">
+<div class="card-kanji">N2</div><div class="new-badge">NEW</div><div class="year">2025</div>
+<div class="card-body"><div class="exam-title">JLPT N2 July 2025</div>
+<div class="badges"><span class="badge level-n2">N2</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
+<div class="exam-desc">Latest - Oldest JLPT N2 exam simulation.</div></div>
+<div class="done-stamp">✓ Completed</div>
+<a href="./jlpt/n2/2025-07-jlpt.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
+</div>
+
+<div class="card" data-name="2025-12-jlpt" data-level="N2" data-year="2025" data-examkey="n2-2025-12">
+<div class="card-kanji">N2</div><div class="new-badge">NEW</div><div class="year">2025</div>
+<div class="card-body"><div class="exam-title">JLPT N2 December 2025</div>
+<div class="badges"><span class="badge level-n2">N2</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
+<div class="exam-desc">Latest - Oldest JLPT N2 exam simulation.</div></div>
+<div class="done-stamp">✓ Completed</div>
+<a href="./jlpt/n2/2025-12-jlpt.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
+</div>
+
+<div class="card" data-name="2010-07-jlpt" data-level="N3" data-year="2010" data-examkey="n3-2010-07">
+<div class="card-kanji">N3</div><div class="year">2010</div>
+<div class="card-body"><div class="exam-title">JLPT N3 July 2010</div>
+<div class="badges"><span class="badge level-n3">N3</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
+<div class="exam-desc">Latest - Oldest JLPT N3 exam simulation.</div></div>
+<div class="done-stamp">✓ Completed</div>
+<a href="./jlpt/n3/2010-07-n3.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
+</div>
+
+<div class="card" data-name="2025-07-jlpt" data-level="N3" data-year="2025" data-examkey="n3-2025-07">
+<div class="card-kanji">N3</div><div class="new-badge">NEW</div><div class="year">2025</div>
+<div class="card-body"><div class="exam-title">JLPT N3 July 2025</div>
+<div class="badges"><span class="badge level-n3">N3</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
+<div class="exam-desc">Latest - Oldest JLPT N3 exam simulation.</div></div>
+<div class="done-stamp">✓ Completed</div>
+<a href="./jlpt/n3/2025-07-n3.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
+</div>
+
+<div class="card" data-name="2025-12-jlpt" data-level="N3" data-year="2025" data-examkey="n3-2025-12">
+<div class="card-kanji">N3</div><div class="new-badge">NEW</div><div class="year">2025</div>
+<div class="card-body"><div class="exam-title">JLPT N3 December 2025</div>
+<div class="badges"><span class="badge level-n3">N3</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
+<div class="exam-desc">Latest - Oldest JLPT N3 exam simulation.</div></div>
+<div class="done-stamp">✓ Completed</div>
+<a href="./jlpt/n3/2025-12-n3.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
+</div>
+
+<div class="card" data-name="2024-07-jlpt" data-level="N3" data-year="2024" data-examkey="n3-2024-07">
+<div class="card-kanji">N3</div><div class="year">2024</div>
+<div class="card-body"><div class="exam-title">JLPT N3 July 2024</div>
+<div class="badges"><span class="badge level-n3">N3</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
+<div class="exam-desc">Latest - Oldest JLPT N3 exam simulation.</div></div>
+<div class="done-stamp">✓ Completed</div>
+<a href="./jlpt/n3/2024-07-n3.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
+</div>
+
+<div class="card" data-name="2024-12-jlpt" data-level="N3" data-year="2024" data-examkey="n3-2024-12">
+<div class="card-kanji">N3</div><div class="year">2024</div>
+<div class="card-body"><div class="exam-title">JLPT N3 December 2024</div>
+<div class="badges"><span class="badge level-n3">N3</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
+<div class="exam-desc">Latest - Oldest JLPT N3 exam simulation.</div></div>
+<div class="done-stamp">✓ Completed</div>
+<a href="./jlpt/n3/2024-12-n3.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
+</div>
+
+<div class="card" data-name="2023-07-jlpt" data-level="N3" data-year="2023" data-examkey="n3-2023-07">
+<div class="card-kanji">N3</div><div class="year">2023</div>
+<div class="card-body"><div class="exam-title">JLPT N3 July 2023</div>
+<div class="badges"><span class="badge level-n3">N3</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
+<div class="exam-desc">Latest - Oldest JLPT N3 exam simulation.</div></div>
+<div class="done-stamp">✓ Completed</div>
+<a href="./jlpt/n3/2023-07-n3.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
+</div>
+
+<div class="card" data-name="2023-12-jlpt" data-level="N3" data-year="2023" data-examkey="n3-2023-12">
+<div class="card-kanji">N3</div><div class="year">2023</div>
+<div class="card-body"><div class="exam-title">JLPT N3 December 2023</div>
+<div class="badges"><span class="badge level-n3">N3</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
+<div class="exam-desc">Latest - Oldest JLPT N3 exam simulation.</div></div>
+<div class="done-stamp">✓ Completed</div>
+<a href="./jlpt/n3/2023-12-n3.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
+</div>
+
+<div class="card" data-name="2022-07-jlpt" data-level="N3" data-year="2022" data-examkey="n3-2022-07">
+<div class="card-kanji">N3</div><div class="year">2022</div>
+<div class="card-body"><div class="exam-title">JLPT N3 July 2022</div>
+<div class="badges"><span class="badge level-n3">N3</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
+<div class="exam-desc">Latest - Oldest JLPT N3 exam simulation.</div></div>
+<div class="done-stamp">✓ Completed</div>
+<a href="./jlpt/n3/2022-07-n3.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
+</div>
+
+<div class="card" data-name="2022-12-jlpt" data-level="N3" data-year="2022" data-examkey="n3-2022-12">
+<div class="card-kanji">N3</div><div class="year">2022</div>
+<div class="card-body"><div class="exam-title">JLPT N3 December 2022</div>
+<div class="badges"><span class="badge level-n3">N3</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
+<div class="exam-desc">Latest - Oldest JLPT N3 exam simulation.</div></div>
+<div class="done-stamp">✓ Completed</div>
+<a href="./jlpt/n3/2022-12-n3.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
+</div>
+
+<div class="card" data-name="2021-07-jlpt" data-level="N3" data-year="2021" data-examkey="n3-2021-07">
+<div class="card-kanji">N3</div><div class="year">2021</div>
+<div class="card-body"><div class="exam-title">JLPT N3 July 2021</div>
+<div class="badges"><span class="badge level-n3">N3</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
+<div class="exam-desc">Latest - Oldest JLPT N3 exam simulation.</div></div>
+<div class="done-stamp">✓ Completed</div>
+<a href="./jlpt/n3/2021-07-n3.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
+</div>
+
+<div class="card" data-name="2021-12-jlpt" data-level="N3" data-year="2021" data-examkey="n3-2021-12">
+<div class="card-kanji">N3</div><div class="year">2021</div>
+<div class="card-body"><div class="exam-title">JLPT N3 December 2021</div>
+<div class="badges"><span class="badge level-n3">N3</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
+<div class="exam-desc">Latest - Oldest JLPT N3 exam simulation.</div></div>
+<div class="done-stamp">✓ Completed</div>
+<a href="./jlpt/n3/2021-12-n3.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
+</div>
+
+<div class="card" data-name="2020-12-jlpt" data-level="N3" data-year="2020" data-examkey="n3-2020-12">
+<div class="card-kanji">N3</div><div class="year">2020</div>
+<div class="card-body"><div class="exam-title">JLPT N3 December 2020</div>
+<div class="badges"><span class="badge level-n3">N3</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
+<div class="exam-desc">Latest - Oldest JLPT N3 exam simulation.</div></div>
+<div class="done-stamp">✓ Completed</div>
+<a href="./jlpt/n3/2020-12-n3.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
+</div>
+  
+<div class="card" data-name="2024-07-jlpt" data-level="N4" data-year="2024" data-examkey="n4-2024-07">
+<div class="card-kanji">N4</div><div class="year">2024</div>
+<div class="card-body"><div class="exam-title">JLPT N4 July 2024</div>
+<div class="badges"><span class="badge level-n4">N4</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
+<div class="exam-desc">Latest - Oldest JLPT N4 exam simulation.</div></div>
+<div class="done-stamp">✓ Completed</div>
+<a href="./jlpt/n4/2024-07-n4.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
+</div>
+
+<div class="card" data-name="2024-12-jlpt" data-level="N4" data-year="2024" data-examkey="n4-2024-12">
+<div class="card-kanji">N4</div><div class="year">2024</div>
+<div class="card-body"><div class="exam-title">JLPT N4 December 2024</div>
+<div class="badges"><span class="badge level-n4">N4</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
+<div class="exam-desc">Latest - Oldest JLPT N4 exam simulation.</div></div>
+<div class="done-stamp">✓ Completed</div>
+<a href="./jlpt/n4/2024-12-n4.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
+</div>
+
+<div class="card" data-name="2021-12-jlpt" data-level="N4" data-year="2021" data-examkey="n4-2021-12">
+<div class="card-kanji">N4</div><div class="year">2021</div>
+<div class="card-body"><div class="exam-title">JLPT N4 December 2021</div>
+<div class="badges"><span class="badge level-n4">N4</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
+<div class="exam-desc">Latest - Oldest JLPT N4 exam simulation.</div></div>
+<div class="done-stamp">✓ Completed</div>
+<a href="./jlpt/n4/2021-12-n4.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
+</div>
+
+<div class="card" data-name="2018-07-jlpt" data-level="N5" data-year="2018" data-examkey="n5-2018-07">
+<div class="card-kanji">N5</div><div class="year">2018</div>
+<div class="card-body"><div class="exam-title">JLPT N5 July 2018</div>
+<div class="badges"><span class="badge level-n5">N5</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
+<div class="exam-desc">Latest - Oldest JLPT N5 exam simulation.</div></div>
+<div class="done-stamp">✓ Completed</div>
+<a href="./jlpt/n5/2018-07-n5.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
+</div>
+  
+<div class="card" data-name="2021-12-jlpt" data-level="N5" data-year="2021" data-examkey="n5-2021-12">
+<div class="card-kanji">N5</div><div class="year">2021</div>
+<div class="card-body"><div class="exam-title">JLPT N5 December 2021</div>
+<div class="badges"><span class="badge level-n5">N5</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
+<div class="exam-desc">Latest - Oldest JLPT N5 exam simulation.</div></div>
+<div class="done-stamp">✓ Completed</div>
+<a href="./jlpt/n5/2021-12-n5.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
+</div>
+  
+<div class="card" data-name="2024-07-jlpt" data-level="N5" data-year="2024" data-examkey="n5-2024-07">
+<div class="card-kanji">N5</div><div class="year">2024</div>
+<div class="card-body"><div class="exam-title">JLPT N5 July 2024</div>
+<div class="badges"><span class="badge level-n5">N5</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
+<div class="exam-desc">Latest - Oldest JLPT N5 exam simulation.</div></div>
+<div class="done-stamp">✓ Completed</div>
+<a href="./jlpt/n5/2024-07-n5.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
+</div>
+
+</div><!-- /examGrid -->
+
 <div class="empty-state" id="emptyState">
-  <div class="empty-icon">Ã°ÂÂÂ</div>
+  <div class="empty-icon">🔍</div>
   <p style="font-size:18px;font-weight:600;margin-bottom:8px;" data-i18n="notFound">Exam not found</p>
   <p data-i18n="notFoundSub">Try changing the search filters or keywords.</p>
 </div>
 
 <div class="footer">
-  <span>Made by Kurumi with Ã¢ÂÂ¤ 2026</span>
+  <span>Made by Kurumi with ❤ 2026</span>
   <div class="footer-links"><a href="#">About</a><a href="#">Guide</a><a href="#">Feedback</a></div>
-
-<div class="card" data-name="2026-07-jlpt" data-level="N1" data-year="2026" data-examkey="n1-2026-07">
-<div class="card-kanji">N1</div><div class="year">2026</div>
-<div class="card-body"><div class="exam-title">JLPT Test Only</div>
-<div class="badges"><span class="badge level-nn1">N1</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
-<div class="exam-desc">This is for test only</div></div>
-<div class="done-stamp">â Completed</div>
-<a href="./jlpt/n1/2026-07-n1.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">â</span></a>
-</div>
 </div>
 
 </div><!-- /container -->
 
 <!-- TOAST -->
 <div id="toast"></div>
-<button id="backTop" title="Back to top" onclick="window.scrollTo({top:0,behavior:'smooth'})">Ã¢ÂÂ</button>
+<button id="backTop" title="Back to top" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
 
 <!-- ======== EDIT NAME MODAL ======== -->
 <div class="modal-overlay" id="editNameModal">
   <div class="modal">
-    <div class="modal-title">Ã¢ÂÂÃ¯Â¸Â <span data-i18n="editName">Edit Profile Name</span></div>
+    <div class="modal-title">✏️ <span data-i18n="editName">Edit Profile Name</span></div>
     <div class="modal-field">
       <label data-i18n="displayName">Display Name</label>
       <input type="text" id="editNameInput" placeholder="Your name..." maxlength="40">
@@ -608,11 +862,11 @@ h1{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;letter-spacing:-
 <!-- ======== AVATAR MODAL ======== -->
 <div class="modal-overlay" id="avatarModal">
   <div class="modal">
-    <div class="modal-title">Ã°ÂÂÂ¼Ã¯Â¸Â <span data-i18n="chooseAvatar">Choose Avatar</span></div>
+    <div class="modal-title">🖼️ <span data-i18n="chooseAvatar">Choose Avatar</span></div>
     <p style="color:var(--muted);font-size:13px;margin-bottom:12px;" data-i18n="pickEmoji">Pick an emoji or upload a photo</p>
     <div class="avatar-grid" id="avatarGrid"></div>
     <div class="av-upload-area" onclick="document.getElementById('avatarFileInput').click()">
-      Ã°ÂÂÂ <span data-i18n="uploadPhoto">Upload photo (JPG/PNG, max 2MB)</span>
+      📁 <span data-i18n="uploadPhoto">Upload photo (JPG/PNG, max 2MB)</span>
     </div>
     <input type="file" id="avatarFileInput" accept="image/*" onchange="handleAvatarUpload(event)">
     <div class="modal-actions" style="margin-top:16px;">
@@ -625,7 +879,7 @@ h1{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;letter-spacing:-
 <!-- ======== REQUEST SOAL MODAL ======== -->
 <div class="modal-overlay" id="requestModal">
   <div class="modal req-modal">
-    <div class="modal-title">Ã°ÂÂÂ© <span data-i18n="requestExam">Request JLPT Exam</span></div>
+    <div class="modal-title">📩 <span data-i18n="requestExam">Request JLPT Exam</span></div>
     <p style="color:var(--muted);font-size:13px;margin-bottom:14px;" data-i18n="requestDesc">Select the level and type of question you want to ask the admin.</p>
     <div class="modal-field">
       <label data-i18n="levelJLPT">Level JLPT</label>
@@ -652,7 +906,7 @@ h1{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;letter-spacing:-
     </div>
     <div class="modal-actions">
       <button class="modal-cancel" onclick="closeModal('requestModal')" data-i18n="cancel">Cancel</button>
-      <button class="modal-save" style="background:linear-gradient(135deg,#ff6b9d,#c44dff);" onclick="submitRequest()" data-i18n="sendRequest">Ã°ÂÂÂ¨ Send Request</button>
+      <button class="modal-save" style="background:linear-gradient(135deg,#ff6b9d,#c44dff);" onclick="submitRequest()" data-i18n="sendRequest">📨 Send Request</button>
     </div>
   </div>
 </div>
@@ -661,17 +915,17 @@ h1{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;letter-spacing:-
 <div class="modal-overlay" id="historyModal">
   <div class="modal modal-wide">
     <div class="modal-title" style="background:linear-gradient(135deg,#5aa9ff,#b69cff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">
-      Ã°ÂÂÂ <span data-i18n="examHistory">Exam History</span>
+      📋 <span data-i18n="examHistory">Exam History</span>
     </div>
     <div class="history-stats">
       <div class="hs-box"><div class="hs-num" id="hsTotalDone">0</div><div class="hs-label" data-i18n="totalCompleted">Total Completed</div></div>
-      <div class="hs-box"><div class="hs-num" id="hsLevels">Ã¢ÂÂ</div><div class="hs-label" data-i18n="levelsAttempted">Levels Attempted</div></div>
-      <div class="hs-box"><div class="hs-num" id="hsLastDate">Ã¢ÂÂ</div><div class="hs-label" data-i18n="lastActivity">Last Activity</div></div>
+      <div class="hs-box"><div class="hs-num" id="hsLevels">—</div><div class="hs-label" data-i18n="levelsAttempted">Levels Attempted</div></div>
+      <div class="hs-box"><div class="hs-num" id="hsLastDate">—</div><div class="hs-label" data-i18n="lastActivity">Last Activity</div></div>
     </div>
     <div class="history-list" id="historyList"></div>
     <div class="modal-actions" style="margin-top:16px;">
       <button class="modal-cancel" style="flex:1;" onclick="closeModal('historyModal')" data-i18n="close">Close</button>
-      <button class="modal-save" style="background:rgba(255,95,115,.2);border:1px solid rgba(255,95,115,.4);color:#ff9aaa;flex:none;padding:13px 20px;" onclick="confirmClearHistory()" data-i18n="clearHistory">Ã°ÂÂÂ Clear History</button>
+      <button class="modal-save" style="background:rgba(255,95,115,.2);border:1px solid rgba(255,95,115,.4);color:#ff9aaa;flex:none;padding:13px 20px;" onclick="confirmClearHistory()" data-i18n="clearHistory">🗑 Clear History</button>
     </div>
   </div>
 </div>
@@ -689,59 +943,59 @@ h1{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;letter-spacing:-
 <!-- ======== SCRIPTS ======== -->
 <script>
 // =============================================
-// I18N Ã¢ÂÂ Translation System
+// I18N — Translation System
 // =============================================
 const TRANSLATIONS = {
   id: {
-    heroTitle:'Ã¦ÂÂ¥Ã¦ÂÂ¬Ã¨ÂªÂÃ¨ÂÂ½Ã¥ÂÂÃ£ÂÂÃ¦Â¨Â¡Ã¦ÂÂ¬Ã¨Â©Â¦Ã©Â¨ÂÃ£ÂÂÃ©ÂÂÃ¥ÂÂ»Ã¥ÂÂÃ©Â¡ÂÃ©ÂÂ',
+    heroTitle:'日本語能力　模擬試験　過去問題集',
     heroSubtitle:'Kumpulan soal latihan JLPT modern dengan antarmuka premium. Akses soal Reading, Grammar, dan Vocabulary berdasarkan tahun ujian.',
     notifications:'Notifikasi',markAllRead:'Tandai semua dibaca',
     tabAll:'Semua',tabNewExam:'Ujian Baru',tabUpdate:'Pembaruan',tabSystem:'Sistem',
-    viewHistory:'Ã°ÂÂÂ Lihat Riwayat Ujian',
+    viewHistory:'📋 Lihat Riwayat Ujian',
     activeMember:'Anggota Aktif',requestExam:'Request Soal JLPT',examHistory:'Riwayat Ujian',logout:'Keluar',
     totalExams:'Total Ujian',jlptLevel:'Level JLPT',updated:'Diperbarui',levelAvailable:'Level Tersedia',completed:'Diselesaikan',
     all:'Semua',examList:'Daftar Ujian',
     editName:'Edit Nama Profil',displayName:'Nama Tampilan',saveChanges:'Simpan Perubahan',cancel:'Batal',close:'Tutup',
     chooseAvatar:'Pilih Avatar',pickEmoji:'Pilih emoji atau unggah foto',uploadPhoto:'Unggah foto (JPG/PNG, maks 2MB)',apply:'Terapkan',
-    requestDesc:'Pilih level dan jenis soal yang ingin kamu minta ke admin.',levelJLPT:'Level JLPT',questionType:'Jenis Soal',additionalNotes:'Tahun / Catatan Tambahan',sendRequest:'Ã°ÂÂÂ¨ Kirim Request',
-    totalCompleted:'Total Selesai',levelsAttempted:'Level Dicoba',lastActivity:'Aktivitas Terakhir',clearHistory:'Ã°ÂÂÂ Hapus Riwayat',
+    requestDesc:'Pilih level dan jenis soal yang ingin kamu minta ke admin.',levelJLPT:'Level JLPT',questionType:'Jenis Soal',additionalNotes:'Tahun / Catatan Tambahan',sendRequest:'📨 Kirim Request',
+    totalCompleted:'Total Selesai',levelsAttempted:'Level Dicoba',lastActivity:'Aktivitas Terakhir',clearHistory:'🗑 Hapus Riwayat',
     notFound:'Ujian tidak ditemukan',notFoundSub:'Coba ubah filter pencarian atau kata kunci.',
-    showAll:'Ã¢ÂÂ¦ Tampilkan Semua',allLevels:'Semua Level',newest:'Terbaru',oldest:'Terlama',
+    showAll:'✦ Tampilkan Semua',allLevels:'Semua Level',newest:'Terbaru',oldest:'Terlama',
     notifCompletedTip:'Kamu sudah menyelesaikan ujian ini',
   },
   en: {
-    heroTitle:'Ã¦ÂÂ¥Ã¦ÂÂ¬Ã¨ÂªÂÃ¨ÂÂ½Ã¥ÂÂÃ£ÂÂÃ¦Â¨Â¡Ã¦ÂÂ¬Ã¨Â©Â¦Ã©Â¨ÂÃ£ÂÂÃ©ÂÂÃ¥ÂÂ»Ã¥ÂÂÃ©Â¡ÂÃ©ÂÂ',
+    heroTitle:'日本語能力　模擬試験　過去問題集',
     heroSubtitle:'A collection of modern JLPT practice exercises and simulations with a premium interface. Access Reading, Grammar, and Vocabulary questions by exam year.',
     notifications:'Notifications',markAllRead:'Mark all read',
     tabAll:'All',tabNewExam:'New Exam',tabUpdate:'Update',tabSystem:'System',
-    viewHistory:'Ã°ÂÂÂ View Exam History',
+    viewHistory:'📋 View Exam History',
     activeMember:'Active Member',requestExam:'Request JLPT Exam',examHistory:'Exam History',logout:'Logout',
     totalExams:'Total Exams',jlptLevel:'JLPT Level',updated:'Updated',levelAvailable:'Level Available',completed:'Completed',
     all:'All',examList:'Exam List',
     editName:'Edit Profile Name',displayName:'Display Name',saveChanges:'Save Changes',cancel:'Cancel',close:'Close',
     chooseAvatar:'Choose Avatar',pickEmoji:'Pick an emoji or upload a photo',uploadPhoto:'Upload photo (JPG/PNG, max 2MB)',apply:'Apply',
-    requestDesc:'Select the level and type of question you want to ask the admin.',levelJLPT:'Level JLPT',questionType:'Question Type',additionalNotes:'Year / Additional Notes',sendRequest:'Ã°ÂÂÂ¨ Send Request',
-    totalCompleted:'Total Completed',levelsAttempted:'Levels Attempted',lastActivity:'Last Activity',clearHistory:'Ã°ÂÂÂ Clear History',
+    requestDesc:'Select the level and type of question you want to ask the admin.',levelJLPT:'Level JLPT',questionType:'Question Type',additionalNotes:'Year / Additional Notes',sendRequest:'📨 Send Request',
+    totalCompleted:'Total Completed',levelsAttempted:'Levels Attempted',lastActivity:'Last Activity',clearHistory:'🗑 Clear History',
     notFound:'Exam not found',notFoundSub:'Try changing the search filters or keywords.',
-    showAll:'Ã¢ÂÂ¦ Show All',allLevels:'All Levels',newest:'Newest',oldest:'Oldest',
+    showAll:'✦ Show All',allLevels:'All Levels',newest:'Newest',oldest:'Oldest',
     notifCompletedTip:'You have completed this exam',
   },
   ja: {
-    heroTitle:'Ã¦ÂÂ¥Ã¦ÂÂ¬Ã¨ÂªÂÃ¨ÂÂ½Ã¥ÂÂÃ£ÂÂÃ¦Â¨Â¡Ã¦ÂÂ¬Ã¨Â©Â¦Ã©Â¨ÂÃ£ÂÂÃ©ÂÂÃ¥ÂÂ»Ã¥ÂÂÃ©Â¡ÂÃ©ÂÂ',
-    heroSubtitle:'Ã£ÂÂÃ£ÂÂ¬Ã£ÂÂÃ£ÂÂ¢Ã£ÂÂ Ã£ÂÂ¤Ã£ÂÂ³Ã£ÂÂ¿Ã£ÂÂ¼Ã£ÂÂÃ£ÂÂ§Ã£ÂÂ¼Ã£ÂÂ¹Ã£ÂÂÃ¥ÂÂÃ£ÂÂÃ£ÂÂÃ¦ÂÂÃ¦ÂÂ°Ã£ÂÂ®JLPTÃ§Â·Â´Ã§Â¿ÂÃ¥ÂÂÃ©Â¡ÂÃ£ÂÂ¨Ã¦Â¨Â¡Ã¦ÂÂ¬Ã¨Â©Â¦Ã©Â¨ÂÃ£ÂÂ®Ã£ÂÂ³Ã£ÂÂ¬Ã£ÂÂ¯Ã£ÂÂ·Ã£ÂÂ§Ã£ÂÂ³Ã£ÂÂÃ¨Â©Â¦Ã©Â¨ÂÃ¥Â¹Â´Ã¥ÂºÂ¦Ã¥ÂÂ¥Ã£ÂÂ«Ã¨ÂªÂ­Ã¨Â§Â£Ã£ÂÂ»Ã¦ÂÂÃ¦Â³ÂÃ£ÂÂ»Ã¨ÂªÂÃ¥Â½ÂÃ£ÂÂ®Ã¥ÂÂÃ©Â¡ÂÃ£ÂÂ«Ã£ÂÂ¢Ã£ÂÂ¯Ã£ÂÂ»Ã£ÂÂ¹Ã£ÂÂ§Ã£ÂÂÃ£ÂÂ¾Ã£ÂÂÃ£ÂÂ',
-    notifications:'Ã©ÂÂÃ§ÂÂ¥',markAllRead:'Ã£ÂÂÃ£ÂÂ¹Ã£ÂÂ¦Ã¦ÂÂ¢Ã¨ÂªÂ­Ã£ÂÂ«Ã£ÂÂÃ£ÂÂ',
-    tabAll:'Ã£ÂÂÃ£ÂÂ¹Ã£ÂÂ¦',tabNewExam:'Ã¦ÂÂ°Ã£ÂÂÃ£ÂÂÃ¨Â©Â¦Ã©Â¨Â',tabUpdate:'Ã¦ÂÂ´Ã¦ÂÂ°',tabSystem:'Ã£ÂÂ·Ã£ÂÂ¹Ã£ÂÂÃ£ÂÂ ',
-    viewHistory:'Ã°ÂÂÂ Ã¥ÂÂÃ©Â¨ÂÃ¥Â±Â¥Ã¦Â­Â´Ã£ÂÂÃ¨Â¦ÂÃ£ÂÂ',
-    activeMember:'Ã£ÂÂ¢Ã£ÂÂ¯Ã£ÂÂÃ£ÂÂ£Ã£ÂÂÃ£ÂÂ¡Ã£ÂÂ³Ã£ÂÂÃ£ÂÂ¼',requestExam:'JLPTÃ¥ÂÂÃ©Â¡ÂÃ£ÂÂÃ£ÂÂªÃ£ÂÂ¯Ã£ÂÂ¨Ã£ÂÂ¹Ã£ÂÂ',examHistory:'Ã¥ÂÂÃ©Â¨ÂÃ¥Â±Â¥Ã¦Â­Â´',logout:'Ã£ÂÂ­Ã£ÂÂ°Ã£ÂÂ¢Ã£ÂÂ¦Ã£ÂÂ',
-    totalExams:'Ã¨Â©Â¦Ã©Â¨ÂÃ§Â·ÂÃ¦ÂÂ°',jlptLevel:'JLPTÃ£ÂÂ¬Ã£ÂÂÃ£ÂÂ«',updated:'Ã¦ÂÂ´Ã¦ÂÂ°',levelAvailable:'Ã¥ÂÂ©Ã§ÂÂ¨Ã¥ÂÂ¯Ã¨ÂÂ½Ã£ÂÂ¬Ã£ÂÂÃ£ÂÂ«',completed:'Ã¥Â®ÂÃ¤ÂºÂ',
-    all:'Ã£ÂÂÃ£ÂÂ¹Ã£ÂÂ¦',examList:'Ã¨Â©Â¦Ã©Â¨ÂÃ¤Â¸ÂÃ¨Â¦Â§',
-    editName:'Ã£ÂÂÃ£ÂÂ­Ã£ÂÂÃ£ÂÂ£Ã£ÂÂ¼Ã£ÂÂ«Ã¥ÂÂÃ£ÂÂÃ§Â·Â¨Ã©ÂÂ',displayName:'Ã¨Â¡Â¨Ã§Â¤ÂºÃ¥ÂÂ',saveChanges:'Ã¥Â¤ÂÃ¦ÂÂ´Ã£ÂÂÃ¤Â¿ÂÃ¥Â­Â',cancel:'Ã£ÂÂ­Ã£ÂÂ£Ã£ÂÂ³Ã£ÂÂ»Ã£ÂÂ«',close:'Ã©ÂÂÃ£ÂÂÃ£ÂÂ',
-    chooseAvatar:'Ã£ÂÂ¢Ã£ÂÂÃ£ÂÂ¿Ã£ÂÂ¼Ã£ÂÂÃ©ÂÂ¸Ã¦ÂÂ',pickEmoji:'Ã§ÂµÂµÃ¦ÂÂÃ¥Â­ÂÃ£ÂÂÃ©ÂÂ¸Ã¦ÂÂÃ£ÂÂÃ£ÂÂÃ£ÂÂÃ¥ÂÂÃ§ÂÂÃ£ÂÂÃ£ÂÂ¢Ã£ÂÂÃ£ÂÂÃ£ÂÂ­Ã£ÂÂ¼Ã£ÂÂ',uploadPhoto:'Ã¥ÂÂÃ§ÂÂÃ£ÂÂÃ£ÂÂ¢Ã£ÂÂÃ£ÂÂÃ£ÂÂ­Ã£ÂÂ¼Ã£ÂÂ (JPG/PNGÃ£ÂÂÃ¦ÂÂÃ¥Â¤Â§2MB)',apply:'Ã©ÂÂ©Ã§ÂÂ¨',
-    requestDesc:'Ã§Â®Â¡Ã§ÂÂÃ¨ÂÂÃ£ÂÂ«Ã¤Â¾ÂÃ©Â Â¼Ã£ÂÂÃ£ÂÂÃ£ÂÂÃ£ÂÂ¬Ã£ÂÂÃ£ÂÂ«Ã£ÂÂ¨Ã¥ÂÂÃ©Â¡ÂÃ£ÂÂ®Ã§Â¨Â®Ã©Â¡ÂÃ£ÂÂÃ©ÂÂ¸Ã¦ÂÂÃ£ÂÂÃ£ÂÂ¦Ã£ÂÂÃ£ÂÂ Ã£ÂÂÃ£ÂÂÃ£ÂÂ',levelJLPT:'JLPTÃ£ÂÂ¬Ã£ÂÂÃ£ÂÂ«',questionType:'Ã¥ÂÂÃ©Â¡ÂÃ£ÂÂ®Ã§Â¨Â®Ã©Â¡Â',additionalNotes:'Ã¥Â¹Â´Ã¥ÂºÂ¦Ã£ÂÂ»Ã£ÂÂÃ£ÂÂ®Ã¤Â»ÂÃ£ÂÂ®Ã£ÂÂ¡Ã£ÂÂ¢',sendRequest:'Ã°ÂÂÂ¨ Ã£ÂÂªÃ£ÂÂ¯Ã£ÂÂ¨Ã£ÂÂ¹Ã£ÂÂÃ£ÂÂÃ©ÂÂÃ¤Â¿Â¡',
-    totalCompleted:'Ã¥ÂÂÃ¨Â¨ÂÃ¥Â®ÂÃ¤ÂºÂÃ¦ÂÂ°',levelsAttempted:'Ã¥ÂÂÃ©Â¨ÂÃ£ÂÂ¬Ã£ÂÂÃ£ÂÂ«',lastActivity:'Ã¦ÂÂÃ§ÂµÂÃ¦Â´Â»Ã¥ÂÂ',clearHistory:'Ã°ÂÂÂ Ã¥Â±Â¥Ã¦Â­Â´Ã£ÂÂÃ¦Â¶ÂÃ¥ÂÂ»',
-    notFound:'Ã¨Â©Â¦Ã©Â¨ÂÃ£ÂÂÃ¨Â¦ÂÃ£ÂÂ¤Ã£ÂÂÃ£ÂÂÃ£ÂÂ¾Ã£ÂÂÃ£ÂÂ',notFoundSub:'Ã¦Â¤ÂÃ§Â´Â¢Ã£ÂÂÃ£ÂÂ£Ã£ÂÂ«Ã£ÂÂ¿Ã£ÂÂ¼Ã£ÂÂÃ£ÂÂ­Ã£ÂÂ¼Ã£ÂÂ¯Ã£ÂÂ¼Ã£ÂÂÃ£ÂÂÃ¥Â¤ÂÃ¦ÂÂ´Ã£ÂÂÃ£ÂÂ¦Ã£ÂÂ¿Ã£ÂÂ¦Ã£ÂÂÃ£ÂÂ Ã£ÂÂÃ£ÂÂÃ£ÂÂ',
-    showAll:'Ã¢ÂÂ¦ Ã£ÂÂÃ£ÂÂ¹Ã£ÂÂ¦Ã¨Â¡Â¨Ã§Â¤Âº',allLevels:'Ã¥ÂÂ¨Ã£ÂÂ¬Ã£ÂÂÃ£ÂÂ«',newest:'Ã¦ÂÂ°Ã£ÂÂÃ£ÂÂÃ©Â Â',oldest:'Ã¥ÂÂ¤Ã£ÂÂÃ©Â Â',
-    notifCompletedTip:'Ã£ÂÂÃ£ÂÂ®Ã¨Â©Â¦Ã©Â¨ÂÃ£ÂÂÃ¥Â®ÂÃ¤ÂºÂÃ£ÂÂÃ£ÂÂ¾Ã£ÂÂÃ£ÂÂ',
+    heroTitle:'日本語能力　模擬試験　過去問題集',
+    heroSubtitle:'プレミアムインターフェースを備えた最新のJLPT練習問題と模擬試験のコレクション。試験年度別に読解・文法・語彙の問題にアクセスできます。',
+    notifications:'通知',markAllRead:'すべて既読にする',
+    tabAll:'すべて',tabNewExam:'新しい試験',tabUpdate:'更新',tabSystem:'システム',
+    viewHistory:'📋 受験履歴を見る',
+    activeMember:'アクティブメンバー',requestExam:'JLPT問題をリクエスト',examHistory:'受験履歴',logout:'ログアウト',
+    totalExams:'試験総数',jlptLevel:'JLPTレベル',updated:'更新',levelAvailable:'利用可能レベル',completed:'完了',
+    all:'すべて',examList:'試験一覧',
+    editName:'プロフィール名を編集',displayName:'表示名',saveChanges:'変更を保存',cancel:'キャンセル',close:'閉じる',
+    chooseAvatar:'アバターを選択',pickEmoji:'絵文字を選択するか写真をアップロード',uploadPhoto:'写真をアップロード (JPG/PNG、最大2MB)',apply:'適用',
+    requestDesc:'管理者に依頼したいレベルと問題の種類を選択してください。',levelJLPT:'JLPTレベル',questionType:'問題の種類',additionalNotes:'年度・その他のメモ',sendRequest:'📨 リクエストを送信',
+    totalCompleted:'合計完了数',levelsAttempted:'受験レベル',lastActivity:'最終活動',clearHistory:'🗑 履歴を消去',
+    notFound:'試験が見つかりません',notFoundSub:'検索フィルターやキーワードを変更してみてください。',
+    showAll:'✦ すべて表示',allLevels:'全レベル',newest:'新しい順',oldest:'古い順',
+    notifCompletedTip:'この試験を完了しました',
   }
 };
 
@@ -760,7 +1014,7 @@ function applyLang(){
   // update visibleCount text
   updateVisibleCount();
   // update lang btn display
-  const langs = {id:{flag:'Ã°ÂÂÂ®Ã°ÂÂÂ©',code:'ID'},en:{flag:'Ã°ÂÂÂ¬Ã°ÂÂÂ§',code:'EN'},ja:{flag:'Ã°ÂÂÂ¯Ã°ÂÂÂµ',code:'JA'}};
+  const langs = {id:{flag:'🇮🇩',code:'ID'},en:{flag:'🇬🇧',code:'EN'},ja:{flag:'🇯🇵',code:'JA'}};
   const l = langs[currentLang];
   if(l){
     document.getElementById('currentFlag').textContent = l.flag;
@@ -779,7 +1033,7 @@ function setLang(el){
   applyLang();
   renderNotifList();
   renderHistoryList();
-  showToast({ id:'Ã°ÂÂÂ®Ã°ÂÂÂ© Bahasa Indonesia', en:'Ã°ÂÂÂ¬Ã°ÂÂÂ§ English selected', ja:'Ã°ÂÂÂ¯Ã°ÂÂÂµ Ã¦ÂÂ¥Ã¦ÂÂ¬Ã¨ÂªÂÃ£ÂÂ«Ã¥ÂÂÃ£ÂÂÃ¦ÂÂ¿Ã£ÂÂÃ£ÂÂ¾Ã£ÂÂÃ£ÂÂ' }[currentLang]);
+  showToast({ id:'🇮🇩 Bahasa Indonesia', en:'🇬🇧 English selected', ja:'🇯🇵 日本語に切り替えました' }[currentLang]);
 }
 
 function toggleLangMenu(){
@@ -797,29 +1051,29 @@ document.addEventListener('click', e=>{
 // NOTIFICATION DATA
 // =============================================
 const NOTIF_DATA = [
-  { id:'n1', type:'new_exam', icon:'Ã°ÂÂÂ', unread:true,
-    title:{ id:'Soal Baru: JLPT N1 Desember 2025', en:'New Exam: JLPT N1 December 2025', ja:'Ã¦ÂÂ°Ã£ÂÂÃ£ÂÂÃ¨Â©Â¦Ã©Â¨ÂÃ¯Â¼ÂJLPT N1 2025Ã¥Â¹Â´12Ã¦ÂÂ' },
-    desc:{ id:'Soal simulasi terbaru N1 sudah tersedia!', en:'Latest N1 simulation exam is now available!', ja:'Ã¦ÂÂÃ¦ÂÂ°Ã£ÂÂ®N1Ã¦Â¨Â¡Ã¦ÂÂ¬Ã¨Â©Â¦Ã©Â¨ÂÃ£ÂÂÃ¥ÂÂ©Ã§ÂÂ¨Ã¥ÂÂ¯Ã¨ÂÂ½Ã£ÂÂ«Ã£ÂÂªÃ£ÂÂÃ£ÂÂ¾Ã£ÂÂÃ£ÂÂÃ¯Â¼Â' },
+  { id:'n1', type:'new_exam', icon:'📝', unread:true,
+    title:{ id:'Soal Baru: JLPT N1 Desember 2025', en:'New Exam: JLPT N1 December 2025', ja:'新しい試験：JLPT N1 2025年12月' },
+    desc:{ id:'Soal simulasi terbaru N1 sudah tersedia!', en:'Latest N1 simulation exam is now available!', ja:'最新のN1模擬試験が利用可能になりました！' },
     time:'2 jam lalu' },
-  { id:'n2', type:'new_exam', icon:'Ã°ÂÂÂ', unread:true,
-    title:{ id:'Soal Baru: JLPT N2 Desember 2025', en:'New Exam: JLPT N2 December 2025', ja:'Ã¦ÂÂ°Ã£ÂÂÃ£ÂÂÃ¨Â©Â¦Ã©Â¨ÂÃ¯Â¼ÂJLPT N2 2025Ã¥Â¹Â´12Ã¦ÂÂ' },
-    desc:{ id:'Soal simulasi terbaru N2 sudah tersedia!', en:'Latest N2 simulation exam is now available!', ja:'Ã¦ÂÂÃ¦ÂÂ°Ã£ÂÂ®N2Ã¦Â¨Â¡Ã¦ÂÂ¬Ã¨Â©Â¦Ã©Â¨ÂÃ£ÂÂÃ¥ÂÂ©Ã§ÂÂ¨Ã¥ÂÂ¯Ã¨ÂÂ½Ã£ÂÂ«Ã£ÂÂªÃ£ÂÂÃ£ÂÂ¾Ã£ÂÂÃ£ÂÂÃ¯Â¼Â' },
+  { id:'n2', type:'new_exam', icon:'📝', unread:true,
+    title:{ id:'Soal Baru: JLPT N2 Desember 2025', en:'New Exam: JLPT N2 December 2025', ja:'新しい試験：JLPT N2 2025年12月' },
+    desc:{ id:'Soal simulasi terbaru N2 sudah tersedia!', en:'Latest N2 simulation exam is now available!', ja:'最新のN2模擬試験が利用可能になりました！' },
     time:'2 jam lalu' },
-  { id:'n3', type:'new_exam', icon:'Ã°ÂÂÂ', unread:true,
-    title:{ id:'Soal Baru: JLPT N3 Desember 2025', en:'New Exam: JLPT N3 December 2025', ja:'Ã¦ÂÂ°Ã£ÂÂÃ£ÂÂÃ¨Â©Â¦Ã©Â¨ÂÃ¯Â¼ÂJLPT N3 2025Ã¥Â¹Â´12Ã¦ÂÂ' },
-    desc:{ id:'Soal simulasi terbaru N3 sudah tersedia!', en:'Latest N3 simulation exam is now available!', ja:'Ã¦ÂÂÃ¦ÂÂ°Ã£ÂÂ®N3Ã¦Â¨Â¡Ã¦ÂÂ¬Ã¨Â©Â¦Ã©Â¨ÂÃ£ÂÂÃ¥ÂÂ©Ã§ÂÂ¨Ã¥ÂÂ¯Ã¨ÂÂ½Ã£ÂÂ«Ã£ÂÂªÃ£ÂÂÃ£ÂÂ¾Ã£ÂÂÃ£ÂÂÃ¯Â¼Â' },
+  { id:'n3', type:'new_exam', icon:'📝', unread:true,
+    title:{ id:'Soal Baru: JLPT N3 Desember 2025', en:'New Exam: JLPT N3 December 2025', ja:'新しい試験：JLPT N3 2025年12月' },
+    desc:{ id:'Soal simulasi terbaru N3 sudah tersedia!', en:'Latest N3 simulation exam is now available!', ja:'最新のN3模擬試験が利用可能になりました！' },
     time:'2 jam lalu' },
-  { id:'u1', type:'update', icon:'Ã°ÂÂÂ', unread:true,
-    title:{ id:'Pembaruan Sistem', en:'System Update', ja:'Ã£ÂÂ·Ã£ÂÂ¹Ã£ÂÂÃ£ÂÂ Ã£ÂÂ¢Ã£ÂÂÃ£ÂÂÃ£ÂÂÃ£ÂÂ¼Ã£ÂÂ' },
-    desc:{ id:'Tampilan kartu ujian diperbarui dengan indikator "Selesai".', en:'Exam cards updated with "Completed" indicator.', ja:'Ã¨Â©Â¦Ã©Â¨ÂÃ£ÂÂ«Ã£ÂÂ¼Ã£ÂÂÃ£ÂÂÃ£ÂÂÃ¥Â®ÂÃ¤ÂºÂÃ£ÂÂÃ£ÂÂ¤Ã£ÂÂ³Ã£ÂÂ¸Ã£ÂÂ±Ã£ÂÂ¼Ã£ÂÂ¿Ã£ÂÂ¼Ã¤Â»ÂÃ£ÂÂÃ£ÂÂ«Ã¦ÂÂ´Ã¦ÂÂ°Ã£ÂÂÃ£ÂÂÃ£ÂÂ¾Ã£ÂÂÃ£ÂÂÃ£ÂÂ' },
+  { id:'u1', type:'update', icon:'🔄', unread:true,
+    title:{ id:'Pembaruan Sistem', en:'System Update', ja:'システムアップデート' },
+    desc:{ id:'Tampilan kartu ujian diperbarui dengan indikator "Selesai".', en:'Exam cards updated with "Completed" indicator.', ja:'試験カードが「完了」インジケーター付きに更新されました。' },
     time:'1 hari lalu' },
-  { id:'u2', type:'update', icon:'Ã°ÂÂÂ', unread:false,
-    title:{ id:'Multi-Bahasa Tersedia', en:'Multi-Language Now Available', ja:'Ã¥Â¤ÂÃ¨Â¨ÂÃ¨ÂªÂÃ¥Â¯Â¾Ã¥Â¿ÂÃ©ÂÂÃ¥Â§Â' },
-    desc:{ id:'Sekarang bisa pilih antara Bahasa Indonesia, English, dan Ã¦ÂÂ¥Ã¦ÂÂ¬Ã¨ÂªÂ!', en:'You can now switch between Indonesian, English, and Japanese!', ja:'Ã£ÂÂ¤Ã£ÂÂ³Ã£ÂÂÃ£ÂÂÃ£ÂÂ·Ã£ÂÂ¢Ã¨ÂªÂÃ£ÂÂ»Ã¨ÂÂ±Ã¨ÂªÂÃ£ÂÂ»Ã¦ÂÂ¥Ã¦ÂÂ¬Ã¨ÂªÂÃ£ÂÂ«Ã¥ÂÂÃ£ÂÂÃ¦ÂÂ¿Ã£ÂÂÃ£ÂÂÃ£ÂÂÃ£ÂÂÃ£ÂÂÃ£ÂÂÃ£ÂÂ«Ã£ÂÂªÃ£ÂÂÃ£ÂÂ¾Ã£ÂÂÃ£ÂÂÃ¯Â¼Â' },
+  { id:'u2', type:'update', icon:'🌐', unread:false,
+    title:{ id:'Multi-Bahasa Tersedia', en:'Multi-Language Now Available', ja:'多言語対応開始' },
+    desc:{ id:'Sekarang bisa pilih antara Bahasa Indonesia, English, dan 日本語!', en:'You can now switch between Indonesian, English, and Japanese!', ja:'インドネシア語・英語・日本語に切り替えられるようになりました！' },
     time:'1 hari lalu' },
-  { id:'s1', type:'system', icon:'Ã°ÂÂÂ', unread:false,
-    title:{ id:'Login Berhasil', en:'Login Successful', ja:'Ã£ÂÂ­Ã£ÂÂ°Ã£ÂÂ¤Ã£ÂÂ³Ã¦ÂÂÃ¥ÂÂ' },
-    desc:{ id:'Selamat datang kembali! Sesi kamu aktif dan aman.', en:'Welcome back! Your session is active and secure.', ja:'Ã£ÂÂÃ£ÂÂÃ£ÂÂÃ£ÂÂÃ£ÂÂªÃ£ÂÂÃ£ÂÂÃ¯Â¼ÂÃ£ÂÂ»Ã£ÂÂÃ£ÂÂ·Ã£ÂÂ§Ã£ÂÂ³Ã£ÂÂÃ¦ÂÂÃ¥ÂÂ¹Ã£ÂÂ§Ã£ÂÂÃ£ÂÂ' },
+  { id:'s1', type:'system', icon:'🔐', unread:false,
+    title:{ id:'Login Berhasil', en:'Login Successful', ja:'ログイン成功' },
+    desc:{ id:'Selamat datang kembali! Sesi kamu aktif dan aman.', en:'Welcome back! Your session is active and secure.', ja:'おかえりなさい！セッションが有効です。' },
     time:'Baru saja' },
 ];
 
@@ -844,7 +1098,7 @@ function renderNotifList(){
   const filtered = notifTabActive === 'all' ? NOTIF_DATA : NOTIF_DATA.filter(n => n.type === notifTabActive);
 
   if(!filtered.length){
-    list.innerHTML = `<div class="notif-empty"><div class="notif-empty-icon">Ã°ÂÂÂ</div><p style="font-size:14px;">${t('notifications')} Ã¢ÂÂ</p></div>`;
+    list.innerHTML = `<div class="notif-empty"><div class="notif-empty-icon">🔔</div><p style="font-size:14px;">${t('notifications')} —</p></div>`;
     return;
   }
   list.innerHTML = filtered.map(n => {
@@ -872,7 +1126,7 @@ function markAllRead(){
   localStorage.setItem('jlpt_notif_read', JSON.stringify([...notifReadSet]));
   updateNotifBadge();
   renderNotifList();
-  showToast('Ã¢ÂÂ ' + t('markAllRead'));
+  showToast('✅ ' + t('markAllRead'));
 }
 
 function switchNotifTab(el){
@@ -899,7 +1153,7 @@ document.addEventListener('click', e=>{
 // =============================================
 // EXAM HISTORY SYSTEM
 // =============================================
-// Storage key per user Ã¢ÂÂ will be set after auth
+// Storage key per user — will be set after auth
 let HISTORY_KEY = 'jlpt_history_global';
 
 function loadHistory(){
@@ -947,7 +1201,7 @@ document.addEventListener('visibilitychange', ()=>{
 
 function completeExam(examKey, examName, level, year, score){
   const history = loadHistory();
-  // Prevent duplicate Ã¢ÂÂ update if exists, add if not
+  // Prevent duplicate — update if exists, add if not
   const existing = history.findIndex(h => h.key === examKey);
   const entry = {
     key: examKey,
@@ -983,13 +1237,13 @@ function updateCompletedStat(){
   document.getElementById('hsTotalDone').textContent = history.length;
   // Levels attempted
   const levels = [...new Set(history.map(h => h.level))].sort();
-  document.getElementById('hsLevels').textContent = levels.length ? levels.join(', ') : 'Ã¢ÂÂ';
+  document.getElementById('hsLevels').textContent = levels.length ? levels.join(', ') : '—';
   // Last activity
   if(history.length){
     const d = new Date(history[0].completedAt);
     document.getElementById('hsLastDate').textContent = d.toLocaleDateString(currentLang==='ja'?'ja-JP':currentLang==='id'?'id-ID':'en-GB',{day:'2-digit',month:'short'});
   } else {
-    document.getElementById('hsLastDate').textContent = 'Ã¢ÂÂ';
+    document.getElementById('hsLastDate').textContent = '—';
   }
 }
 
@@ -999,7 +1253,7 @@ function renderHistoryList(){
   updateCompletedStat();
   if(!history.length){
     list.innerHTML = `<div class="history-empty">
-      <div class="history-empty-icon">Ã°ÂÂÂ­</div>
+      <div class="history-empty-icon">📭</div>
       <p style="font-size:15px;font-weight:700;margin-bottom:6px;">${t('examHistory')}</p>
       <p style="font-size:13px;">${t('notFoundSub')}</p>
     </div>`;
@@ -1011,14 +1265,14 @@ function renderHistoryList(){
     const timeStr = d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
     const scoreHtml = h.score != null
       ? `<div class="hi-score-num ${h.score>=60?'pass':'fail'}">${h.score}</div><div class="hi-score-label">pts</div>`
-      : `<div class="hi-score-num na">Ã¢ÂÂ</div><div class="hi-score-label">${t('completed')}</div>`;
+      : `<div class="hi-score-num na">—</div><div class="hi-score-label">${t('completed')}</div>`;
     const timesLabel = h.count > 1
-      ? `<span style="margin-left:6px;font-size:11px;color:#5aa9ff;">ÃÂ${h.count}</span>` : '';
+      ? `<span style="margin-left:6px;font-size:11px;color:#5aa9ff;">×${h.count}</span>` : '';
     return `<div class="history-item">
       <div class="hi-level" data-lv="${h.level}">${h.level}</div>
       <div class="hi-info">
         <div class="hi-name">${h.name}${timesLabel}</div>
-        <div class="hi-meta">${dateStr} ÃÂ· ${timeStr}</div>
+        <div class="hi-meta">${dateStr} · ${timeStr}</div>
       </div>
       <div class="hi-score">${scoreHtml}</div>
     </div>`;
@@ -1031,19 +1285,19 @@ function openHistoryModal(){
 }
 
 function confirmClearHistory(){
-  if(confirm(currentLang==='id'?'Hapus semua riwayat ujian?':currentLang==='ja'?'Ã¥ÂÂ¨Ã£ÂÂ¦Ã£ÂÂ®Ã¥ÂÂÃ©Â¨ÂÃ¥Â±Â¥Ã¦Â­Â´Ã£ÂÂÃ¥ÂÂÃ©ÂÂ¤Ã£ÂÂÃ£ÂÂ¾Ã£ÂÂÃ£ÂÂÃ¯Â¼Â':'Clear all exam history?')){
+  if(confirm(currentLang==='id'?'Hapus semua riwayat ujian?':currentLang==='ja'?'全ての受験履歴を削除しますか？':'Clear all exam history?')){
     saveHistory([]);
     updateCompletedBadges();
     updateCompletedStat();
     renderHistoryList();
-    showToast('Ã°ÂÂÂ ' + t('clearHistory'));
+    showToast('🗑 ' + t('clearHistory'));
   }
 }
 
 // =============================================
 // PROFILE INIT
 // =============================================
-const AVATAR_EMOJIS = ['Ã°ÂÂ¦Â','Ã°ÂÂÂ±','Ã°ÂÂÂ¼','Ã°ÂÂÂ¸','Ã°ÂÂ¦Â','Ã°ÂÂÂ¯','Ã°ÂÂÂº','Ã°ÂÂ¦Â','Ã°ÂÂÂ»','Ã°ÂÂÂ®','Ã°ÂÂ¦Â','Ã°ÂÂÂ¸','Ã°ÂÂÂ­','Ã¢ÂÂ©Ã¯Â¸Â','Ã°ÂÂÂ','Ã°ÂÂÂ','Ã¢Â­Â','Ã°ÂÂÂ¥','Ã°ÂÂÂ','Ã°ÂÂÂ'];
+const AVATAR_EMOJIS = ['🦊','🐱','🐼','🐸','🦁','🐯','🐺','🦄','🐻','🐮','🦋','🌸','🎭','⛩️','🎋','🌙','⭐','🔥','💎','🎌'];
 let selectedAvatarEmoji = null;
 let selectedAvatarDataUrl = null;
 
@@ -1139,18 +1393,18 @@ function openEditNameModal(){
 }
 async function saveDisplayName(){
   const newName = document.getElementById('editNameInput').value.trim();
-  if(!newName){ showToast('Ã¢ÂÂ Ã¯Â¸Â Name cannot be empty'); return; }
+  if(!newName){ showToast('⚠️ Name cannot be empty'); return; }
   let _ctx;
-  try { _ctx = await getSupabase(); } catch(e){ showToast('Ã¢ÂÂ Not authenticated'); return; }
+  try { _ctx = await getSupabase(); } catch(e){ showToast('❌ Not authenticated'); return; }
   const { sb, session } = _ctx;
   const { error } = await sb.from('users').update({ display_name: newName }).eq('id', session.user.id);
-  if(error){ showToast('Ã¢ÂÂ ' + error.message); return; }
+  if(error){ showToast('❌ ' + error.message); return; }
   document.getElementById('profileNameEl').textContent = newName;
   const ai = document.getElementById('avatarInitial');
   if(ai) ai.textContent = newName.charAt(0).toUpperCase();
   window._userDb.display_name = newName;
   closeModal('editNameModal');
-  showToast('Ã¢ÂÂ ' + t('saveChanges'));
+  showToast('✅ ' + t('saveChanges'));
 }
 
 // =============================================
@@ -1160,12 +1414,12 @@ function openAvatarModal(){ openModal('avatarModal'); }
 function handleAvatarUpload(e){
   const file = e.target.files[0];
   if(!file) return;
-  if(file.size > 2*1024*1024){ showToast('Ã¢ÂÂ Ã¯Â¸Â Max file size 2MB'); return; }
+  if(file.size > 2*1024*1024){ showToast('⚠️ Max file size 2MB'); return; }
   const reader = new FileReader();
   reader.onload = ev => {
     selectedAvatarDataUrl = ev.target.result; selectedAvatarEmoji = null;
     document.querySelectorAll('.av-opt').forEach(x => x.classList.remove('selected'));
-    showToast('Ã°ÂÂÂ¸ Photo loaded Ã¢ÂÂ click ' + t('apply'));
+    showToast('📸 Photo loaded — click ' + t('apply'));
   };
   reader.readAsDataURL(file);
 }
@@ -1173,17 +1427,17 @@ async function saveAvatar(){
   let avatarVal = null;
   if(selectedAvatarDataUrl) avatarVal = selectedAvatarDataUrl;
   else if(selectedAvatarEmoji) avatarVal = selectedAvatarEmoji;
-  else { showToast('Ã¢ÂÂ Ã¯Â¸Â Pick an avatar first'); return; }
+  else { showToast('⚠️ Pick an avatar first'); return; }
   let _ctx;
-  try { _ctx = await getSupabase(); } catch(e){ showToast('Ã¢ÂÂ Not authenticated'); return; }
+  try { _ctx = await getSupabase(); } catch(e){ showToast('❌ Not authenticated'); return; }
   const { sb, session } = _ctx;
   const { error } = await sb.from('users').update({ avatar_url: avatarVal }).eq('id', session.user.id);
-  if(error){ showToast('Ã¢ÂÂ ' + error.message); return; }
+  if(error){ showToast('❌ ' + error.message); return; }
   const avatarEl = document.getElementById('avatarEl');
   if(selectedAvatarDataUrl) avatarEl.innerHTML = `<img src="${avatarVal}" alt="avatar">`;
   else avatarEl.innerHTML = `<span style="font-size:32px">${avatarVal}</span>`;
   window._userDb.avatar_url = avatarVal;
-  closeModal('avatarModal'); showToast('Ã¢ÂÂ Avatar updated');
+  closeModal('avatarModal'); showToast('✅ Avatar updated');
 }
 
 // =============================================
@@ -1196,15 +1450,15 @@ async function submitRequest(){
   const level = document.querySelector('.req-lv.sel')?.dataset.l;
   const types = [...document.querySelectorAll('.req-type.sel')].map(x=>x.textContent).join(', ');
   const note  = document.getElementById('reqNote').value.trim();
-  if(!level){ showToast('Ã¢ÂÂ Ã¯Â¸Â Select the level first'); return; }
+  if(!level){ showToast('⚠️ Select the level first'); return; }
   let _ctx2;
-  try { _ctx2 = await getSupabase(); } catch(e){ showToast('Ã¢ÂÂ Not authenticated'); return; }
+  try { _ctx2 = await getSupabase(); } catch(e){ showToast('❌ Not authenticated'); return; }
   const { session } = _ctx2;
   const usr = window._userDb;
   const name = usr.display_name || usr.full_name || session.user.email;
 
   const sendBtn = document.querySelector('#requestModal .modal-save');
-  if(sendBtn){ sendBtn.disabled=true; sendBtn.textContent='Ã¢ÂÂ³ Sending...'; }
+  if(sendBtn){ sendBtn.disabled=true; sendBtn.textContent='⏳ Sending...'; }
 
   try {
     const res = await fetch('https://jlpt-auth-bot-production.up.railway.app/request', {
@@ -1213,16 +1467,16 @@ async function submitRequest(){
     });
     const data = await res.json();
     closeModal('requestModal');
-    showToast('Ã°ÂÂÂ¨ Request terkirim! Admin akan segera merespons.');
+    showToast('📨 Request terkirim! Admin akan segera merespons.');
     document.querySelectorAll('.req-lv,.req-type').forEach(x=>x.classList.remove('sel'));
     document.getElementById('reqNote').value='';
     if(data.requestId){
       addRequestNotif({ id:'req_'+data.requestId, requestId:data.requestId, status:'pending', level, types:types||'All', time:new Date() });
     }
   }catch(e){
-    showToast('Ã¢ÂÂ Failed to send request');
+    showToast('❌ Failed to send request');
   } finally {
-    if(sendBtn){ sendBtn.disabled=false; sendBtn.textContent='Ã°ÂÂÂ¨ ' + t('sendRequest'); }
+    if(sendBtn){ sendBtn.disabled=false; sendBtn.textContent='📨 ' + t('sendRequest'); }
   }
 }
 
@@ -1276,14 +1530,14 @@ async function initRealtimeNotifications(){
 }
 
 function buildNotifFromDb(n){
-  const statusIcon  = { pending:'Ã¢ÂÂ³', on_progress:'Ã°ÂÂÂ', done:'Ã¢ÂÂ', rejected:'Ã¢ÂÂ' };
+  const statusIcon  = { pending:'⏳', on_progress:'🔄', done:'✅', rejected:'❌' };
   const statusLabel = {
-    pending:     { id:'Menunggu',    en:'Pending',     ja:'Ã¤Â¿ÂÃ§ÂÂÃ¤Â¸Â­' },
-    on_progress: { id:'Diproses',    en:'On Progress', ja:'Ã¥ÂÂ¦Ã§ÂÂÃ¤Â¸Â­' },
-    done:        { id:'Selesai',     en:'Done',        ja:'Ã¥Â®ÂÃ¤ÂºÂ' },
-    rejected:    { id:'Ditolak',     en:'Rejected',    ja:'Ã¥ÂÂ´Ã¤Â¸Â' },
+    pending:     { id:'Menunggu',    en:'Pending',     ja:'保留中' },
+    on_progress: { id:'Diproses',    en:'On Progress', ja:'処理中' },
+    done:        { id:'Selesai',     en:'Done',        ja:'完了' },
+    rejected:    { id:'Ditolak',     en:'Rejected',    ja:'却下' },
   };
-  const icon = statusIcon[n.status] || 'Ã°ÂÂÂ©';
+  const icon = statusIcon[n.status] || '📩';
   const lbl  = statusLabel[n.status] || statusLabel['pending'];
   return {
     id: 'db_' + n.id,
@@ -1291,14 +1545,14 @@ function buildNotifFromDb(n){
     icon,
     unread: !n.is_read,
     title: {
-      id: `${icon} Request Soal Ã¢ÂÂ ${lbl['id']}`,
-      en: `${icon} Exam Request Ã¢ÂÂ ${lbl['en']}`,
-      ja: `${icon} Ã¨Â©Â¦Ã©Â¨ÂÃ£ÂÂªÃ£ÂÂ¯Ã£ÂÂ¨Ã£ÂÂ¹Ã£ÂÂ Ã¢ÂÂ ${lbl['ja']}`,
+      id: `${icon} Request Soal — ${lbl['id']}`,
+      en: `${icon} Exam Request — ${lbl['en']}`,
+      ja: `${icon} 試験リクエスト — ${lbl['ja']}`,
     },
     desc: {
       id: n.message || `Status request kamu: ${lbl['id']}`,
       en: n.message || `Your request status: ${lbl['en']}`,
-      ja: n.message || `Ã£ÂÂªÃ£ÂÂ¯Ã£ÂÂ¨Ã£ÂÂ¹Ã£ÂÂÃ£ÂÂ®Ã£ÂÂ¹Ã£ÂÂÃ£ÂÂ¼Ã£ÂÂ¿Ã£ÂÂ¹: ${lbl['ja']}`,
+      ja: n.message || `リクエストのステータス: ${lbl['ja']}`,
     },
     time: formatNotifTime(n.created_at),
     dbId: n.id,
@@ -1309,17 +1563,17 @@ function addRequestNotif({ id, status, level, types, time }){
   const notif = {
     id,
     type: 'request_status',
-    icon: 'Ã¢ÂÂ³',
+    icon: '⏳',
     unread: true,
     title: {
-      id: `Ã¢ÂÂ³ Request Soal JLPT ${level} Ã¢ÂÂ Menunggu`,
-      en: `Ã¢ÂÂ³ JLPT ${level} Exam Request Ã¢ÂÂ Pending`,
-      ja: `Ã¢ÂÂ³ JLPT ${level} Ã¨Â©Â¦Ã©Â¨ÂÃ£ÂÂªÃ£ÂÂ¯Ã£ÂÂ¨Ã£ÂÂ¹Ã£ÂÂ Ã¢ÂÂ Ã¤Â¿ÂÃ§ÂÂÃ¤Â¸Â­`,
+      id: `⏳ Request Soal JLPT ${level} — Menunggu`,
+      en: `⏳ JLPT ${level} Exam Request — Pending`,
+      ja: `⏳ JLPT ${level} 試験リクエスト — 保留中`,
     },
     desc: {
       id: `Request kamu (${types}) sedang menunggu respons admin.`,
       en: `Your request (${types}) is waiting for admin response.`,
-      ja: `Ã£ÂÂªÃ£ÂÂ¯Ã£ÂÂ¨Ã£ÂÂ¹Ã£ÂÂÃ¯Â¼Â${types}Ã¯Â¼ÂÃ£ÂÂ¯Ã§Â®Â¡Ã§ÂÂÃ¨ÂÂÃ£ÂÂ®Ã¨Â¿ÂÃ§Â­ÂÃ£ÂÂÃ¥Â¾ÂÃ£ÂÂ£Ã£ÂÂ¦Ã£ÂÂÃ£ÂÂ¾Ã£ÂÂÃ£ÂÂ`,
+      ja: `リクエスト（${types}）は管理者の返答を待っています。`,
     },
     time: formatNotifTime(time),
   };
@@ -1389,7 +1643,7 @@ function showAll(){
   document.querySelectorAll('.level-pill').forEach(p=>{ p.classList.toggle('active', p.dataset.level==='all'); });
   levelFilter.value='all';
   updateVisibleCount();
-  showToast('Ã¢ÂÂ¦ ' + t('showAll').replace('Ã¢ÂÂ¦ ',''));
+  showToast('✦ ' + t('showAll').replace('✦ ',''));
 }
 
 function pillFilter(el){
@@ -1398,7 +1652,7 @@ function pillFilter(el){
   const lv = el.dataset.level;
   levelFilter.value = lv;
   applyFilters();
-  showToast(lv==='all'?'Ã¢ÂÂ¦ ' + t('allLevels'):'Ã¢ÂÂ¦ Filter: ' + lv);
+  showToast(lv==='all'?'✦ ' + t('allLevels'):'✦ Filter: ' + lv);
 }
 levelFilter.addEventListener('change', ()=>{
   const lv=levelFilter.value;
@@ -1407,7 +1661,7 @@ levelFilter.addEventListener('change', ()=>{
 
 function updateVisibleCount(){
   const visible = [...cards].filter(c=>c.style.display!=='none').length;
-  const label = currentLang==='id'?'ujian':currentLang==='ja'?'Ã¨Â©Â¦Ã©Â¨Â':'exam'+(visible!==1?'s':'');
+  const label = currentLang==='id'?'ujian':currentLang==='ja'?'試験':'exam'+(visible!==1?'s':'');
   document.getElementById('visibleCount').textContent = visible + ' ' + label;
   document.getElementById('totalExam').textContent = visible;
   document.getElementById('emptyState').classList.toggle('show', visible===0);
@@ -1419,7 +1673,7 @@ function setView(mode){
   const lBtn = document.getElementById('listViewBtn');
   if(mode==='list'){ grid.classList.add('list-view'); gBtn.classList.remove('active'); lBtn.classList.add('active'); }
   else { grid.classList.remove('list-view'); gBtn.classList.add('active'); lBtn.classList.remove('active'); }
-  showToast(mode==='list'?'Ã¢ÂÂ° List View':'Ã¢ÂÂ Grid View');
+  showToast(mode==='list'?'☰ List View':'⊞ Grid View');
 }
 
 // =============================================
@@ -1463,17 +1717,17 @@ function showToast(msg){ const t=document.getElementById('toast'); t.textContent
 
 // Keyboard
 document.addEventListener('keydown',e=>{
-  if(e.key==='/'&&document.activeElement!==searchInput){ e.preventDefault(); searchInput.focus(); showToast('Ã°ÂÂÂ Search activated'); }
+  if(e.key==='/'&&document.activeElement!==searchInput){ e.preventDefault(); searchInput.focus(); showToast('🔍 Search activated'); }
   if(e.key==='Escape'){ searchInput.blur(); showAll(); closeNotifPanel(); }
 });
 
 // Animated placeholders
 function updatePlaceholders(){
   const placeholders = currentLang==='id'
-    ? ['Ã°ÂÂÂ  Cari "2024"...','Ã°ÂÂÂ  Cari "N2"...','Ã°ÂÂÂ  Cari "Desember"...','Ã°ÂÂÂ  Cari "Juli"...','Ã°ÂÂÂ  Cari "2025"...']
+    ? ['🔍  Cari "2024"...','🔍  Cari "N2"...','🔍  Cari "Desember"...','🔍  Cari "Juli"...','🔍  Cari "2025"...']
     : currentLang==='ja'
-    ? ['Ã°ÂÂÂ  Ã£ÂÂ2024Ã£ÂÂÃ£ÂÂ§Ã¦Â¤ÂÃ§Â´Â¢...','Ã°ÂÂÂ  Ã£ÂÂN2Ã£ÂÂÃ£ÂÂ§Ã¦Â¤ÂÃ§Â´Â¢...','Ã°ÂÂÂ  Ã£ÂÂ12Ã¦ÂÂÃ£ÂÂÃ£ÂÂ§Ã¦Â¤ÂÃ§Â´Â¢...','Ã°ÂÂÂ  Ã£ÂÂ7Ã¦ÂÂÃ£ÂÂÃ£ÂÂ§Ã¦Â¤ÂÃ§Â´Â¢...','Ã°ÂÂÂ  Ã£ÂÂ2025Ã£ÂÂÃ£ÂÂ§Ã¦Â¤ÂÃ§Â´Â¢...']
-    : ['Ã°ÂÂÂ  Search "2024"...','Ã°ÂÂÂ  Search "N2"...','Ã°ÂÂÂ  Search "December"...','Ã°ÂÂÂ  Search "July"...','Ã°ÂÂÂ  Search "2025"...'];
+    ? ['🔍  「2024」で検索...','🔍  「N2」で検索...','🔍  「12月」で検索...','🔍  「7月」で検索...','🔍  「2025」で検索...']
+    : ['🔍  Search "2024"...','🔍  Search "N2"...','🔍  Search "December"...','🔍  Search "July"...','🔍  Search "2025"...'];
   window._phList = placeholders;
 }
 updatePlaceholders();
