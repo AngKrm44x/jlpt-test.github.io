@@ -243,6 +243,12 @@ const BACKEND_URL   = 'https://jlpt-auth-bot-production.up.railway.app';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON);
 
+// =============================================
+// ADMIN EMAILS — ganti dengan email kamu
+// =============================================
+const SUPER_ADMIN_EMAIL = 'superadmin@example.com'; // ← ganti
+const ADMIN_EMAIL       = 'admin@example.com';       // ← ganti
+
 // ============================================================
 // CEK FLAG PENDING DARI REDIRECT SEBELUMNYA (sebelum async)
 // ============================================================
@@ -261,6 +267,11 @@ if (session && localStorage.getItem('jlpt_pending') !== '1') {
 // Listen OAuth callback
 supabase.auth.onAuthStateChange(async (event, session) => {
   if (event === 'SIGNED_IN' && session && localStorage.getItem('jlpt_pending') !== '1') {
+    // Cek langsung kalau admin, skip handleSession
+    if (session.user.email === SUPER_ADMIN_EMAIL || session.user.email === ADMIN_EMAIL) {
+      window.location.replace('./admin.html');
+      return;
+    }
     await handleSession(session);
   }
 });
@@ -329,7 +340,7 @@ async function handleSession(session) {
 
   // ✅ Active
   localStorage.removeItem('jlpt_pending');
-  showDashboard({ ...user, user_metadata: { full_name: usr.display_name || usr.full_name } });
+  showDashboard({ ...user, email: user.email, user_metadata: { full_name: usr.display_name || usr.full_name } });
 }
 
 // ============================================================
@@ -436,12 +447,6 @@ function showPendingImmediate() {
   document.querySelector('.divider').style.display = 'none';
   document.getElementById('pendingScreen').classList.add('show');
 }
-
-// =============================================
-// ADMIN EMAILS — ganti dengan email kamu
-// =============================================
-const SUPER_ADMIN_EMAIL = 'sidiqangga44@gmail.com'; // ← ganti
-const ADMIN_EMAIL       = 'admin@example.com';       // ← ganti
 
 function showDashboard(user) {
   document.getElementById('loginForm').classList.remove('active');
