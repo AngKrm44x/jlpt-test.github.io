@@ -849,21 +849,19 @@ select.form-input option{background:#0b1120;color:var(--text);}
             <input class="form-input" type="text" id="cfgBranch" placeholder="main">
           </div>
         </div>
-        <div class="form-row" style="margin-bottom:4px;">
-          <div class="form-group">
-            <label>Path index.html di repo</label>
-            <input class="form-input" type="text" id="cfgIndexPath" placeholder="index.html">
-          </div>
-          <div class="form-group">
-            <label>Path folder JLPT di repo</label>
-            <input class="form-input" type="text" id="cfgJlptFolder" placeholder="jlpt">
-            <span style="font-size:11px;color:var(--muted);margin-top:4px;">Folder yang berisi subfolder n1, n2, ... n5. Default: <code style="font-size:11px;">jlpt</code></span>
-          </div>
+        <div class="form-group" style="margin-bottom:16px;">
+          <label>Path index.html di repo</label>
+          <input class="form-input" type="text" id="cfgIndexPath" placeholder="index.html">
         </div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;">
+        <div class="form-group" style="margin-bottom:16px;">
+          <label>Path Folder JLPT di Repo</label>
+          <input class="form-input" type="text" id="cfgJlptFolder" placeholder="jlpt">
+          <span style="font-size:11px;color:var(--muted);margin-top:4px;display:block;">Folder yang berisi subfolder n1, n2, ... n5. Default: <code style="font-size:11px;background:rgba(74,158,255,.1);padding:1px 5px;border-radius:4px;">jlpt</code></span>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
           <button class="submit-btn" style="flex:1;" onclick="saveGithubConfig()">💾 Simpan Config</button>
           <button class="topbar-btn" style="flex-shrink:0;" onclick="testGithubConnection()">🔗 Test Koneksi</button>
-          <button class="topbar-btn" style="flex-shrink:0;border-color:rgba(0,212,170,.4);color:var(--accent);" onclick="scanAndLoadExams()">🔍 Scan & Muat Soal</button>
+          <button class="topbar-btn" style="flex-shrink:0;border-color:rgba(0,212,170,.4);color:var(--accent);font-weight:700;" onclick="scanAndLoadExams()">🔍 Scan &amp; Muat Soal</button>
         </div>
         <!-- Scan progress -->
         <div id="scanProgress" style="display:none;margin-top:16px;background:rgba(0,212,170,.06);border:1px solid rgba(0,212,170,.2);border-radius:12px;padding:16px;">
@@ -871,7 +869,7 @@ select.form-input option{background:#0b1120;color:var(--text);}
           <div style="background:rgba(255,255,255,.06);border-radius:999px;height:6px;overflow:hidden;margin-bottom:10px;">
             <div id="scanProgressBar" style="height:100%;background:linear-gradient(90deg,var(--accent),var(--primary));border-radius:999px;transition:width .3s;width:0%;"></div>
           </div>
-          <div id="scanLog" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);max-height:140px;overflow-y:auto;line-height:1.8;"></div>
+          <div id="scanLog" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);max-height:150px;overflow-y:auto;line-height:1.9;"></div>
         </div>
       </div>
 
@@ -1005,7 +1003,7 @@ function loadConfigToForm(){
   if((el=document.getElementById('cfgRepo')))      el.value = gh.repo;
   if((el=document.getElementById('cfgBranch')))    el.value = gh.branch;
   if((el=document.getElementById('cfgIndexPath'))) el.value = gh.indexPath;
-  if((el=document.getElementById('cfgJlptFolder')))el.value = gh.jlptFolder;
+  if((el=document.getElementById('cfgJlptFolder')))el.value = gh.jlptFolder||'jlpt';
   const tg = getTGConfig();
   if((el=document.getElementById('cfgTgToken')))   el.value = tg.token;
   if((el=document.getElementById('cfgTgChatId')))  el.value = tg.chatId;
@@ -1019,7 +1017,7 @@ function getGHConfig(){
     repo:  localStorage.getItem('gh_repo')||'',
     branch:localStorage.getItem('gh_branch')||'main',
     indexPath: localStorage.getItem('gh_index_path')||'index.html',
-    jlptFolder: localStorage.getItem('gh_jlpt_folder')||'jlpt',
+    jlptFolder:(localStorage.getItem('gh_jlpt_folder')||'jlpt').replace(/^\/|\/$/g,''),
   };
 }
 
@@ -1381,11 +1379,15 @@ function parseExamCards(html){
 }
 
 window.renderExamList = ()=>{
+  // Sync dari window._examList agar update dari IIFE/scan ikut terbaca
+  if (window._examList && window._examList !== _examList) {
+    _examList = window._examList;
+  }
   const filterLevel = document.getElementById('examFilterLevel').value;
   const search = document.getElementById('examSearch').value.toLowerCase();
   const filtered = _examList.filter(e=>{
     const matchLevel = !filterLevel || e.level===filterLevel;
-    const matchSearch = !search || e.title.toLowerCase().includes(search) || e.key.includes(search);
+    const matchSearch = !search || (e.title||'').toLowerCase().includes(search) || (e.key||'').includes(search);
     return matchLevel && matchSearch;
   });
   const levelColors = {N1:'#ff9aaa',N2:'#7cc0ff',N3:'#b69cff',N4:'#5ff0b0',N5:'#ffd18a'};
@@ -1399,7 +1401,7 @@ window.renderExamList = ()=>{
       </div>
       <div class="eca-year">${e.year}</div>
       <div class="eca-title">${escHtml(e.title)}</div>
-      <div class="eca-path">${escHtml(e.href)}</div>
+      <div class="eca-path" style="font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;word-break:break-all;margin-bottom:14px;">${escHtml(e.href)}</div>
       <div class="eca-actions">
         <button class="act-btn edit" onclick="openExamEditor('${escHtml(e.href)}','${escHtml(e.title)}')">✏️ Edit Soal</button>
         <button class="act-btn" onclick="openEditExamInfo('${e.key}')">🏷️ Info</button>
@@ -1871,179 +1873,129 @@ window.saveGithubConfig = ()=>{
 // =============================================
 window.scanAndLoadExams = async function(){
   const gh = getGHConfig();
-  if(!gh.token || !gh.owner || !gh.repo){
+  if(!gh.token||!gh.owner||!gh.repo){
     showToast('⚠️ Isi GitHub Config dulu (Token, Owner, Repo)','error');
-    goto('github');
     return;
   }
 
   const progWrap = document.getElementById('scanProgress');
   const progBar  = document.getElementById('scanProgressBar');
-  const statusLbl= document.getElementById('scanStatusLabel');
+  const statusEl = document.getElementById('scanStatusLabel');
   const logEl    = document.getElementById('scanLog');
 
-  progWrap.style.display = 'block';
-  progBar.style.width = '0%';
-  logEl.innerHTML = '';
+  progWrap.style.display='block';
+  progBar.style.width='0%';
+  logEl.innerHTML='';
 
-  const log = (msg, color='var(--muted)') => {
-    logEl.innerHTML += `<div style="color:${color};">${msg}</div>`;
-    logEl.scrollTop = logEl.scrollHeight;
+  const log=(msg,color='var(--muted)')=>{
+    logEl.innerHTML+=`<div style="color:${color};">${msg}</div>`;
+    logEl.scrollTop=logEl.scrollHeight;
   };
-  const setProgress = (pct, label) => {
-    progBar.style.width = pct + '%';
-    statusLbl.textContent = label;
-  };
+  const setP=(pct,label)=>{ progBar.style.width=pct+'%'; statusEl.textContent=label; };
 
-  const headers = {
-    'Authorization': `token ${gh.token}`,
-    'Accept': 'application/vnd.github.v3+json'
-  };
-  const apiBase = `https://api.github.com/repos/${gh.owner}/${gh.repo}/contents`;
-  const jlptRoot = gh.jlptFolder || 'jlpt';
+  const headers={'Authorization':`token ${gh.token}`,'Accept':'application/vnd.github.v3+json'};
+  const apiBase=`https://api.github.com/repos/${gh.owner}/${gh.repo}/contents`;
+  const jlptRoot=(gh.jlptFolder||'jlpt').replace(/^\/|\/$/g,'');
 
-  try {
-    // Step 1: List root jlpt folder untuk dapat subfolder
-    setProgress(5, `⏳ Membaca folder ${jlptRoot}/...`);
-    log(`📂 Scanning: ${jlptRoot}/`);
+  try{
+    setP(5,`⏳ Membaca folder ${jlptRoot}/...`);
+    log(`📂 ${jlptRoot}/`);
 
-    const rootRes = await fetch(`${apiBase}/${jlptRoot}`, { headers });
-    if(!rootRes.ok){
-      const err = await rootRes.json().catch(()=>({}));
-      throw new Error(`Gagal baca folder "${jlptRoot}": ${err.message||rootRes.status}`);
-    }
-    const rootItems = await rootRes.json();
+    const rootRes=await fetch(`${apiBase}/${jlptRoot}`,{headers});
+    if(!rootRes.ok){ const e=await rootRes.json().catch(()=>({})); throw new Error(`Folder "${jlptRoot}": ${e.message||rootRes.status}`); }
+    const rootItems=await rootRes.json();
     if(!Array.isArray(rootItems)) throw new Error('Response bukan array — cek path folder');
 
-    // Ambil semua subfolder (n1–n5 dll)
-    const subfolders = rootItems.filter(item => item.type === 'dir');
-    if(!subfolders.length){
-      // Mungkin file langsung ada di root folder
-      subfolders.push({ name: '', path: jlptRoot, type: 'dir' });
-    }
-    log(`✅ Ditemukan ${subfolders.length} subfolder: ${subfolders.map(s=>s.name||'(root)').join(', ')}`, 'var(--success)');
+    const subfolders=rootItems.filter(i=>i.type==='dir');
+    if(!subfolders.length) subfolders.push({name:'',path:jlptRoot});
+    log(`✅ ${subfolders.length} subfolder: ${subfolders.map(s=>s.name||'(root)').join(', ')}`, 'var(--success)');
 
-    const examList = [];
-    const total = subfolders.length;
-
-    for(let i = 0; i < subfolders.length; i++){
-      const sub = subfolders[i];
-      const pct = 10 + Math.round((i / total) * 80);
-      setProgress(pct, `⏳ Scanning ${sub.path || jlptRoot}...`);
-      log(`📁 ${sub.path || jlptRoot}/`);
-
-      try {
-        const subRes = await fetch(`${apiBase}/${sub.path || jlptRoot}`, { headers });
-        if(!subRes.ok){ log(`  ⚠️ Skip (${subRes.status})`, 'var(--warn)'); continue; }
-        const files = await subRes.json();
-        if(!Array.isArray(files)){ log(`  ⚠️ Bukan array, skip`, 'var(--warn)'); continue; }
-
-        const htmlFiles = files.filter(f => f.type === 'file' && f.name.endsWith('.html'));
-        log(`  📄 ${htmlFiles.length} file HTML ditemukan`);
-
+    const examList=[];
+    for(let i=0;i<subfolders.length;i++){
+      const sub=subfolders[i];
+      setP(10+Math.round((i/subfolders.length)*80),`⏳ Scanning ${sub.path||jlptRoot}...`);
+      log(`📁 ${sub.path||jlptRoot}/`);
+      try{
+        const r=await fetch(`${apiBase}/${sub.path||jlptRoot}`,{headers});
+        if(!r.ok){ log(`  ⚠️ Skip (${r.status})`, 'var(--warn)'); continue; }
+        const files=await r.json();
+        if(!Array.isArray(files)) continue;
+        const htmlFiles=files.filter(f=>f.type==='file'&&f.name.endsWith('.html'));
+        log(`  📄 ${htmlFiles.length} file HTML`);
         for(const file of htmlFiles){
-          const parsed = parseExamFilename(file.name, sub.name || '', file.path, jlptRoot);
-          if(parsed){
-            examList.push(parsed);
-            log(`  ✅ ${file.name} → ${parsed.level} ${parsed.year}-${parsed.month}`, 'var(--accent)');
-          } else {
-            log(`  ❓ ${file.name} (format tidak dikenal, skip)`, 'var(--muted)');
-          }
+          const parsed=parseExamFilenameFull(file.name, sub.name||'', file.path, jlptRoot);
+          if(parsed){ examList.push(parsed); log(`  ✅ ${file.name} → ${parsed.level} ${parsed.year}-${parsed.month}`,'var(--accent)'); }
+          else log(`  ❓ ${file.name} (skip)`,'var(--muted)');
         }
-      } catch(subErr){
-        log(`  ❌ Error: ${subErr.message}`, 'var(--danger)');
-      }
+      }catch(se){ log(`  ❌ ${se.message}`,'var(--danger)'); }
     }
 
-    // Sort: level asc, year desc, month desc
-    examList.sort((a,b) => a.level.localeCompare(b.level) || b.year - a.year || b.month.localeCompare(a.month));
+    examList.sort((a,b)=>a.level.localeCompare(b.level)||b.year-a.year||b.month.localeCompare(a.month));
+    setP(100,`✅ Scan selesai — ${examList.length} soal ditemukan`);
+    log(`\n🎉 Total: ${examList.length} soal`,'var(--success)');
 
-    setProgress(100, `✅ Scan selesai — ${examList.length} soal ditemukan`);
-    log(`\n🎉 Total: ${examList.length} soal berhasil di-scan`, 'var(--success)');
+    // Sync ke SEMUA variabel yang mungkin dipakai
+    _examList=examList;
+    window._examList=examList;
 
-    window._examList = examList;
     renderExamList();
-    if(typeof loadDashboard === 'function') await loadDashboard();
+    if(typeof loadDashboard==='function') await loadDashboard();
+    showToast(`🎉 ${examList.length} soal dimuat!`,'success');
+    setTimeout(()=>goto('exams'),800);
 
-    showToast(`🎉 ${examList.length} soal ditemukan dan dimuat!`, 'success');
-
-    // Auto-navigate ke Kelola Soal
-    setTimeout(() => goto('exams'), 1200);
-
-  } catch(e){
-    setProgress(0, `❌ Gagal: ${e.message}`);
-    log(`❌ ${e.message}`, 'var(--danger)');
-    showToast('❌ Scan gagal: ' + e.message, 'error');
+  }catch(e){
+    setP(0,`❌ Gagal: ${e.message}`);
+    log(`❌ ${e.message}`,'var(--danger)');
+    showToast('❌ Scan gagal: '+e.message,'error');
   }
 };
 
-// Parse nama file HTML menjadi objek exam
-// Handle semua format: YYYY-MM-nX.html, MM-YYYY-nX.html, nX-YYYY-MM.html, YYYY-MM-jlpt.html, dll
-function parseExamFilename(filename, subfolderName, fullPath, jlptRoot){
-  const name = filename.replace(/\.html?$/i, '').toLowerCase();
+// Parse nama file HTML → objek exam, handle semua format
+function parseExamFilenameFull(filename, subfolderName, fullPath, jlptRoot){
+  const name=filename.replace(/\.html?$/i,'').toLowerCase();
+  let level='', year='', month='';
 
-  // Deteksi level dari subfolder name atau nama file
-  let level = '';
-  const folderLevel = subfolderName.match(/^n([1-5])$/i);
-  if(folderLevel) level = `N${folderLevel[1]}`;
+  // Level dari subfolder
+  const fl=subfolderName.match(/^n([1-5])$/i);
+  if(fl) level=`N${fl[1]}`;
 
-  // Coba berbagai pattern
-  let year = '', month = '';
+  // Pattern: YYYY-MM-... atau ...-YYYY-MM
+  const p1=name.match(/(\d{4})[-_](0?[1-9]|1[0-2])[-_]/);
+  const p2=name.match(/^n([1-5])[-_](\d{4})[-_](0?[1-9]|1[0-2])/i);
+  const p3=name.match(/(\d{4})[-_](0?[1-9]|1[0-2])(?:[-_]|$)/);
 
-  // Pattern 1: YYYY-MM-nX atau YYYY-MM-jlpt
-  const p1 = name.match(/(\d{4})[-_](0[1-9]|1[0-2])[-_]/);
-  if(p1){ year = p1[1]; month = p1[2].padStart(2,'0'); }
+  if(p2){ if(!level) level=`N${p2[1]}`; year=p2[2]; month=p2[3].padStart(2,'0'); }
+  else if(p1){ year=p1[1]; month=p1[2].padStart(2,'0'); }
+  else if(p3){ year=p3[1]; month=p3[2].padStart(2,'0'); }
 
-  // Pattern 2: nX-YYYY-MM
-  const p2 = name.match(/^n([1-5])[-_](\d{4})[-_](0[1-9]|1[0-2])/i);
-  if(p2){ if(!level) level = `N${p2[1]}`; year = p2[2]; month = p2[3].padStart(2,'0'); }
+  // Cari tahun jika belum
+  if(!year){ const m=name.match(/(\d{4})/); if(m) year=m[1]; }
 
-  // Pattern 3: YYYY-nX-MM atau MM-YYYY
-  const p3 = name.match(/^(\d{4})[-_]n([1-5])/i);
-  if(p3 && !year){ year = p3[1]; if(!level) level = `N${p3[2]}`; }
-
-  // Cari tahun jika belum dapat
-  if(!year){
-    const yr = name.match(/(\d{4})/);
-    if(yr) year = yr[1];
-  }
-
-  // Cari bulan jika belum dapat (07 atau 12, atau teks)
+  // Cari bulan dari teks jika belum
   if(!month){
-    if(name.includes('07') || name.includes('jul')) month = '07';
-    else if(name.includes('12') || name.includes('dec') || name.includes('des')) month = '12';
-    else {
-      const mo = name.match(/[-_](0[1-9]|1[0-2])(?:[-_]|$)/);
-      if(mo) month = mo[1].padStart(2,'0');
-    }
+    if(/jul/i.test(name)||name.includes('-07')||name.includes('_07')) month='07';
+    else if(/dec|des/i.test(name)||name.includes('-12')||name.includes('_12')) month='12';
   }
 
-  // Cari level dari nama file jika subfolder tidak kasih info
+  // Cari level dari nama file jika subfolder tidak kasih
   if(!level){
-    const lv = name.match(/[^a-z]n([1-5])[^a-z]/i) || name.match(/n([1-5])$/i) || name.match(/^n([1-5])/i);
-    if(lv) level = `N${lv[1]}`;
+    const lv=name.match(/(?:^|[-_])n([1-5])(?:[-_]|$)/i);
+    if(lv) level=`N${lv[1]}`;
   }
 
-  if(!level || !year) return null; // wajib ada level dan tahun
+  if(!level||!year) return null;
+  if(!month) month='12';
 
-  if(!month) month = '12'; // default Desember jika tidak ada
-
-  const n = level.toLowerCase();
-  const key = `${n}-${year}-${month}`;
-  const monthName = month === '07' ? 'July' : (month === '12' ? 'December' : month);
-
-  // Bangun href relatif dari root repo
-  const href = `./${fullPath}`;
-
+  const n=level.toLowerCase();
+  const key=`${n}-${year}-${month}`;
+  const monthName=month==='07'?'July':month==='12'?'December':month;
   return {
-    key,
-    level,
-    year: parseInt(year),
-    month,
-    title: `JLPT ${level} ${monthName} ${year}`,
-    desc: `Latest - Oldest JLPT ${level} exam simulation.`,
-    href,
-    isNew: parseInt(year) >= 2024,
+    key, level,
+    year:parseInt(year), month,
+    title:`JLPT ${level} ${monthName} ${year}`,
+    desc:`Latest - Oldest JLPT ${level} exam simulation.`,
+    href:`./${fullPath}`,
+    isNew:parseInt(year)>=2024,
   };
 }
 
@@ -2324,29 +2276,23 @@ window.togglePwd = window.toggleFieldPwd = function(id, btn){
       if (Array.isArray(window._examList) && window._examList.length) renderExamList();
       return;
     }
-
-    // Pertama coba scan folder langsung (lebih reliable dari parse index.html)
     try {
-      const list = await silentScanFolders(gh);
+      const list = await quickScanFolders(gh);
       if (list.length > 0) {
         window._examList = list;
-        renderExamList();
-        const countEl = document.getElementById('visibleCount');
-        if (countEl) countEl.textContent = `${list.length} exams`;
+        // Sync ke _examList di scope script pertama juga
+        if (typeof renderExamList === 'function') renderExamList();
         if (typeof loadDashboard === 'function') await loadDashboard();
         return;
       }
-    } catch (scanErr) {
-      console.warn('folder scan failed, trying index.html parse:', scanErr.message);
-    }
-
-    // Fallback: parse dari index.html
+    } catch(e){ console.warn('folder scan:', e.message); }
+    // Fallback parse index.html
     try {
       const { html } = await fetchGithubIndexHtml();
       const list = parseExamCards(html);
-      if (list.length > 0) {
+      if (list.length) {
         window._examList = list;
-        renderExamList();
+        if (typeof renderExamList === 'function') renderExamList();
         if (typeof loadDashboard === 'function') await loadDashboard();
       }
     } catch (err) {
@@ -2355,47 +2301,38 @@ window.togglePwd = window.toggleFieldPwd = function(id, btn){
     }
   }
 
-  // Scan folder tanpa UI progress (untuk auto-load saat init/realtime)
-  async function silentScanFolders(gh){
-    const jlptRoot = (gh.jlptFolder || 'jlpt').replace(/^\/|\/$/g,'');
-    const headers = {
-      'Authorization': `token ${gh.token}`,
-      'Accept': 'application/vnd.github.v3+json'
-    };
-    const apiBase = `https://api.github.com/repos/${gh.owner}/${gh.repo}/contents`;
-
-    const rootRes = await fetch(`${apiBase}/${jlptRoot}`, { headers });
-    if (!rootRes.ok) throw new Error(`HTTP ${rootRes.status} on ${jlptRoot}`);
-    const rootItems = await rootRes.json();
-    if (!Array.isArray(rootItems)) throw new Error('bukan array');
-
-    const subfolders = rootItems.filter(item => item.type === 'dir');
-    // Kalau tidak ada subfolder, scan root itu sendiri sebagai flat
-    if (!subfolders.length) subfolders.push({ name: '', path: jlptRoot });
-
-    const examList = [];
-    for (const sub of subfolders) {
-      try {
-        const res = await fetch(`${apiBase}/${sub.path || jlptRoot}`, { headers });
-        if (!res.ok) continue;
-        const files = await res.json();
-        if (!Array.isArray(files)) continue;
-        for (const file of files) {
-          if (file.type !== 'file' || !file.name.endsWith('.html')) continue;
-          const parsed = typeof parseExamFilename === 'function'
-            ? parseExamFilename(file.name, sub.name || '', file.path, jlptRoot)
+  // Scan cepat tanpa UI progress
+  async function quickScanFolders(gh){
+    const jlptRoot=(gh.jlptFolder||'jlpt').replace(/^\/|\/$/g,'');
+    const hdrs={'Authorization':`token ${gh.token}`,'Accept':'application/vnd.github.v3+json'};
+    const apiBase=`https://api.github.com/repos/${gh.owner}/${gh.repo}/contents`;
+    const rootRes=await fetch(`${apiBase}/${jlptRoot}`,{headers:hdrs});
+    if(!rootRes.ok) throw new Error(`HTTP ${rootRes.status}`);
+    const rootItems=await rootRes.json();
+    if(!Array.isArray(rootItems)) throw new Error('bukan array');
+    const subs=rootItems.filter(i=>i.type==='dir');
+    if(!subs.length) subs.push({name:'',path:jlptRoot});
+    const list=[];
+    for(const sub of subs){
+      try{
+        const r=await fetch(`${apiBase}/${sub.path||jlptRoot}`,{headers:hdrs});
+        if(!r.ok) continue;
+        const files=await r.json();
+        if(!Array.isArray(files)) continue;
+        for(const f of files){
+          if(f.type!=='file'||!f.name.endsWith('.html')) continue;
+          const parsed=typeof parseExamFilenameFull==='function'
+            ? parseExamFilenameFull(f.name, sub.name||'', f.path, jlptRoot)
             : null;
-          if (parsed) examList.push(parsed);
+          if(parsed) list.push(parsed);
         }
-      } catch(e) { /* skip subfolder error */ }
+      }catch(e){}
     }
-    examList.sort((a,b) => a.level.localeCompare(b.level) || b.year - a.year || b.month.localeCompare(a.month));
-    return examList;
+    list.sort((a,b)=>a.level.localeCompare(b.level)||b.year-a.year||b.month.localeCompare(a.month));
+    return list;
   }
 
   window.loadExamListFromIndex = loadIndexExamsFromGithub;
-
-
 
   window.updateIndexHtml = async function(newLevel, newPath, isNewBadge, editOnly = false) {
     const gh = getGHConfig();
@@ -3000,14 +2937,12 @@ window.togglePwd = window.toggleFieldPwd = function(id, btn){
     const gh = typeof getGHConfig === 'function' ? getGHConfig() : null;
     if (!gh || !gh.token || !gh.owner || !gh.repo) throw new Error('GitHub config belum lengkap');
     const branch = gh.branch || 'main';
-    const jlptRoot = (gh.jlptFolder || 'jlpt').replace(/^\/|\/$/g,'');
     const ref = await fetchGithubJson(`git/ref/heads/${encodeURIComponent(branch)}`);
     const tree = await fetchGithubJson(`git/trees/${ref.object.sha}?recursive=1`);
-    const folderPattern = new RegExp(`^${jlptRoot.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}\\/`, 'i');
     const items = (tree.tree || []).filter(item =>
       item && item.type === 'blob' &&
       GH_FILE_EXT.test(item.path || '') &&
-      folderPattern.test(item.path || '')
+      /^jlpt\/n[1-5]\//i.test(item.path || '')
     );
     return items.map(item => item.path);
   }
