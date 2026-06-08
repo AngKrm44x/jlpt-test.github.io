@@ -437,12 +437,26 @@ function showPendingImmediate() {
   document.getElementById('pendingScreen').classList.add('show');
 }
 
+// =============================================
+// ADMIN EMAILS — ganti dengan email kamu
+// =============================================
+const SUPER_ADMIN_EMAIL = 'sidiqangga44@gmail.com'; // ← ganti
+const ADMIN_EMAIL       = 'admin@example.com';       // ← ganti
+
 function showDashboard(user) {
   document.getElementById('loginForm').classList.remove('active');
   document.getElementById('registerForm').classList.remove('active');
   document.getElementById('tabs').style.display = 'none';
   document.getElementById('googleBtn').style.display = 'none';
   document.querySelector('.divider').style.display = 'none';
+
+  // Kalau email admin → langsung redirect ke admin.html
+  if (user.email === SUPER_ADMIN_EMAIL || user.email === ADMIN_EMAIL) {
+    window.location.replace('./admin.html');
+    return;
+  }
+
+  // User biasa → tampilkan dashboard seperti biasa
   document.getElementById('dashName').textContent = user.user_metadata?.full_name || user.email;
   document.getElementById('dashboard').classList.add('show');
 }
