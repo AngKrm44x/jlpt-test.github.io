@@ -37,7 +37,8 @@
       }
     }
   } catch(e) {
-    consol
+    console.error('Auth error:', e);
+    window.location.replace('./auth.html');
   }
 </script>
 <meta charset="UTF-8">
@@ -805,15 +806,20 @@ select.form-input option{background:#0b1120;color:var(--text);}
       <div class="config-wrap" style="margin-bottom:24px;">
         <div class="config-title">🔑 Konfigurasi GitHub</div>
         <div class="config-desc">
-          Token GitHub diperlukan untuk upload file dan update <code>index.html</code> secara otomatis.<br>
-          Buat token di <strong>GitHub → Settings → Developer settings → Personal access tokens</strong><br>
-          Centang scope: <code>repo</code> (full control of private repositories)<br><br>
-          ⚠️ Token disimpan di <code>localStorage</code> browser ini saja, tidak dikirim ke server apapun selain GitHub API.
+          Token GitHub diperlukan untuk upload file dan update <code>index.html</code> secara otomatis.<br><br>
+          <strong>Gunakan Classic Token (bukan Fine-grained):</strong><br>
+          Buka <strong>GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic)</strong><br>
+          Klik <strong>"Generate new token (classic)"</strong>, lalu centang scope: <code>repo</code> (full control of private repositories).<br><br>
+          ⚠️ Jangan gunakan Fine-grained token — Fine-grained token tidak mendukung GitHub Contents API yang digunakan untuk push file.<br>
+          ✅ Token disimpan di <code>localStorage</code> browser ini saja, tidak dikirim ke server apapun selain GitHub API langsung.
         </div>
         <div class="form-row">
           <div class="form-group">
-            <label>GitHub Token (PAT)</label>
-            <input class="form-input" type="password" id="cfgToken" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx">
+            <label>GitHub Token (Classic PAT)</label>
+            <div style="position:relative;">
+              <input class="form-input" type="password" id="cfgToken" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" style="padding-right:44px;">
+              <button type="button" onclick="togglePwd('cfgToken',this)" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;" title="Tampilkan/sembunyikan token">👁️</button>
+            </div>
           </div>
           <div class="form-group">
             <label>Repository Owner (username)</label>
@@ -849,7 +855,10 @@ select.form-input option{background:#0b1120;color:var(--text);}
         <div class="form-row">
           <div class="form-group">
             <label>Bot Token</label>
-            <input class="form-input" type="password" id="cfgTgToken" placeholder="1234567890:XXXXXXXXXXXXXXXX">
+            <div style="position:relative;">
+              <input class="form-input" type="password" id="cfgTgToken" placeholder="1234567890:XXXXXXXXXXXXXXXX" style="padding-right:44px;">
+              <button type="button" onclick="togglePwd('cfgTgToken',this)" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;" title="Tampilkan/sembunyikan token">👁️</button>
+            </div>
           </div>
           <div class="form-group">
             <label>Chat ID Admin</label>
@@ -981,7 +990,21 @@ function getTGConfig(){
 // =============================================
 // INIT
 // =============================================
-window.addEventListener('DOMContentLoaded', async()=>{
+// Load config values into form fields (called after DOM ready)
+function loadConfigToForm(){
+  const gh = getGHConfig();
+  document.getElementById('cfgToken').value     = gh.token;
+  document.getElementById('cfgOwner').value     = gh.owner;
+  document.getElementById('cfgRepo').value      = gh.repo;
+  document.getElementById('cfgBranch').value    = gh.branch;
+  document.getElementById('cfgIndexPath').value = gh.indexPath;
+  const tg = getTGConfig();
+  document.getElementById('cfgTgToken').value   = tg.token;
+  document.getElementById('cfgTgChatId').value  = tg.chatId;
+}
+
+// Init — runs after auth guard has confirmed access (document.body already exists)
+async function initApp(){
   // Tampilkan info admin
   const session = window._session;
   const usr = window._userDb;
@@ -998,16 +1021,8 @@ window.addEventListener('DOMContentLoaded', async()=>{
     document.getElementById('navPending').style.display='none';
   }
 
-  // Load config ke form
-  const gh = getGHConfig();
-  document.getElementById('cfgToken').value  = gh.token;
-  document.getElementById('cfgOwner').value  = gh.owner;
-  document.getElementById('cfgRepo').value   = gh.repo;
-  document.getElementById('cfgBranch').value = gh.branch;
-  document.getElementById('cfgIndexPath').value = gh.indexPath;
-  const tg = getTGConfig();
-  document.getElementById('cfgTgToken').value  = tg.token;
-  document.getElementById('cfgTgChatId').value = tg.chatId;
+  // Load config ke form (dari localStorage, jadi tidak hilang saat reload)
+  loadConfigToForm();
 
   await Promise.all([
     loadDashboard(),
@@ -1043,7 +1058,15 @@ window.addEventListener('DOMContentLoaded', async()=>{
       el.selectionStart = el.selectionEnd = s+2; onEditorChange();
     }
   });
-});
+}
+
+// Jalankan setelah DOM siap — gunakan requestAnimationFrame agar elemen form sudah dirender
+if(document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', initApp);
+} else {
+  // DOM sudah siap (karena auth guard async selesai belakangan)
+  initApp();
+}
 
 // =============================================
 // NAV
@@ -1849,6 +1872,13 @@ document.querySelectorAll('.modal-overlay').forEach(o=>{
 // =============================================
 function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function fmtDate(d){ if(!d) return '—'; const dt=new Date(d); return dt.toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}); }
+
+// Toggle visibility untuk field password/token
+window.togglePwd = (inputId, btn)=>{
+  const el = document.getElementById(inputId);
+  if(el.type === 'password'){ el.type = 'text'; btn.textContent = '🙈'; }
+  else { el.type = 'password'; btn.textContent = '👁️'; }
+};
 </script>
 </body>
 </html>
