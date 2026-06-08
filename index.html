@@ -1,6 +1,5 @@
 <!DOCTYPE html>
-<html lang="ja">
-<head>
+<html lang="ja"><head>
 <!-- AUTH GUARD -->
 <script type="module">
   import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
@@ -53,8 +52,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>模擬試験　過去問題</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+JP:wght@300;400;500;700&family=Space+Grotesk:wght@400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;family=Noto+Sans+JP:wght@300;400;500;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;family=Syne:wght@700;800&amp;display=swap" rel="stylesheet">
 <style>
 :root{
 --bg:#070b16;--bg2:#111a2f;--card:#16213e;--card2:#1d2c50;
@@ -562,9 +561,7 @@ h1{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;letter-spacing:-
 </div>
 
 <!-- EXAM GRID -->
-<div class="grid" id="examGrid">
-
-<div class="card" data-name="2024-07-jlpt" data-level="N1" data-year="2024" data-examkey="n1-2024-07">
+<div class="grid" id="examGrid"><div class="card" data-name="2024-07-jlpt" data-level="N1" data-year="2024" data-examkey="n1-2024-07">
 <div class="card-kanji">N1</div><div class="new-badge">NEW</div><div class="year">2024</div>
 <div class="card-body"><div class="exam-title">JLPT N1 July 2024</div>
 <div class="badges"><span class="badge level-n1">N1</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
@@ -572,7 +569,6 @@ h1{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;letter-spacing:-
 <div class="done-stamp">✓ Completed</div>
 <a href="./jlpt/n1/2024-07-n1.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
 </div>
-
 <div class="card" data-name="2025-07-jlpt" data-level="N1" data-year="2025" data-examkey="n1-2025-07">
 <div class="card-kanji">N1</div><div class="new-badge">NEW</div><div class="year">2025</div>
 <div class="card-body"><div class="exam-title">JLPT N1 July 2025</div>
@@ -581,7 +577,6 @@ h1{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;letter-spacing:-
 <div class="done-stamp">✓ Completed</div>
 <a href="./jlpt/n1/2025-07-n1.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
 </div>
-
 <div class="card" data-name="2025-12-jlpt" data-level="N1" data-year="2025" data-examkey="n1-2025-12">
 <div class="card-kanji">N1</div><div class="new-badge">NEW</div><div class="year">2025</div>
 <div class="card-body"><div class="exam-title">JLPT N1 December 2025</div>
@@ -590,7 +585,6 @@ h1{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;letter-spacing:-
 <div class="done-stamp">✓ Completed</div>
 <a href="./jlpt/n1/2025-12-n1.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
 </div>
-
 <div class="card" data-name="2010-07-jlpt" data-level="N2" data-year="2010" data-examkey="n2-2010-07">
 <div class="card-kanji">N2</div><div class="year">2010</div>
 <div class="card-body"><div class="exam-title">JLPT N2 July 2010</div>
@@ -599,7 +593,6 @@ h1{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;letter-spacing:-
 <div class="done-stamp">✓ Completed</div>
 <a href="./jlpt/n2/2010-07-jlpt.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
 </div>
-
 <div class="card" data-name="2010-12-jlpt" data-level="N2" data-year="2010" data-examkey="n2-2010-12">
 <div class="card-kanji">N2</div><div class="year">2010</div>
 <div class="card-body"><div class="exam-title">JLPT N2 December 2010</div>
@@ -608,7 +601,6 @@ h1{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;letter-spacing:-
 <div class="done-stamp">✓ Completed</div>
 <a href="./jlpt/n2/2010-12-jlpt.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
 </div>
-
 <div class="card" data-name="2011-07-jlpt" data-level="N2" data-year="2011" data-examkey="n2-2011-07">
 <div class="card-kanji">N2</div><div class="year">2011</div>
 <div class="card-body"><div class="exam-title">JLPT N2 July 2011</div>
@@ -617,7 +609,6 @@ h1{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;letter-spacing:-
 <div class="done-stamp">✓ Completed</div>
 <a href="./jlpt/n2/2011-07-jlpt.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
 </div>
-
 <div class="card" data-name="2011-12-jlpt" data-level="N2" data-year="2011" data-examkey="n2-2011-12">
 <div class="card-kanji">N2</div><div class="year">2011</div>
 <div class="card-body"><div class="exam-title">JLPT N2 December 2011</div>
@@ -626,7 +617,6 @@ h1{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;letter-spacing:-
 <div class="done-stamp">✓ Completed</div>
 <a href="./jlpt/n2/2011-12-jlpt.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
 </div>
-
 <div class="card" data-name="2024-07-jlpt" data-level="N2" data-year="2024" data-examkey="n2-2024-07">
 <div class="card-kanji">N2</div><div class="new-badge">NEW</div><div class="year">2024</div>
 <div class="card-body"><div class="exam-title">JLPT N2 July 2024</div>
@@ -635,7 +625,6 @@ h1{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;letter-spacing:-
 <div class="done-stamp">✓ Completed</div>
 <a href="./jlpt/n2/2024-07-jlpt.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
 </div>
-
 <div class="card" data-name="2024-12-jlpt" data-level="N2" data-year="2024" data-examkey="n2-2024-12">
 <div class="card-kanji">N2</div><div class="new-badge">NEW</div><div class="year">2024</div>
 <div class="card-body"><div class="exam-title">JLPT N2 December 2024</div>
@@ -644,7 +633,6 @@ h1{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;letter-spacing:-
 <div class="done-stamp">✓ Completed</div>
 <a href="./jlpt/n2/2024-12-jlpt.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
 </div>
-  
 <div class="card" data-name="2025-07-jlpt" data-level="N2" data-year="2025" data-examkey="n2-2025-07">
 <div class="card-kanji">N2</div><div class="new-badge">NEW</div><div class="year">2025</div>
 <div class="card-body"><div class="exam-title">JLPT N2 July 2025</div>
@@ -653,7 +641,6 @@ h1{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;letter-spacing:-
 <div class="done-stamp">✓ Completed</div>
 <a href="./jlpt/n2/2025-07-jlpt.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
 </div>
-
 <div class="card" data-name="2025-12-jlpt" data-level="N2" data-year="2025" data-examkey="n2-2025-12">
 <div class="card-kanji">N2</div><div class="new-badge">NEW</div><div class="year">2025</div>
 <div class="card-body"><div class="exam-title">JLPT N2 December 2025</div>
@@ -662,7 +649,6 @@ h1{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;letter-spacing:-
 <div class="done-stamp">✓ Completed</div>
 <a href="./jlpt/n2/2025-12-jlpt.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
 </div>
-
 <div class="card" data-name="2010-07-jlpt" data-level="N3" data-year="2010" data-examkey="n3-2010-07">
 <div class="card-kanji">N3</div><div class="year">2010</div>
 <div class="card-body"><div class="exam-title">JLPT N3 July 2010</div>
@@ -671,7 +657,6 @@ h1{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;letter-spacing:-
 <div class="done-stamp">✓ Completed</div>
 <a href="./jlpt/n3/2010-07-n3.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
 </div>
-
 <div class="card" data-name="2025-07-jlpt" data-level="N3" data-year="2025" data-examkey="n3-2025-07">
 <div class="card-kanji">N3</div><div class="new-badge">NEW</div><div class="year">2025</div>
 <div class="card-body"><div class="exam-title">JLPT N3 July 2025</div>
@@ -680,7 +665,6 @@ h1{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;letter-spacing:-
 <div class="done-stamp">✓ Completed</div>
 <a href="./jlpt/n3/2025-07-n3.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
 </div>
-
 <div class="card" data-name="2025-12-jlpt" data-level="N3" data-year="2025" data-examkey="n3-2025-12">
 <div class="card-kanji">N3</div><div class="new-badge">NEW</div><div class="year">2025</div>
 <div class="card-body"><div class="exam-title">JLPT N3 December 2025</div>
@@ -689,7 +673,6 @@ h1{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;letter-spacing:-
 <div class="done-stamp">✓ Completed</div>
 <a href="./jlpt/n3/2025-12-n3.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
 </div>
-
 <div class="card" data-name="2024-07-jlpt" data-level="N3" data-year="2024" data-examkey="n3-2024-07">
 <div class="card-kanji">N3</div><div class="year">2024</div>
 <div class="card-body"><div class="exam-title">JLPT N3 July 2024</div>
@@ -698,7 +681,6 @@ h1{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;letter-spacing:-
 <div class="done-stamp">✓ Completed</div>
 <a href="./jlpt/n3/2024-07-n3.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
 </div>
-
 <div class="card" data-name="2024-12-jlpt" data-level="N3" data-year="2024" data-examkey="n3-2024-12">
 <div class="card-kanji">N3</div><div class="year">2024</div>
 <div class="card-body"><div class="exam-title">JLPT N3 December 2024</div>
@@ -707,7 +689,6 @@ h1{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;letter-spacing:-
 <div class="done-stamp">✓ Completed</div>
 <a href="./jlpt/n3/2024-12-n3.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
 </div>
-
 <div class="card" data-name="2023-07-jlpt" data-level="N3" data-year="2023" data-examkey="n3-2023-07">
 <div class="card-kanji">N3</div><div class="year">2023</div>
 <div class="card-body"><div class="exam-title">JLPT N3 July 2023</div>
@@ -716,7 +697,6 @@ h1{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;letter-spacing:-
 <div class="done-stamp">✓ Completed</div>
 <a href="./jlpt/n3/2023-07-n3.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
 </div>
-
 <div class="card" data-name="2023-12-jlpt" data-level="N3" data-year="2023" data-examkey="n3-2023-12">
 <div class="card-kanji">N3</div><div class="year">2023</div>
 <div class="card-body"><div class="exam-title">JLPT N3 December 2023</div>
@@ -725,7 +705,6 @@ h1{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;letter-spacing:-
 <div class="done-stamp">✓ Completed</div>
 <a href="./jlpt/n3/2023-12-n3.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
 </div>
-
 <div class="card" data-name="2022-07-jlpt" data-level="N3" data-year="2022" data-examkey="n3-2022-07">
 <div class="card-kanji">N3</div><div class="year">2022</div>
 <div class="card-body"><div class="exam-title">JLPT N3 July 2022</div>
@@ -734,7 +713,6 @@ h1{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;letter-spacing:-
 <div class="done-stamp">✓ Completed</div>
 <a href="./jlpt/n3/2022-07-n3.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
 </div>
-
 <div class="card" data-name="2022-12-jlpt" data-level="N3" data-year="2022" data-examkey="n3-2022-12">
 <div class="card-kanji">N3</div><div class="year">2022</div>
 <div class="card-body"><div class="exam-title">JLPT N3 December 2022</div>
@@ -743,7 +721,6 @@ h1{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;letter-spacing:-
 <div class="done-stamp">✓ Completed</div>
 <a href="./jlpt/n3/2022-12-n3.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
 </div>
-
 <div class="card" data-name="2021-07-jlpt" data-level="N3" data-year="2021" data-examkey="n3-2021-07">
 <div class="card-kanji">N3</div><div class="year">2021</div>
 <div class="card-body"><div class="exam-title">JLPT N3 July 2021</div>
@@ -752,7 +729,6 @@ h1{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;letter-spacing:-
 <div class="done-stamp">✓ Completed</div>
 <a href="./jlpt/n3/2021-07-n3.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
 </div>
-
 <div class="card" data-name="2021-12-jlpt" data-level="N3" data-year="2021" data-examkey="n3-2021-12">
 <div class="card-kanji">N3</div><div class="year">2021</div>
 <div class="card-body"><div class="exam-title">JLPT N3 December 2021</div>
@@ -761,7 +737,6 @@ h1{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;letter-spacing:-
 <div class="done-stamp">✓ Completed</div>
 <a href="./jlpt/n3/2021-12-n3.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
 </div>
-
 <div class="card" data-name="2020-12-jlpt" data-level="N3" data-year="2020" data-examkey="n3-2020-12">
 <div class="card-kanji">N3</div><div class="year">2020</div>
 <div class="card-body"><div class="exam-title">JLPT N3 December 2020</div>
@@ -770,7 +745,6 @@ h1{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;letter-spacing:-
 <div class="done-stamp">✓ Completed</div>
 <a href="./jlpt/n3/2020-12-n3.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
 </div>
-  
 <div class="card" data-name="2024-07-jlpt" data-level="N4" data-year="2024" data-examkey="n4-2024-07">
 <div class="card-kanji">N4</div><div class="year">2024</div>
 <div class="card-body"><div class="exam-title">JLPT N4 July 2024</div>
@@ -779,7 +753,6 @@ h1{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;letter-spacing:-
 <div class="done-stamp">✓ Completed</div>
 <a href="./jlpt/n4/2024-07-n4.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
 </div>
-
 <div class="card" data-name="2024-12-jlpt" data-level="N4" data-year="2024" data-examkey="n4-2024-12">
 <div class="card-kanji">N4</div><div class="year">2024</div>
 <div class="card-body"><div class="exam-title">JLPT N4 December 2024</div>
@@ -788,7 +761,6 @@ h1{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;letter-spacing:-
 <div class="done-stamp">✓ Completed</div>
 <a href="./jlpt/n4/2024-12-n4.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
 </div>
-
 <div class="card" data-name="2021-12-jlpt" data-level="N4" data-year="2021" data-examkey="n4-2021-12">
 <div class="card-kanji">N4</div><div class="year">2021</div>
 <div class="card-body"><div class="exam-title">JLPT N4 December 2021</div>
@@ -797,7 +769,6 @@ h1{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;letter-spacing:-
 <div class="done-stamp">✓ Completed</div>
 <a href="./jlpt/n4/2021-12-n4.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
 </div>
-
 <div class="card" data-name="2018-07-jlpt" data-level="N5" data-year="2018" data-examkey="n5-2018-07">
 <div class="card-kanji">N5</div><div class="year">2018</div>
 <div class="card-body"><div class="exam-title">JLPT N5 July 2018</div>
@@ -806,7 +777,6 @@ h1{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;letter-spacing:-
 <div class="done-stamp">✓ Completed</div>
 <a href="./jlpt/n5/2018-07-n5.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
 </div>
-  
 <div class="card" data-name="2021-12-jlpt" data-level="N5" data-year="2021" data-examkey="n5-2021-12">
 <div class="card-kanji">N5</div><div class="year">2021</div>
 <div class="card-body"><div class="exam-title">JLPT N5 December 2021</div>
@@ -815,7 +785,6 @@ h1{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;letter-spacing:-
 <div class="done-stamp">✓ Completed</div>
 <a href="./jlpt/n5/2021-12-n5.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
 </div>
-  
 <div class="card" data-name="2024-07-jlpt" data-level="N5" data-year="2024" data-examkey="n5-2024-07">
 <div class="card-kanji">N5</div><div class="year">2024</div>
 <div class="card-body"><div class="exam-title">JLPT N5 July 2024</div>
@@ -824,8 +793,14 @@ h1{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;letter-spacing:-
 <div class="done-stamp">✓ Completed</div>
 <a href="./jlpt/n5/2024-07-n5.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
 </div>
-
-</div><!-- /examGrid -->
+<div class="card" data-name="1999-07-jlpt" data-level="N5" data-year="1999" data-examkey="n5-1999-07">
+<div class="card-kanji">N5</div><div class="new-badge">NEW</div><div class="year">1999</div>
+<div class="card-body"><div class="exam-title">JLPT N5 Test Only</div>
+<div class="badges"><span class="badge level-n5">N5</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
+<div class="exam-desc">Don't open this exam (Only for testing)</div></div>
+<div class="done-stamp">✓ Completed</div>
+<a href="./jlpt/n5/1999-07-n5.html" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
+</div></div><!-- /examGrid -->
 
 <div class="empty-state" id="emptyState">
   <div class="empty-icon">🔍</div>
@@ -1744,5 +1719,6 @@ updateVisibleCount();
 
 
 
-</body>
-</html>
+
+
+</body></html>
