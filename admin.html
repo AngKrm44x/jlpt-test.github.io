@@ -880,6 +880,15 @@ select.form-input option{background:#0b1120;color:var(--text);}
         </div>
         <button class="submit-btn" onclick="saveTelegramConfig()">💾 Simpan Config Telegram</button>
       </div>
+
+      <div class="config-wrap" style="margin-top:24px;">
+        <div class="config-title">🕘 Riwayat Aktivitas Admin</div>
+        <div class="config-desc">
+          Panel ini menyimpan aktivitas terakhir di browser kamu: upload soal, edit, hapus, dan sinkronisasi index.html.
+          <div style="margin-top:10px;font-size:12px;color:var(--muted);">Status terakhir: <span id="adminLastAction">Belum ada aktivitas</span> · <span id="adminHistoryInfo">0 catatan</span></div>
+        </div>
+        <div id="adminHistoryList"></div>
+      </div>
     </div>
 
   </div><!-- /content -->
@@ -980,6 +989,115 @@ select.form-input option{background:#0b1120;color:var(--text);}
 function getSupabase(){ return window._supabase; }
 function getIsSuperAdmin(){ return window._isSuperAdmin; }
 
+const BACKEND_URL = 'https://jlpt-auth-bot-production.up.railway.app';
+const ADMIN_HISTORY_KEY = 'jlpt_admin_history_v1';
+
+function decodeGitHubContent64(b64){
+  const raw = String(b64 || '').replace(/\n/g, '');
+  try {
+    return decodeURIComponent(escape(atob(raw)));
+  } catch (e) {
+    return atob(raw);
+  }
+}
+
+function encodeGitHubContent64(text){
+  return btoa(unescape(encodeURIComponent(String(text ?? ''))));
+}
+
+function normalizeGithubPath(path){
+  const raw = String(path || '').trim();
+  if(!raw) return 'index.html';
+  try {
+    if(/^https?:\/\//i.test(raw)){
+      const u = new URL(raw);
+      const parts = u.pathname.split('/').filter(Boolean);
+      if(parts.length >= 5 && (parts[2] === 'blob' || parts[2] === 'tree' || parts[2] === 'raw')){
+        return parts.slice(4).join('/') || 'index.html';
+      }
+      if(parts.length >= 3 && parts[0] && parts[1]){
+        return parts.slice(2).join('/') || 'index.html';
+      }
+    }
+  } catch (_) {}
+  return raw
+    .replace(/^https?:\/\/raw\.githubusercontent\.com\/[^/]+\/[^/]+\/[^/]+\//, '')
+    .replace(/^\/+/, '')
+    .replace(/^\.\/+/, '') || 'index.html';
+}
+
+async function backendJSON(path, options = {}){
+  const res = await fetch(`${BACKEND_URL}${path}`, {
+    headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+    ...options,
+  });
+  const data = await res.json().catch(() => ({}));
+  if(!res.ok) throw new Error(data.error || data.message || `HTTP ${res.status}`);
+  return data;
+}
+
+function getAdminHistory(){
+  try { return JSON.parse(localStorage.getItem(ADMIN_HISTORY_KEY) || '[]'); }
+  catch { return []; }
+}
+
+function saveAdminHistory(list){
+  localStorage.setItem(ADMIN_HISTORY_KEY, JSON.stringify(list.slice(0, 60)));
+}
+
+function recordAdminHistory(action, detail, extra = {}){
+  const entry = {
+    ts: new Date().toISOString(),
+    action,
+    detail: detail || '',
+    ...extra,
+  };
+  const list = [entry, ...getAdminHistory()];
+  saveAdminHistory(list);
+  renderAdminHistory();
+  return entry;
+}
+
+function renderAdminHistory(){
+  const listEl = document.getElementById('adminHistoryList');
+  const lastEl = document.getElementById('adminLastAction');
+  const infoEl = document.getElementById('adminHistoryInfo');
+  if(!listEl) return;
+
+  const list = getAdminHistory();
+  if(lastEl) lastEl.textContent = list[0] ? `${new Date(list[0].ts).toLocaleString('id-ID')} — ${list[0].action}` : 'Belum ada aktivitas';
+  if(infoEl) infoEl.textContent = `${list.length} catatan`;
+
+  if(!list.length){
+    listEl.innerHTML = '<div class="empty-state" style="padding:20px 0;"><div class="empty-icon">🕒</div><p>Belum ada riwayat aktivitas.</p></div>';
+    return;
+  }
+
+  listEl.innerHTML = list.slice(0, 12).map((item, idx) => `
+    <div style="padding:14px 16px;border:1px solid var(--border);border-radius:14px;background:rgba(255,255,255,.03);margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;">
+        <div>
+          <div style="font-weight:800;font-size:13px;margin-bottom:4px;">${escHtml(item.action || 'Action')}</div>
+          <div style="font-size:12px;color:var(--muted);line-height:1.6;">${escHtml(item.detail || '—')}</div>
+        </div>
+        <div style="font-size:11px;color:var(--muted);text-align:right;white-space:nowrap;">${new Date(item.ts).toLocaleString('id-ID')}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function fetchAdminData(path, fallback = null){
+  try { return await backendJSON(path); }
+  catch (e) { return fallback; }
+}
+
+function buildExamCardHtml(e){
+  const levelColors = {N1:'#ff9aaa',N2:'#7cc0ff',N3:'#b69cff',N4:'#5ff0b0',N5:'#ffd18a'};
+  const c = levelColors[e.level] || '#4a9eff';
+  const newBadge = e.isNew ? '<div class="new-badge">NEW</div>' : '';
+  return `<div class="card" data-name="${e.year}-${e.month}-jlpt" data-level="${e.level}" data-year="${e.year}" data-examkey="${e.key}">\n<div class="card-kanji">${e.level}</div>${newBadge}<div class="year">${e.year}</div>\n<div class="card-body"><div class="exam-title">${escHtml(e.title)}</div>\n<div class="badges"><span class="badge level-${String(e.level).toLowerCase()}">${e.level}</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>\n<div class="exam-desc">${escHtml(e.desc)}</div></div>\n<div class="done-stamp">✓ Completed</div>\n<a href="${escHtml(e.href)}" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>\n</div>`;
+}
+
 // Load config values into form fields — dipanggil di initApp dan saat goto('github')
 function loadConfigToForm(){
   const gh = getGHConfig();
@@ -1001,7 +1119,7 @@ function getGHConfig(){
     owner: localStorage.getItem('gh_owner')||'',
     repo:  localStorage.getItem('gh_repo')||'',
     branch:localStorage.getItem('gh_branch')||'main',
-    indexPath: localStorage.getItem('gh_index_path')||'index.html',
+    indexPath: normalizeGithubPath(localStorage.getItem('gh_index_path')||'index.html'),
   };
 }
 
@@ -1036,6 +1154,7 @@ async function initApp(){
 
   // Load config ke form dari localStorage
   loadConfigToForm();
+  renderAdminHistory();
 
   await Promise.all([
     loadDashboard(),
@@ -1090,7 +1209,7 @@ window.goto = function(pane){
   document.getElementById('pane-'+pane).classList.add('active');
   var navEl = document.querySelector('.nav-item[onclick="goto(\''+pane+'\')"');
   if(navEl) navEl.classList.add('active');
-  if(pane==='github') loadConfigToForm();
+  if(pane==='github') { loadConfigToForm(); renderAdminHistory(); }
   // Reload config form setiap kali membuka tab github
   if(pane === 'github') loadConfigToForm();
   const titles = {
@@ -1119,30 +1238,29 @@ window.showToast = (msg, type='')=>{
 // DASHBOARD
 // =============================================
 async function loadDashboard(){
-  const [usersRes, pendingRes] = await Promise.all([
-    getSupabase().from('users').select('*').order('created_at',{ascending:false}),
-    getSupabase().from('users').select('id').eq('status','pending'),
-  ]);
-  const users = usersRes.data||[];
-  const pending = pendingRes.data||[];
-  const active = users.filter(u=>u.status==='active').length;
+  const usersData = await fetchAdminData('/admin/users', { users: [] });
+  const users = Array.isArray(usersData.users) ? usersData.users : (Array.isArray(usersData) ? usersData : []);
+  const pending = users.filter(u => String(u.status || 'pending') === 'pending');
+  const active = users.filter(u => String(u.status || 'pending') === 'active').length;
 
-  // Count exams from the parsed list
-  const examCount = (window._examList||[]).length;
-
+  const examCount = (window._examList || []).length;
   document.getElementById('dTotalExam').textContent = examCount;
   document.getElementById('dTotalUser').textContent = users.length;
-  document.getElementById('dActiveUser').textContent = active+' aktif';
+  document.getElementById('dActiveUser').textContent = active + ' aktif';
   document.getElementById('dPendingUser').textContent = pending.length;
 
-  // Reports count
-  const {data: rpts} = await getSupabase().from('exam_reports').select('id').eq('status','pending');
-  const rc = (rpts||[]).length;
-  document.getElementById('dReports').textContent = rc;
-  document.getElementById('reportBadge').textContent = rc;
+  const stats = await fetchAdminData('/admin/stats', null);
+  let pendingReports = 0;
+  if(stats && typeof stats.pendingReports === 'number'){
+    pendingReports = stats.pendingReports;
+  } else {
+    const reportData = await fetchAdminData('/admin/reports?status=pending', { reports: [] });
+    pendingReports = (reportData.reports || []).length;
+  }
+  document.getElementById('dReports').textContent = pendingReports;
+  document.getElementById('reportBadge').textContent = pendingReports;
   document.getElementById('pendingBadge').textContent = pending.length;
 
-  // Recent users table (latest 8)
   const tbody = document.getElementById('dashUserTable');
   tbody.innerHTML = users.slice(0,8).map(u=>`
     <tr>
@@ -1161,9 +1279,8 @@ async function loadDashboard(){
 let _allUsers = [];
 
 async function loadAllUsers(){
-  const {data, error} = await getSupabase().from('users').select('*').order('created_at',{ascending:false});
-  if(error){ showToast('❌ Gagal memuat users: '+error.message,'error'); return; }
-  _allUsers = data||[];
+  const res = await fetchAdminData('/admin/users', { users: [] });
+  _allUsers = res.users || [];
   renderAllUsers(_allUsers);
 }
 
@@ -1182,7 +1299,7 @@ function renderAllUsers(users){
       </td>
       <td style="font-size:13px;">${escHtml(u.email||'—')}</td>
       <td><span class="status ${u.status||'pending'}">${u.status||'pending'}</span></td>
-      <td><span class="role-badge user">user</span></td>
+      <td><span class="role-badge ${u.role === 'super' ? 'super' : 'user'}">${u.role || 'user'}</span></td>
       <td style="font-size:12px;color:var(--muted);">${fmtDate(u.created_at)}</td>
       <td>
         <div style="display:flex;gap:5px;flex-wrap:wrap;">
@@ -1209,8 +1326,7 @@ window.filterUserTable = ()=>{
 };
 
 async function loadPendingUsers(){
-  const {data} = await getSupabase().from('users').select('*').eq('status','pending').order('created_at',{ascending:false});
-  const users = data||[];
+  const users = (_allUsers || []).filter(u => String(u.status || 'pending') === 'pending');
   document.getElementById('pendingBadge').textContent = users.length;
   const tbody = document.getElementById('pendingUserTable');
   tbody.innerHTML = users.map(u=>`
@@ -1237,9 +1353,13 @@ async function loadPendingUsers(){
 }
 
 window.changeUserStatus = async(id, status)=>{
-  const {error} = await getSupabase().from('users').update({status}).eq('id',id);
+  const { error } = await backendJSON(`/admin/users/${encodeURIComponent(id)}/status`, {
+    method: 'POST',
+    body: JSON.stringify({ status })
+  });
   if(error){ showToast('❌ Gagal: '+error.message,'error'); return; }
   showToast(`✅ Status diubah ke "${status}"`, 'success');
+  recordAdminHistory('Ubah Status User', `${id} → ${status}`);
   await Promise.all([loadAllUsers(), loadPendingUsers(), loadDashboard()]);
 };
 
@@ -1260,9 +1380,12 @@ window.saveEditUser = async()=>{
     display_name: document.getElementById('euDisplayName').value.trim(),
     status: document.getElementById('euStatus').value,
   };
-  const {error} = await getSupabase().from('users').update(updates).eq('id',id);
-  if(error){ showToast('❌ Gagal menyimpan: '+error.message,'error'); return; }
+  await backendJSON(`/admin/users/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    body: JSON.stringify(updates)
+  });
   showToast('✅ User berhasil diperbarui','success');
+  recordAdminHistory('Edit User', `${updates.full_name || id} (${updates.status})`);
   closeModal('editUserModal');
   await Promise.all([loadAllUsers(), loadPendingUsers(), loadDashboard()]);
 };
@@ -1270,9 +1393,9 @@ window.saveEditUser = async()=>{
 window.confirmDeleteUser = (id, name)=>{
   document.getElementById('confirmText').innerHTML = `Hapus user <strong>${escHtml(name)}</strong>?<br><span style="color:var(--danger);">Aksi ini tidak dapat dibatalkan.</span>`;
   document.getElementById('confirmOkBtn').onclick = async()=>{
-    const {error} = await getSupabase().from('users').delete().eq('id',id);
-    if(error){ showToast('❌ Gagal: '+error.message,'error'); return; }
+    await backendJSON(`/admin/users/${encodeURIComponent(id)}`, { method: 'DELETE' });
     showToast('🗑️ User dihapus','success');
+    recordAdminHistory('Hapus User', name || id);
     closeModal('confirmModal');
     await Promise.all([loadAllUsers(), loadPendingUsers(), loadDashboard()]);
   };
@@ -1280,12 +1403,11 @@ window.confirmDeleteUser = (id, name)=>{
 };
 
 window.approveAll = async()=>{
-  const pending = _allUsers.filter(u=>u.status==='pending');
+  const pending = (_allUsers || []).filter(u=>String(u.status || 'pending')==='pending');
   if(!pending.length){ showToast('Tidak ada user pending'); return; }
-  for(const u of pending){
-    await getSupabase().from('users').update({status:'active'}).eq('id',u.id);
-  }
+  await backendJSON('/admin/users/approve-all', { method: 'POST' });
   showToast(`✅ ${pending.length} user di-approve!`,'success');
+  recordAdminHistory('Approve Semua User', `${pending.length} akun`);
   await Promise.all([loadAllUsers(), loadPendingUsers(), loadDashboard()]);
 };
 
@@ -1307,12 +1429,13 @@ async function loadExamListFromIndex(){
     });
     const json = await res.json();
     if(json.content){
-      const html = atob(json.content.replace(/\n/g,''));
+      const html = decodeGitHubContent64(json.content);
       _examList = parseExamCards(html);
       window._examList = _examList;
       window._indexSha = json.sha;
       renderExamList();
       loadDashboard();
+      renderAdminHistory();
     }
   } catch(e) {
     parseExamListFromLocalDOM();
@@ -1420,12 +1543,14 @@ window.openExamEditor = async(href, title)=>{
     });
     if(!res.ok) throw new Error(`HTTP ${res.status}`);
     const json = await res.json();
-    const content = atob(json.content.replace(/\n/g,''));
+    const content = decodeGitHubContent64(json.content);
     window._currentFileSha = json.sha;
     document.getElementById('codeEditor').value = content;
     _currentEditOriginal = content;
     updateEditorStats();
     showToast('✅ File dimuat dari GitHub','success');
+    recordAdminHistory('Buka Editor Soal', title || ghPath, { file: ghPath });
+    recordAdminHistory('Edit Soal', `${title || ghPath}` , { file: ghPath });
   } catch(e) {
     document.getElementById('codeEditor').value = `⚠️ Gagal memuat file: ${e.message}\n\nPath: ${ghPath}\n\nPastikan GitHub config sudah benar dan file ada di repo.`;
     showToast('❌ Gagal memuat: '+e.message,'error');
@@ -1440,7 +1565,7 @@ window.saveEditorToGithub = async()=>{
   if(!commitMsg) return;
 
   try {
-    const encoded = btoa(unescape(encodeURIComponent(content)));
+    const encoded = encodeGitHubContent64(content);
     const body = { message: commitMsg, content: encoded, branch: gh.branch };
     if(window._currentFileSha) body.sha = window._currentFileSha;
 
@@ -1455,6 +1580,7 @@ window.saveEditorToGithub = async()=>{
       _currentEditOriginal = content;
       document.getElementById('edModified').style.display='none';
       showToast('🎉 Berhasil disimpan ke GitHub!','success');
+      recordAdminHistory('Simpan Editor', _currentEditFile, { file: _currentEditFile });
     } else {
       throw new Error(json.message||'Unknown error');
     }
@@ -1569,29 +1695,8 @@ window.confirmDeleteExam = (key, title)=>{
 // =============================================
 window.loadReports = async()=>{
   const filter = document.getElementById('reportFilter').value;
-  let query = getSupabase().from('exam_reports').select('*').order('created_at',{ascending:false});
-  if(filter!=='all') query = query.eq('status',filter);
-  const {data,error} = await query;
-  if(error){
-    // Tabel mungkin belum dibuat, tampilkan info
-    document.getElementById('reportsList').innerHTML = `
-      <div class="config-desc" style="margin:0;">
-        ℹ️ Tabel <code>exam_reports</code> belum ada di Supabase.<br>
-        Jalankan SQL berikut di Supabase SQL Editor:<br><br>
-        <code style="display:block;white-space:pre;font-size:12px;margin-top:8px;">
-CREATE TABLE exam_reports (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID REFERENCES users(id),
-  exam_key TEXT,
-  exam_title TEXT,
-  description TEXT,
-  status TEXT DEFAULT 'pending',
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);</code>
-      </div>`;
-    return;
-  }
-  const reports = data||[];
+  const res = await fetchAdminData(`/admin/reports${filter !== 'all' ? `?status=${encodeURIComponent(filter)}` : ''}`, { reports: [] });
+  const reports = res.reports || [];
   document.getElementById('reportCount').textContent = `${reports.length} laporan`;
   document.getElementById('reportBadge').textContent = reports.filter(r=>r.status==='pending').length;
 
@@ -1622,14 +1727,16 @@ CREATE TABLE exam_reports (
 };
 
 window.resolveReport = async(id)=>{
-  await getSupabase().from('exam_reports').update({status:'resolved'}).eq('id',id);
+  await backendJSON(`/admin/reports/${encodeURIComponent(id)}`, { method:'PATCH', body: JSON.stringify({ status:'resolved' }) });
   showToast('✅ Laporan ditandai resolved','success');
+  recordAdminHistory('Resolve Laporan', id);
   await loadReports();
 };
 
 window.deleteReport = async(id)=>{
-  await getSupabase().from('exam_reports').delete().eq('id',id);
+  await backendJSON(`/admin/reports/${encodeURIComponent(id)}`, { method:'DELETE' });
   showToast('🗑️ Laporan dihapus');
+  recordAdminHistory('Hapus Laporan', id);
   await loadReports();
 };
 
@@ -1717,7 +1824,7 @@ window.doUpload = async()=>{
     setStep([{label:'Cek file di GitHub',state:'done'},{label:'Upload file HTML',state:'active'},{label:'Update index.html',state:''}]);
 
     // Upload file HTML
-    const encoded = btoa(unescape(encodeURIComponent(_fileContent)));
+    const encoded = encodeGitHubContent64(_fileContent);
     const body = { message:`Add exam: ${customTitle}`, content: encoded, branch: gh.branch };
     if(existingSha) body.sha = existingSha;
 
@@ -1744,6 +1851,7 @@ window.doUpload = async()=>{
     setStep([{label:'Cek file di GitHub',state:'done'},{label:'Upload file HTML',state:'done'},{label:'Update index.html',state:'done'}]);
     showToast('🎉 Upload berhasil! Soal sudah online.','success');
     renderExamList();
+    renderAdminHistory();
 
     // Reset form
     setTimeout(()=>{
@@ -1760,6 +1868,7 @@ window.doUpload = async()=>{
   } catch(e) {
     setProgress(0,'Gagal!');
     showToast('❌ Upload gagal: '+e.message,'error');
+    recordAdminHistory('Gagal Upload', e.message);
     btn.disabled=false; btn.classList.remove('loading');
   }
 };
@@ -1771,67 +1880,67 @@ async function updateIndexHtml(newLevel, newPath, isNewBadge, editOnly=false){
   const gh = getGHConfig();
   if(!gh.token) return;
 
-  // Fetch current index.html
   const res = await fetch(`https://api.github.com/repos/${gh.owner}/${gh.repo}/contents/${gh.indexPath}`, {
     headers:{'Authorization':`token ${gh.token}`,'Accept':'application/vnd.github.v3+json'}
   });
   if(!res.ok) throw new Error('Gagal fetch index.html');
   const json = await res.json();
-  let html = atob(json.content.replace(/\n/g,''));
+  let html = decodeGitHubContent64(json.content);
   const sha = json.sha;
 
-  // Build new card HTML string for injection (if not editOnly)
+  // Pastikan daftar exam yang disimpan selalu jadi sumber utama
   if(!editOnly && newLevel && newPath){
-    const n = newLevel.toLowerCase();
-    const year = newPath.match(/(\d{4})/)?.[1]||'';
-    const month = newPath.includes('-07-')||newPath.endsWith('-07.html')?'07':'12';
+    const n = String(newLevel).toLowerCase();
+    const year = String(newPath).match(/(\d{4})/)?.[1] || '';
+    const month = String(newPath).includes('-07-') || String(newPath).endsWith('-07.html') ? '07' : '12';
     const key = `${n}-${year}-${month}`;
-    const monthName = month==='07'?'July':'December';
-    const exam = _examList.find(e=>e.key===key);
-    const title = exam?.title || `JLPT ${newLevel} ${monthName} ${year}`;
-    const desc  = exam?.desc  || `Latest - Oldest JLPT ${newLevel} exam simulation.`;
-    const href  = `./jlpt/${n}/${year}-${month}-${n}.html`;
-    const levelClass = `level-n${n}`;
-    const newBadge = isNewBadge?'<div class="new-badge">NEW</div>':'';
-    const newCard = `\n<div class="card" data-name="${year}-${month}-jlpt" data-level="${newLevel}" data-year="${year}" data-examkey="${key}">\n<div class="card-kanji">${newLevel}</div>${newBadge}<div class="year">${year}</div>\n<div class="card-body"><div class="exam-title">${title}</div>\n<div class="badges"><span class="badge ${levelClass}">${newLevel}</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>\n<div class="exam-desc">${desc}</div></div>\n<div class="done-stamp">✓ Completed</div>\n<a href="${href}" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>\n</div>`;
-
-    // Insert before closing </div> of examGrid
-    html = html.replace(/(<\/div>\s*<!-- \/examGrid -->|id="examGrid"[^>]*>)/, m=>{
-      if(m.includes('examGrid')) return m + newCard;
-      return newCard + m;
-    }) || html.replace('</div>\n\n<div class="empty-state"', newCard + '</div>\n\n<div class="empty-state"');
-    // Simpler: insert just before last card closing in grid
-    const insertAt = html.lastIndexOf('</div>\n\n</div>');
-    if(insertAt>-1) html = html.slice(0,insertAt) + newCard + '\n' + html.slice(insertAt);
+    const href = `./jlpt/${n}/${year}-${month}-${n}.html`;
+    const exam = _examList.find(e => e.key === key) || {};
+    const next = {
+      key,
+      level: newLevel,
+      year: parseInt(year, 10) || exam.year || new Date().getFullYear(),
+      month,
+      title: exam.title || `JLPT ${newLevel} ${month === '07' ? 'July' : 'December'} ${year}`,
+      desc: exam.desc || `Latest - Oldest JLPT ${newLevel} exam simulation.`,
+      href,
+      isNew: !!isNewBadge,
+    };
+    _examList = _examList.filter(e => e.key !== key).concat([next]);
+    window._examList = _examList;
+    recordAdminHistory('Upload Soal', `${next.title} → ${next.href}`, { level: next.level, file: next.href });
   }
 
-  // If editOnly: rebuild all cards in examGrid from _examList
-  if(editOnly){
-    html = rebuildIndexCards(html);
-  }
+  // Bangun ulang seluruh kartu agar HTML tetap valid dan encoding tetap aman
+  html = rebuildIndexCards(html);
 
-  // Push
-  const encoded = btoa(unescape(encodeURIComponent(html)));
+  const encoded = encodeGitHubContent64(html);
   const putRes = await fetch(`https://api.github.com/repos/${gh.owner}/${gh.repo}/contents/${gh.indexPath}`, {
     method:'PUT',
     headers:{'Authorization':`token ${gh.token}`,'Content-Type':'application/json','Accept':'application/vnd.github.v3+json'},
     body: JSON.stringify({ message:`Admin: update index.html`, content: encoded, sha, branch: gh.branch })
   });
-  if(!putRes.ok){ const e=await putRes.json(); throw new Error(e.message); }
+  if(!putRes.ok){ const e = await putRes.json().catch(()=>({})); throw new Error(e.message || 'GitHub update failed'); }
   showToast('✅ index.html diperbarui di GitHub','success');
+  recordAdminHistory('Update index.html', `Sinkron ${_examList.length} soal ke GitHub`, { file: gh.indexPath });
 }
 
 function rebuildIndexCards(html){
-  const levelColors = {N1:'level-n1',N2:'level-n2',N3:'level-n3',N4:'level-n4',N5:'level-n5'};
-  const cardsHtml = _examList.map(e=>{
-    const n = e.level.toLowerCase();
-    const newBadge = e.isNew?'<div class="new-badge">NEW</div>':'';
-    return `<div class="card" data-name="${e.year}-${e.month}-jlpt" data-level="${e.level}" data-year="${e.year}" data-examkey="${e.key}">\n<div class="card-kanji">${e.level}</div>${newBadge}<div class="year">${e.year}</div>\n<div class="card-body"><div class="exam-title">${e.title}</div>\n<div class="badges"><span class="badge ${levelColors[e.level]||''}">${e.level}</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>\n<div class="exam-desc">${e.desc}</div></div>\n<div class="done-stamp">✓ Completed</div>\n<a href="${e.href}" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>\n</div>`;
-  }).join('\n');
+  const cardsHtml = _examList.map(buildExamCardHtml).join('\n\n');
+  const openTag = '<div class="grid" id="examGrid">';
+  const closeTag = '</div><!-- /examGrid -->';
+  const start = html.indexOf(openTag);
+  const end = html.indexOf(closeTag);
 
-  // Replace everything between examGrid opening and .empty-state
-  return html.replace(/(id="examGrid"[^>]*>)([\s\S]*?)(<div class="empty-state")/, (_,open,_cards,after)=>{
-    return open + '\n' + cardsHtml + '\n' + after;
+  if(start !== -1 && end !== -1 && end > start){
+    const prefix = html.slice(0, start + openTag.length);
+    const suffix = html.slice(end);
+    return `${prefix}\n\n${cardsHtml}\n\n${suffix}`;
+  }
+
+  // Fallback: gunakan blok yang lebih longgar
+  return html.replace(/(<div class="grid" id="examGrid">)([\s\S]*?)(<div class="empty-state" id="emptyState">)/, (_, open, _cards, after) => {
+    return `${open}\n\n${cardsHtml}\n\n${after}`;
   });
 }
 
@@ -1843,7 +1952,7 @@ window.saveGithubConfig = ()=>{
   localStorage.setItem('gh_owner', document.getElementById('cfgOwner').value.trim());
   localStorage.setItem('gh_repo',  document.getElementById('cfgRepo').value.trim());
   localStorage.setItem('gh_branch',document.getElementById('cfgBranch').value.trim()||'main');
-  localStorage.setItem('gh_index_path',document.getElementById('cfgIndexPath').value.trim()||'index.html');
+  localStorage.setItem('gh_index_path', normalizeGithubPath(document.getElementById('cfgIndexPath').value.trim()||'index.html'));
   showToast('💾 GitHub config disimpan!','success');
 };
 

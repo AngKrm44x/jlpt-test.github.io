@@ -297,6 +297,32 @@ async function handleSession(session) {
     // PGRST116 = row not found (memang user baru)
     // Error lain = RLS block atau network issue
     console.error('DB error:', selErr);
+    try {
+      const fallback = await fetch(`${BACKEND_URL}/admin/users/${encodeURIComponent(user.id)}`);
+      const fb = await fallback.json().catch(() => ({}));
+      if (fallback.ok && fb.user) {
+        const usr2 = fb.user;
+        if (usr2.status === 'pending') {
+          localStorage.setItem('jlpt_pending', '1');
+          await supabase.auth.signOut();
+          showPendingImmediate();
+          return;
+        }
+        if (usr2.status === 'rejected') {
+          await supabase.auth.signOut();
+          showError('loginError', 'loginErrorMsg', 'Your request was rejected by admin.');
+          return;
+        }
+        if (usr2.status === 'banned') {
+          await supabase.auth.signOut();
+          showError('loginError', 'loginErrorMsg', 'Your account has been suspended. Contact admin.');
+          return;
+        }
+        localStorage.removeItem('jlpt_pending');
+        showDashboard({ ...user, email: user.email, user_metadata: { full_name: usr2.display_name || usr2.full_name } });
+        return;
+      }
+    } catch (_) {}
     await supabase.auth.signOut();
     showError('loginError', 'loginErrorMsg', 'Gagal mengecek akun. Coba lagi. (' + selErr.code + ')');
     return;
@@ -309,12 +335,16 @@ async function handleSession(session) {
     const uid   = user.id;
 
     // Insert sebagai pending
-    const { error: insertErr } = await supabase.from('users').insert({
-      id: uid, email, full_name: name,
-      status: 'pending',
-      created_at: new Date().toISOString()
-    });
-    if (insertErr) console.error('INSERT ERROR:', insertErr);
+    try {
+      const regRes = await fetch(`${BACKEND_URL}/admin/users/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: uid, email, full_name: name, status: 'pending', created_at: new Date().toISOString() })
+      });
+      if (!regRes.ok) console.error('REGISTER ERROR:', await regRes.text());
+    } catch (insertErr) {
+      console.error('INSERT ERROR:', insertErr);
+    }
 
     // Kirim notif ke bot (hanya sekali, untuk user benar-benar baru)
     try {
@@ -415,11 +445,16 @@ window.doRegister = async function() {
     });
     if (error) throw error;
     const uid = data.user?.id;
-    const { error: insertErr } = await supabase.from('users').insert({
-      id: uid, email, full_name: name, status: 'pending',
-      created_at: new Date().toISOString()
-    });
-    if (insertErr) console.error('INSERT ERROR:', insertErr);
+    try {
+      const regRes = await fetch(`${BACKEND_URL}/admin/users/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: uid, email, full_name: name, status: 'pending', created_at: new Date().toISOString() })
+      });
+      if (!regRes.ok) console.error('REGISTER ERROR:', await regRes.text());
+    } catch (insertErr) {
+      console.error('INSERT ERROR:', insertErr);
+    }
     await fetch(`${BACKEND_URL}/notify-register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
