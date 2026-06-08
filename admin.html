@@ -4,9 +4,11 @@
 <!-- ADMIN AUTH GUARD -->
 <script type="module">
   import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
-  const SUPABASE_URL  = 'https://uincqpdexdenjcmwdfsv.getSupabase().co';
+
+  const SUPABASE_URL  = 'https://uincqpdexdenjcmwdfsv.supabase.co';
   const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpbmNxcGRleGRlbmpjbXdkZnN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5MjM4ODEsImV4cCI6MjA5NTQ5OTg4MX0.Lf1N_P_iiNQ2hnRJhd-Quy9MLKlZFSzbnXtXCnmRCS0';
   const supabase = createClient(SUPABASE_URL, SUPABASE_ANON);
+
   document.documentElement.style.visibility = 'hidden';
 
   // =============================================
@@ -15,30 +17,41 @@
   const SUPER_ADMIN_EMAIL = 'sidiqangga44@gmail.com'; // ← ganti email super admin
   const ADMIN_EMAIL       = 'admin@example.com';       // ← ganti email admin biasa
 
+  const goTo = (url) => window.location.replace(url);
+
   try {
-    const { data: { session } } = await getSupabase().auth.getSession();
-    if (!session) { window.location.replace('./auth.html'); }
-    else {
-      const email = session.user.email;
-      if (email !== SUPER_ADMIN_EMAIL && email !== ADMIN_EMAIL) {
+    const { data: { session } } = await supabase.auth.getSession();
+
+    if (!session) {
+      goTo('./auth.html');
+    } else {
+      const email = (session.user.email || '').trim().toLowerCase();
+      const superAdmin = SUPER_ADMIN_EMAIL.trim().toLowerCase();
+      const adminEmail  = ADMIN_EMAIL.trim().toLowerCase();
+
+      if (email !== superAdmin && email !== adminEmail) {
         alert('⛔ Akses ditolak. Halaman ini khusus admin.');
-        window.location.replace('./index.html');
+        goTo('./index.html');
       } else {
-        const { data: usr } = await getSupabase().from('users').select('*').eq('id', session.user.id).single();
+        const { data: usr } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+
         document.documentElement.style.visibility = 'visible';
         window._supabase      = supabase;
         window._session       = session;
         window._userDb        = usr;
-        window._isSuperAdmin  = (email === SUPER_ADMIN_EMAIL);
+        window._isSuperAdmin  = (email === superAdmin);
         window._adminEmail    = email;
-        // Expose for later use
         window.SUPABASE_URL   = SUPABASE_URL;
         window.SUPABASE_ANON  = SUPABASE_ANON;
       }
     }
-  } catch(e) {
+  } catch (e) {
     console.error('Auth error:', e);
-    window.location.replace('./auth.html');
+    goTo('./auth.html');
   }
 </script>
 <meta charset="UTF-8">
