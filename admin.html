@@ -2188,7 +2188,7 @@ window.togglePwd = window.toggleFieldPwd = function(id, btn){
     renderExamList();
     if (typeof loadDashboard === 'function') await loadDashboard();
 
-    // edit actions are logged by the button handlers to avoid duplicates
+    if (editOnly) pushActivity('edit', 'Soal diperbarui', 'Judul / tahun / deskripsi / status NEW telah diubah');
   };
 
   async function apiJson(url, fallback = null) {
@@ -2327,7 +2327,7 @@ window.togglePwd = window.toggleFieldPwd = function(id, btn){
           loadIndexExamsFromGithub().catch(() => {}),
           refreshAdminActivity().catch(() => {}),
         ]);
-        if (reason === 'boot') pushActivity('system', 'Realtime aktif', 'Panel admin siap memantau perubahan');
+        if (reason) pushActivity('system', 'Panel diperbarui', `Sync realtime: ${reason}`);
       } catch {}
     }, 250);
   }
@@ -2566,21 +2566,6 @@ window.togglePwd = window.toggleFieldPwd = function(id, btn){
     refreshAllAdminViews('saveExamInfo');
   };
 
-  const originalSaveEditorToGithub = window.saveEditorToGithub;
-  window.saveEditorToGithub = async function() {
-    await originalSaveEditorToGithub?.();
-    if (window._currentEditFile) {
-      pushActivity('edit', 'File editor disimpan', window._currentEditFile, { file: window._currentEditFile });
-      refreshAllAdminViews('saveEditorToGithub');
-    }
-  };
-
-  const originalSaveGithubConfig = window.saveGithubConfig;
-  window.saveGithubConfig = async function() {
-    await originalSaveGithubConfig?.();
-    pushActivity('system', 'GitHub config disimpan', `${getGHConfig().owner}/${getGHConfig().repo}`, { config: getGHConfig() });
-  };
-
   const originalConfirmDeleteExam = window.confirmDeleteExam;
   window.confirmDeleteExam = function(key, title) {
     originalConfirmDeleteExam?.(key, title);
@@ -2626,6 +2611,331 @@ window.togglePwd = window.toggleFieldPwd = function(id, btn){
   } else {
     window.__adminRealtimeBoot?.();
   }
+})();
+</script>
+
+
+<script>
+(() => {
+  if (window.__jlptAdminV2Patched) return;
+  window.__jlptAdminV2Patched = true;
+
+  const GH_FILE_EXT = /\.html?$/i;
+  const EXAM_LEVEL_RE = /(n[1-5])/i;
+
+  const safeText = (value = '') => String(value ?? '').trim();
+  const toUpperLevel = (value = '') => safeText(value).toUpperCase();
+
+  function ghHeaders(token) {
+    return {
+      'Authorization': `token ${token}`,
+      'Accept': 'application/vnd.github.v3+json',
+    };
+  }
+
+  function getExamLevelFromPath(path = '') {
+    const m = String(path).match(/\/(n[1-5])\//i) || String(path).match(/^(n[1-5])-/i);
+    return m ? m[1].toUpperCase() : '';
+  }
+
+  function getExamYearMonthFromPath(path = '') {
+    const p = String(path);
+    const year = (p.match(/(\d{4})/) || [])[1] || '';
+    const month = (p.match(/-(07|12)(?:-|\.html?$)/i) || [])[1] || (p.includes('-07-') ? '07' : (p.includes('-12-') ? '12' : ''));
+    return { year, month };
+  }
+
+  function inferTitle(path = '', html = '') {
+    try {
+      const doc = new DOMParser().parseFromString(html || '', 'text/html');
+      const metaTitle = safeText(doc.querySelector('title')?.textContent);
+      if (metaTitle) return metaTitle;
+      const h1 = safeText(doc.querySelector('h1')?.textContent);
+      if (h1) return h1;
+    } catch {}
+    const level = getExamLevelFromPath(path) || 'N?';
+    const { year, month } = getExamYearMonthFromPath(path);
+    const monthName = month === '07' ? 'July' : (month === '12' ? 'December' : '—');
+    return `JLPT ${level.toUpperCase()} ${monthName} ${year || ''}`.trim();
+  }
+
+  function inferDesc(html = '') {
+    try {
+      const doc = new DOMParser().parseFromString(html || '', 'text/html');
+      const metaDesc = safeText(doc.querySelector('meta[name="description"]')?.getAttribute('content'));
+      if (metaDesc) return metaDesc;
+      const ogDesc = safeText(doc.querySelector('meta[property="og:description"]')?.getAttribute('content'));
+      if (ogDesc) return ogDesc;
+      const sub = safeText(doc.querySelector('.subtitle, .exam-desc, .desc')?.textContent);
+      if (sub) return sub;
+    } catch {}
+    return 'JLPT exam simulation.';
+  }
+
+  function inferIsNew(html = '') {
+    return /new-badge|new|latest/i.test(String(html || ''));
+  }
+
+  function normalizeHref(path = '') {
+    const p = String(path).replace(/^\/+/, '').replace(/^\.\//, '');
+    return p ? `./${p}` : '';
+  }
+
+  function buildExamItemFromPath(path, html = '') {
+    const level = getExamLevelFromPath(path);
+    const { year, month } = getExamYearMonthFromPath(path);
+    const title = inferTitle(path, html);
+    const desc = inferDesc(html);
+    const key = `${(level || 'n?').toLowerCase()}-${year || '0000'}-${month || '12'}`;
+    return {
+      key,
+      level: level || 'N?',
+      year: parseInt(year, 10) || 0,
+      month: month || '12',
+      title,
+      desc,
+      href: normalizeHref(path),
+      isNew: inferIsNew(html),
+    };
+  }
+
+  async function fetchGithubJson(path) {
+    const gh = typeof getGHConfig === 'function' ? getGHConfig() : null;
+    if (!gh || !gh.token || !gh.owner || !gh.repo) throw new Error('GitHub config belum lengkap');
+    const url = `https://api.github.com/repos/${gh.owner}/${gh.repo}/${path}`;
+    const res = await fetch(url, { headers: ghHeaders(gh.token) });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || `HTTP ${res.status}`);
+    }
+    return res.json();
+  }
+
+  async function fetchGithubFileHtml(path) {
+    const gh = typeof getGHConfig === 'function' ? getGHConfig() : null;
+    if (!gh || !gh.token || !gh.owner || !gh.repo) throw new Error('GitHub config belum lengkap');
+    const url = `https://api.github.com/repos/${gh.owner}/${gh.repo}/contents/${path}`;
+    const res = await fetch(url, { headers: ghHeaders(gh.token) });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || `HTTP ${res.status}`);
+    }
+    const json = await res.json();
+    const content = String(json.content || '').replace(/\n/g, '');
+    return atob(content);
+  }
+
+  async function fetchIndexHtmlMaybe() {
+    const gh = typeof getGHConfig === 'function' ? getGHConfig() : null;
+    if (!gh || !gh.token || !gh.owner || !gh.repo) throw new Error('GitHub config belum lengkap');
+    const url = `https://api.github.com/repos/${gh.owner}/${gh.repo}/contents/${gh.indexPath || 'index.html'}`;
+    const res = await fetch(url, { headers: ghHeaders(gh.token) });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || `HTTP ${res.status}`);
+    }
+    const json = await res.json();
+    const html = atob(String(json.content || '').replace(/\n/g, ''));
+    return { html, sha: json.sha };
+  }
+
+  async function fetchRepoTreeExamPaths() {
+    const gh = typeof getGHConfig === 'function' ? getGHConfig() : null;
+    if (!gh || !gh.token || !gh.owner || !gh.repo) throw new Error('GitHub config belum lengkap');
+    const branch = gh.branch || 'main';
+    const ref = await fetchGithubJson(`git/ref/heads/${encodeURIComponent(branch)}`);
+    const tree = await fetchGithubJson(`git/trees/${ref.object.sha}?recursive=1`);
+    const items = (tree.tree || []).filter(item =>
+      item && item.type === 'blob' &&
+      GH_FILE_EXT.test(item.path || '') &&
+      /^jlpt\/n[1-5]\//i.test(item.path || '')
+    );
+    return items.map(item => item.path);
+  }
+
+  async function loadExamItemsFromTree() {
+    const paths = await fetchRepoTreeExamPaths();
+    if (!paths.length) return [];
+    const results = await Promise.all(paths.map(async (path) => {
+      try {
+        const html = await fetchGithubFileHtml(path);
+        return buildExamItemFromPath(path, html);
+      } catch (e) {
+        return buildExamItemFromPath(path, '');
+      }
+    }));
+    results.sort((a, b) => {
+      const levelOrder = { N1: 1, N2: 2, N3: 3, N4: 4, N5: 5 };
+      const al = levelOrder[a.level] || 99;
+      const bl = levelOrder[b.level] || 99;
+      if (al !== bl) return al - bl;
+      if (b.year !== a.year) return b.year - a.year;
+      if (b.month !== a.month) return String(b.month).localeCompare(String(a.month));
+      return String(a.title || '').localeCompare(String(b.title || ''));
+    });
+    return results;
+  }
+
+  function resolveExamInput(input) {
+    const raw = safeText(input);
+    if (!raw) return null;
+
+    if (/^https?:\/\//i.test(raw)) return raw;
+    if (raw.includes('/') || raw.endsWith('.html') || raw.startsWith('./')) {
+      return raw.replace(/^\.\//, '');
+    }
+
+    const list = Array.isArray(window._examList) ? window._examList : [];
+    const found = list.find(e => e && (e.key === raw || String(e.href || '').includes(raw)));
+    if (found && found.href) return String(found.href).replace(/^\.\//, '');
+    return null;
+  }
+
+  function getRoleBadgeForUser(user = {}) {
+    const email = safeText(user.email).toLowerCase();
+    const superEmail = safeText(window._adminEmail || 'sidiqangga44@gmail.com').toLowerCase();
+    const userRole = safeText(user.role || user.user_role || user.account_role || '').toLowerCase();
+    if (email && email === superEmail) return { cls: 'super', label: 'Super Admin' };
+    if (userRole === 'admin') return { cls: 'admin', label: 'Admin' };
+    if (userRole === 'super') return { cls: 'super', label: 'Super Admin' };
+    return { cls: 'user', label: 'User' };
+  }
+
+  // ---- Override user table renderer so super admin is not mislabeled as "user"
+  window.renderAllUsers = function(users) {
+    const tbody = document.getElementById('allUserTable');
+    if (!tbody) return;
+    const rows = (Array.isArray(users) ? users : []).map(u => {
+      const role = getRoleBadgeForUser(u);
+      const name = safeText(u.full_name || u.display_name || '—');
+      const initial = (name || safeText(u.email) || '?').charAt(0).toUpperCase();
+      return `
+        <tr>
+          <td>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div style="width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#3558a8,#6c3fff);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;flex-shrink:0;">${escHtml(initial)}</div>
+              <div>
+                <div style="font-weight:700;font-size:14px;">${escHtml(name)}</div>
+                <div style="font-size:11px;color:var(--muted);">${escHtml(u.display_name || '')}</div>
+              </div>
+            </div>
+          </td>
+          <td style="font-size:13px;">${escHtml(u.email || '—')}</td>
+          <td><span class="status ${(u.status || 'pending')}">${escHtml(u.status || 'pending')}</span></td>
+          <td><span class="role-badge ${role.cls}">${escHtml(role.label)}</span></td>
+          <td style="font-size:12px;color:var(--muted);">${typeof fmtDate === 'function' ? fmtDate(u.created_at) : escHtml(u.created_at || '—')}</td>
+          <td>
+            <div style="display:flex;gap:5px;flex-wrap:wrap;">
+              ${(u.status==='pending') ? `<button class="act-btn approve" onclick="changeUserStatus('${escHtml(u.id)}','active')">✅ Approve</button><button class="act-btn reject" onclick="changeUserStatus('${escHtml(u.id)}','rejected')">❌ Tolak</button>` : ''}
+              ${(u.status==='active') ? `<button class="act-btn ban" onclick="changeUserStatus('${escHtml(u.id)}','banned')">🔨 Ban</button>` : ''}
+              ${(u.status==='banned') ? `<button class="act-btn approve" onclick="changeUserStatus('${escHtml(u.id)}','active')">♻️ Unban</button>` : ''}
+              <button class="act-btn edit" onclick="openEditUser('${escHtml(u.id)}')">✏️</button>
+              <button class="act-btn delete" onclick="confirmDeleteUser('${escHtml(u.id)}','${escHtml(name || u.email || '')}')">🗑️</button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+    tbody.innerHTML = rows || '<tr><td colspan="6" class="empty-state"><p>Tidak ada user</p></td></tr>';
+  };
+
+  // ---- Make exam list load from index.html first, then fallback to the repo tree under /jlpt
+  window.loadExamListFromIndex = async function() {
+    const gh = typeof getGHConfig === 'function' ? getGHConfig() : null;
+    if (!gh || !gh.token || !gh.owner || !gh.repo) {
+      if (typeof parseExamListFromLocalDOM === 'function') parseExamListFromLocalDOM();
+      return;
+    }
+
+    try {
+      const { html } = await fetchIndexHtmlMaybe();
+      let parsed = [];
+      try { parsed = typeof parseExamCards === 'function' ? parseExamCards(html) : []; } catch { parsed = []; }
+      if (Array.isArray(parsed) && parsed.length) {
+        window._examList = parsed;
+        if (typeof renderExamList === 'function') renderExamList();
+        if (typeof loadDashboard === 'function') await loadDashboard();
+        return;
+      }
+    } catch (e) {
+      console.warn('index.html parse failed, fallback tree:', e);
+    }
+
+    try {
+      const list = await loadExamItemsFromTree();
+      window._examList = list;
+      if (typeof renderExamList === 'function') renderExamList();
+      if (typeof loadDashboard === 'function') await loadDashboard();
+    } catch (e) {
+      console.error('Tree fallback gagal:', e);
+      if (!Array.isArray(window._examList)) window._examList = [];
+      if (typeof renderExamList === 'function') renderExamList();
+      if (typeof showToast === 'function') showToast('⚠️ Daftar soal belum terbaca dari GitHub','error');
+    }
+  };
+
+  // ---- Open editor either from real file path or exam key (used by report rows)
+  window.openExamEditor = async function(input, title) {
+    const resolved = resolveExamInput(input);
+    if (!resolved) {
+      if (typeof showToast === 'function') showToast('❌ File soal tidak ditemukan', 'error');
+      if (typeof goto === 'function') goto('exams');
+      return;
+    }
+
+    if (typeof goto === 'function') goto('editor');
+    const label = resolved.split('/').pop() || String(input || '—');
+    const editorLabel = document.getElementById('editorFileLabel');
+    const edFile = document.getElementById('edFile');
+    const code = document.getElementById('codeEditor');
+    const modified = document.getElementById('edModified');
+    if (editorLabel) editorLabel.textContent = resolved;
+    if (edFile) edFile.textContent = label;
+    if (code) code.value = '⏳ Memuat file dari GitHub...';
+    if (modified) modified.style.display = 'none';
+
+    const gh = typeof getGHConfig === 'function' ? getGHConfig() : null;
+    if (!gh || !gh.token || !gh.owner || !gh.repo) {
+      if (code) code.value = '⚠️ GitHub belum dikonfigurasi.\nPergi ke "GitHub Config" dan isi token, owner, repo terlebih dahulu.';
+      return;
+    }
+
+    try {
+      const filePath = resolved.replace(/^\.\//, '');
+      const html = await fetchGithubFileHtml(filePath);
+      window._currentFileSha = await (async () => {
+        const meta = await fetchGithubJson(`contents/${filePath}`);
+        return meta.sha;
+      })();
+      window._currentEditFile = filePath;
+      window._currentEditOriginal = html;
+      if (code) code.value = html;
+      if (typeof updateEditorStats === 'function') updateEditorStats();
+      if (typeof showToast === 'function') showToast('✅ File dimuat dari GitHub', 'success');
+    } catch (e) {
+      if (code) code.value = `⚠️ Gagal memuat file: ${e.message}\n\nPath: ${resolved}\n\nPastikan file ada di repo dan path benar.`;
+      if (typeof showToast === 'function') showToast('❌ Gagal memuat: ' + e.message, 'error');
+    }
+  };
+
+  // ---- Add a safer path for reports button: if it passes an exam_key, openExamEditor now resolves it
+  window.openEditReportExam = function(examKey, examTitle) {
+    return window.openExamEditor(examKey, examTitle);
+  };
+
+  // ---- Keep reports button working even if it still passes exam_key
+  const originalLoadReports = window.loadReports;
+  window.loadReports = async function() {
+    const res = await originalLoadReports?.apply(this, arguments);
+    return res;
+  };
+
+  // ---- A tiny post-load refresh so the list is repopulated even if initApp already ran before this patch
+  setTimeout(() => {
+    if (typeof window.loadExamListFromIndex === 'function') window.loadExamListFromIndex().catch(() => {});
+    if (typeof window.loadAllUsers === 'function') window.loadAllUsers().catch?.(() => {});
+    if (typeof window.loadPendingUsers === 'function') window.loadPendingUsers().catch?.(() => {});
+  }, 250);
 })();
 </script>
 
