@@ -2839,7 +2839,7 @@ window.togglePwd = window.toggleFieldPwd = function(id, btn){
     tbody.innerHTML = rows || '<tr><td colspan="6" class="empty-state"><p>Tidak ada user</p></td></tr>';
   };
 
-  // ---- Make exam list load from index.html first, then fallback to the repo tree under /jlpt
+  // ---- Make exam list load from the repo tree first, then merge index.html metadata when available
   window.loadExamListFromIndex = async function() {
     const gh = typeof getGHConfig === 'function' ? getGHConfig() : null;
     if (!gh || !gh.token || !gh.owner || !gh.repo) {
@@ -2847,31 +2847,72 @@ window.togglePwd = window.toggleFieldPwd = function(id, btn){
       return;
     }
 
-    try {
-      const { html } = await fetchIndexHtmlMaybe();
-      let parsed = [];
-      try { parsed = typeof parseExamCards === 'function' ? parseExamCards(html) : []; } catch { parsed = []; }
-      if (Array.isArray(parsed) && parsed.length) {
-        window._examList = parsed;
-        if (typeof renderExamList === 'function') renderExamList();
-        if (typeof loadDashboard === 'function') await loadDashboard();
-        return;
+    const levelOrder = { N1: 1, N2: 2, N3: 3, N4: 4, N5: 5 };
+    const sortExamList = (list) => list.sort((a, b) => {
+      const al = levelOrder[a.level] || 99;
+      const bl = levelOrder[b.level] || 99;
+      if (al !== bl) return al - bl;
+      if ((b.year || 0) !== (a.year || 0)) return (b.year || 0) - (a.year || 0);
+      if (String(b.month || '') !== String(a.month || '')) return String(b.month || '').localeCompare(String(a.month || ''));
+      return String(a.title || '').localeCompare(String(b.title || ''));
+    });
+
+    const mergeExamLists = (baseList, patchList) => {
+      const map = new Map();
+      for (const item of baseList || []) {
+        if (!item) continue;
+        const key = item.key || `${String(item.level || '').toLowerCase()}-${item.year || '0000'}-${item.month || '12'}`;
+        map.set(key, { ...item, key });
       }
+      for (const item of patchList || []) {
+        if (!item) continue;
+        const key = item.key || `${String(item.level || '').toLowerCase()}-${item.year || '0000'}-${item.month || '12'}`;
+        const prev = map.get(key) || {};
+        map.set(key, {
+          ...prev,
+          ...item,
+          key,
+          href: item.href || prev.href || '',
+          title: item.title || prev.title || '',
+          desc: item.desc || prev.desc || '',
+        });
+      }
+      return sortExamList(Array.from(map.values()));
+    };
+
+    let treeItems = [];
+    let indexItems = [];
+
+    try {
+      treeItems = await loadExamItemsFromTree();
     } catch (e) {
-      console.warn('index.html parse failed, fallback tree:', e);
+      console.warn('Repo tree load gagal:', e);
+      treeItems = [];
     }
 
     try {
-      const list = await loadExamItemsFromTree();
-      window._examList = list;
+      const { html } = await fetchIndexHtmlMaybe();
+      try { indexItems = typeof parseExamCards === 'function' ? parseExamCards(html) : []; } catch { indexItems = []; }
+    } catch (e) {
+      console.warn('index.html parse gagal:', e);
+      indexItems = [];
+    }
+
+    if (treeItems.length) {
+      window._examList = mergeExamLists(treeItems, indexItems);
       if (typeof renderExamList === 'function') renderExamList();
       if (typeof loadDashboard === 'function') await loadDashboard();
-    } catch (e) {
-      console.error('Tree fallback gagal:', e);
-      if (!Array.isArray(window._examList)) window._examList = [];
-      if (typeof renderExamList === 'function') renderExamList();
-      if (typeof showToast === 'function') showToast('⚠️ Daftar soal belum terbaca dari GitHub','error');
+      return;
     }
+
+    if (indexItems.length) {
+      window._examList = sortExamList(indexItems);
+      if (typeof renderExamList === 'function') renderExamList();
+      if (typeof loadDashboard === 'function') await loadDashboard();
+      return;
+    }
+
+    if (typeof parseExamListFromLocalDOM === 'function') parseExamListFromLocalDOM();
   };
 
   // ---- Open editor either from real file path or exam key (used by report rows)
