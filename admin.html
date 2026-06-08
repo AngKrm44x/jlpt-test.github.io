@@ -880,12 +880,6 @@ select.form-input option{background:#0b1120;color:var(--text);}
         </div>
         <button class="submit-btn" onclick="saveTelegramConfig()">💾 Simpan Config Telegram</button>
       </div>
-
-      <div class="config-wrap" style="margin-top:24px;">
-        <div class="config-title">🕒 Riwayat Aktivitas Admin</div>
-        <div class="config-desc">Upload, edit, hapus, dan sinkronisasi index terakhir akan tersimpan di browser ini.</div>
-        <div id="adminHistoryList"></div>
-      </div>
     </div>
 
   </div><!-- /content -->
@@ -1019,110 +1013,6 @@ function getTGConfig(){
   };
 }
 
-const BACKEND_URL = 'https://jlpt-auth-bot-production.up.railway.app';
-const ADMIN_HISTORY_KEY = 'jlpt_admin_history_v1';
-const EXAM_CACHE_KEY = 'jlpt_exam_cache_v1';
-
-function getSessionToken(){
-  return window._session?.access_token || '';
-}
-
-async function adminApi(path, options = {}){
-  const headers = new Headers(options.headers || {});
-  const token = getSessionToken();
-  if(token) headers.set('Authorization', `Bearer ${token}`);
-  headers.set('Accept', 'application/json');
-  if(!headers.has('Content-Type') && options.body) headers.set('Content-Type', 'application/json');
-  const res = await fetch(`${BACKEND_URL}${path}`, {...options, headers});
-  const raw = await res.text();
-  let data = null;
-  try { data = raw ? JSON.parse(raw) : null; } catch(_) {}
-  if(!res.ok) throw new Error(data?.error || data?.message || raw || `HTTP ${res.status}`);
-  return data;
-}
-
-function decodeUtf8B64(b64){
-  return decodeURIComponent(escape(atob(String(b64 || '').replace(/\s+/g, ''))));
-}
-
-function encodeUtf8B64(str){
-  return btoa(unescape(encodeURIComponent(String(str || ''))));
-}
-
-function loadAdminHistory(){
-  try { return JSON.parse(localStorage.getItem(ADMIN_HISTORY_KEY) || '[]'); }
-  catch(_) { return []; }
-}
-
-function saveAdminHistory(list){
-  localStorage.setItem(ADMIN_HISTORY_KEY, JSON.stringify((list || []).slice(0, 30)));
-}
-
-function pushAdminHistory(action, details = {}){
-  const list = loadAdminHistory();
-  list.unshift({
-    id: `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
-    at: new Date().toISOString(),
-    action,
-    details,
-  });
-  saveAdminHistory(list);
-  renderAdminHistory();
-}
-
-function renderAdminHistory(){
-  const box = document.getElementById('adminHistoryList');
-  if(!box) return;
-  const list = loadAdminHistory().slice(0, 8);
-  if(!list.length){
-    box.innerHTML = '<div class="empty-state" style="display:block;padding:14px 0;"><p>Belum ada riwayat.</p></div>';
-    return;
-  }
-  box.innerHTML = list.map(item => `
-    <div style="padding:12px 14px;border:1px solid var(--border);border-radius:14px;background:rgba(255,255,255,.03);margin-bottom:10px;">
-      <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;">
-        <div>
-          <div style="font-weight:700;font-size:13px;">${escHtml(item.action)}</div>
-          <div style="font-size:12px;color:var(--muted);margin-top:4px;">${escHtml(JSON.stringify(item.details || {}))}</div>
-        </div>
-        <div style="font-size:11px;color:var(--muted);white-space:nowrap;">${fmtDate(item.at)}</div>
-      </div>
-    </div>
-  `).join('');
-}
-
-function saveExamCache(list){
-  localStorage.setItem(EXAM_CACHE_KEY, JSON.stringify(list || []));
-}
-
-function loadExamCache(){
-  try { return JSON.parse(localStorage.getItem(EXAM_CACHE_KEY) || '[]'); }
-  catch(_) { return []; }
-}
-
-function upsertExam(list, exam){
-  const map = new Map((list || []).map(x => [x.key, x]));
-  map.set(exam.key, exam);
-  return [...map.values()];
-}
-
-function buildExamCard(e){
-  const levelColors = {N1:'level-n1',N2:'level-n2',N3:'level-n3',N4:'level-n4',N5:'level-n5'};
-  const newBadge = e.isNew ? '<div class="new-badge">NEW</div>' : '';
-  return `<div class="card" data-name="${e.year}-${e.month}-jlpt" data-level="${escHtml(e.level)}" data-year="${escHtml(e.year)}" data-examkey="${escHtml(e.key)}">
-<div class="card-kanji">${escHtml(e.level)}</div>${newBadge}<div class="year">${escHtml(e.year)}</div>
-<div class="card-body"><div class="exam-title">${escHtml(e.title)}</div>
-<div class="badges"><span class="badge ${levelColors[e.level]||''}">${escHtml(e.level)}</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
-<div class="exam-desc">${escHtml(e.desc)}</div></div>
-<div class="done-stamp">✓ Completed</div>
-<a href="${escHtml(e.href)}" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
-</div>`;
-}
-
-function buildExamCardsHtml(list){
-  return (list || []).map(buildExamCard).join('\n');
-}
-
 // =============================================
 // INIT
 // =============================================
@@ -1146,7 +1036,6 @@ async function initApp(){
 
   // Load config ke form dari localStorage
   loadConfigToForm();
-  renderAdminHistory();
 
   await Promise.all([
     loadDashboard(),
@@ -1230,31 +1119,15 @@ window.showToast = (msg, type='')=>{
 // DASHBOARD
 // =============================================
 async function loadDashboard(){
-  let users = [];
-  let pending = [];
-  let reports = [];
-  try {
-    const [u, p, r] = await Promise.all([
-      adminApi('/admin/users'),
-      adminApi('/admin/users?status=pending'),
-      adminApi('/admin/reports?status=pending')
-    ]);
-    users = u.users || [];
-    pending = p.users || [];
-    reports = r.reports || [];
-  } catch (e) {
-    console.warn('Backend admin API failed, fallback to Supabase:', e.message);
-    const [usersRes, pendingRes, reportsRes] = await Promise.all([
-      getSupabase().from('users').select('*').order('created_at',{ascending:false}),
-      getSupabase().from('users').select('*').eq('status','pending').order('created_at',{ascending:false}),
-      getSupabase().from('exam_reports').select('*').eq('status','pending').order('created_at',{ascending:false}),
-    ]);
-    users = usersRes.data || [];
-    pending = pendingRes.data || [];
-    reports = reportsRes.data || [];
-  }
-
+  const [usersRes, pendingRes] = await Promise.all([
+    getSupabase().from('users').select('*').order('created_at',{ascending:false}),
+    getSupabase().from('users').select('id').eq('status','pending'),
+  ]);
+  const users = usersRes.data||[];
+  const pending = pendingRes.data||[];
   const active = users.filter(u=>u.status==='active').length;
+
+  // Count exams from the parsed list
   const examCount = (window._examList||[]).length;
 
   document.getElementById('dTotalExam').textContent = examCount;
@@ -1262,11 +1135,14 @@ async function loadDashboard(){
   document.getElementById('dActiveUser').textContent = active+' aktif';
   document.getElementById('dPendingUser').textContent = pending.length;
 
-  const rc = reports.length;
+  // Reports count
+  const {data: rpts} = await getSupabase().from('exam_reports').select('id').eq('status','pending');
+  const rc = (rpts||[]).length;
   document.getElementById('dReports').textContent = rc;
   document.getElementById('reportBadge').textContent = rc;
   document.getElementById('pendingBadge').textContent = pending.length;
 
+  // Recent users table (latest 8)
   const tbody = document.getElementById('dashUserTable');
   tbody.innerHTML = users.slice(0,8).map(u=>`
     <tr>
@@ -1279,64 +1155,139 @@ async function loadDashboard(){
   `).join('') || '<tr><td colspan="5" class="empty-state"><p>Tidak ada user</p></td></tr>';
 }
 
+// =============================================
+// USER MANAGEMENT
+// =============================================
+let _allUsers = [];
+
 async function loadAllUsers(){
-  try {
-    const data = await adminApi('/admin/users');
-    _allUsers = data.users || [];
-  } catch (e) {
-    const {data, error} = await getSupabase().from('users').select('*').order('created_at',{ascending:false});
-    if(error){ showToast('❌ Gagal memuat users: '+error.message,'error'); return; }
-    _allUsers = data||[];
-  }
+  const {data, error} = await getSupabase().from('users').select('*').order('created_at',{ascending:false});
+  if(error){ showToast('❌ Gagal memuat users: '+error.message,'error'); return; }
+  _allUsers = data||[];
   renderAllUsers(_allUsers);
 }
 
-async function loadPendingUsers(){
-  try {
-    const data = await adminApi('/admin/users?status=pending');
-    const pending = data.users || [];
-    document.getElementById('pendingCount').textContent = `${pending.length} user`;
-    document.getElementById('pendingBadge').textContent = pending.length;
-    const tbody = document.getElementById('pendingUserTable');
-    tbody.innerHTML = pending.map(u=>`
-      <tr>
-        <td>
-          <div style="font-weight:700">${escHtml(u.full_name||u.display_name||'—')}</div>
-          <div style="font-size:12px;color:var(--muted);">${escHtml(u.email||'')}</div>
-        </td>
-        <td>${fmtDate(u.created_at)}</td>
-        <td>
-          <div style="display:flex;gap:6px;flex-wrap:wrap;">
-            <button class="act-btn approve" onclick="changeUserStatus('${u.id}','active')">✅ Approve</button>
-            <button class="act-btn reject" onclick="changeUserStatus('${u.id}','rejected')">❌ Tolak</button>
+function renderAllUsers(users){
+  const tbody = document.getElementById('allUserTable');
+  tbody.innerHTML = users.map(u=>`
+    <tr>
+      <td>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#3558a8,#6c3fff);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;flex-shrink:0;">${(u.full_name||'?').charAt(0).toUpperCase()}</div>
+          <div>
+            <div style="font-weight:700;font-size:14px;">${escHtml(u.full_name||'—')}</div>
+            <div style="font-size:11px;color:var(--muted);">${escHtml(u.display_name||'')}</div>
           </div>
-        </td>
-      </tr>
-    `).join('') || '<tr><td colspan="3" class="empty-state"><p>Tidak ada pending user</p></td></tr>';
-  } catch (e) {
-    const {data, error} = await getSupabase().from('users').select('*').eq('status','pending').order('created_at',{ascending:false});
-    if(error){ showToast('❌ Gagal memuat pending: '+error.message,'error'); return; }
-    const pending = data||[];
-    document.getElementById('pendingCount').textContent = `${pending.length} user`;
-    document.getElementById('pendingBadge').textContent = pending.length;
-    const tbody = document.getElementById('pendingUserTable');
-    tbody.innerHTML = pending.map(u=>`
-      <tr>
-        <td>
-          <div style="font-weight:700">${escHtml(u.full_name||u.display_name||'—')}</div>
-          <div style="font-size:12px;color:var(--muted);">${escHtml(u.email||'')}</div>
-        </td>
-        <td>${fmtDate(u.created_at)}</td>
-        <td>
-          <div style="display:flex;gap:6px;flex-wrap:wrap;">
-            <button class="act-btn approve" onclick="changeUserStatus('${u.id}','active')">✅ Approve</button>
-            <button class="act-btn reject" onclick="changeUserStatus('${u.id}','rejected')">❌ Tolak</button>
-          </div>
-        </td>
-      </tr>
-    `).join('') || '<tr><td colspan="3" class="empty-state"><p>Tidak ada pending user</p></td></tr>';
-  }
+        </div>
+      </td>
+      <td style="font-size:13px;">${escHtml(u.email||'—')}</td>
+      <td><span class="status ${u.status||'pending'}">${u.status||'pending'}</span></td>
+      <td><span class="role-badge user">user</span></td>
+      <td style="font-size:12px;color:var(--muted);">${fmtDate(u.created_at)}</td>
+      <td>
+        <div style="display:flex;gap:5px;flex-wrap:wrap;">
+          ${u.status==='pending'?`<button class="act-btn approve" onclick="changeUserStatus('${u.id}','active')">✅ Approve</button><button class="act-btn reject" onclick="changeUserStatus('${u.id}','rejected')">❌ Tolak</button>`:''}
+          ${u.status==='active'?`<button class="act-btn ban" onclick="changeUserStatus('${u.id}','banned')">🔨 Ban</button>`:''}
+          ${u.status==='banned'?`<button class="act-btn approve" onclick="changeUserStatus('${u.id}','active')">♻️ Unban</button>`:''}
+          <button class="act-btn edit" onclick="openEditUser('${u.id}')">✏️</button>
+          <button class="act-btn delete" onclick="confirmDeleteUser('${u.id}','${escHtml(u.full_name||u.email||'')}')">🗑️</button>
+        </div>
+      </td>
+    </tr>
+  `).join('') || '<tr><td colspan="6" class="empty-state"><p>Tidak ada user</p></td></tr>';
 }
+
+window.filterUserTable = ()=>{
+  const search = document.getElementById('userSearch').value.toLowerCase();
+  const status = document.getElementById('userStatusFilter').value;
+  const filtered = _allUsers.filter(u=>{
+    const matchSearch = !search || (u.full_name||'').toLowerCase().includes(search) || (u.email||'').toLowerCase().includes(search);
+    const matchStatus = !status || u.status===status;
+    return matchSearch && matchStatus;
+  });
+  renderAllUsers(filtered);
+};
+
+async function loadPendingUsers(){
+  const {data} = await getSupabase().from('users').select('*').eq('status','pending').order('created_at',{ascending:false});
+  const users = data||[];
+  document.getElementById('pendingBadge').textContent = users.length;
+  const tbody = document.getElementById('pendingUserTable');
+  tbody.innerHTML = users.map(u=>`
+    <tr>
+      <td>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#ffb547,#ff4f6d);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;flex-shrink:0;">${(u.full_name||'?').charAt(0).toUpperCase()}</div>
+          <div>
+            <div style="font-weight:700;font-size:14px;">${escHtml(u.full_name||'—')}</div>
+          </div>
+        </div>
+      </td>
+      <td>${escHtml(u.email||'—')}</td>
+      <td style="font-size:12px;color:var(--muted);">${fmtDate(u.created_at)}</td>
+      <td>
+        <div style="display:flex;gap:6px;">
+          <button class="act-btn approve" onclick="changeUserStatus('${u.id}','active')">✅ Approve</button>
+          <button class="act-btn reject" onclick="changeUserStatus('${u.id}','rejected')">❌ Tolak</button>
+          <button class="act-btn delete" onclick="confirmDeleteUser('${u.id}','${escHtml(u.full_name||u.email||'')}')">🗑️ Hapus</button>
+        </div>
+      </td>
+    </tr>
+  `).join('') || '<tr><td colspan="4" class="empty-state"><p>Tidak ada user pending 🎉</p></td></tr>';
+}
+
+window.changeUserStatus = async(id, status)=>{
+  const {error} = await getSupabase().from('users').update({status}).eq('id',id);
+  if(error){ showToast('❌ Gagal: '+error.message,'error'); return; }
+  showToast(`✅ Status diubah ke "${status}"`, 'success');
+  await Promise.all([loadAllUsers(), loadPendingUsers(), loadDashboard()]);
+};
+
+window.openEditUser = (id)=>{
+  const u = _allUsers.find(x=>x.id===id);
+  if(!u) return;
+  document.getElementById('euId').value = id;
+  document.getElementById('euName').value = u.full_name||'';
+  document.getElementById('euDisplayName').value = u.display_name||'';
+  document.getElementById('euStatus').value = u.status||'pending';
+  openModal('editUserModal');
+};
+
+window.saveEditUser = async()=>{
+  const id = document.getElementById('euId').value;
+  const updates = {
+    full_name: document.getElementById('euName').value.trim(),
+    display_name: document.getElementById('euDisplayName').value.trim(),
+    status: document.getElementById('euStatus').value,
+  };
+  const {error} = await getSupabase().from('users').update(updates).eq('id',id);
+  if(error){ showToast('❌ Gagal menyimpan: '+error.message,'error'); return; }
+  showToast('✅ User berhasil diperbarui','success');
+  closeModal('editUserModal');
+  await Promise.all([loadAllUsers(), loadPendingUsers(), loadDashboard()]);
+};
+
+window.confirmDeleteUser = (id, name)=>{
+  document.getElementById('confirmText').innerHTML = `Hapus user <strong>${escHtml(name)}</strong>?<br><span style="color:var(--danger);">Aksi ini tidak dapat dibatalkan.</span>`;
+  document.getElementById('confirmOkBtn').onclick = async()=>{
+    const {error} = await getSupabase().from('users').delete().eq('id',id);
+    if(error){ showToast('❌ Gagal: '+error.message,'error'); return; }
+    showToast('🗑️ User dihapus','success');
+    closeModal('confirmModal');
+    await Promise.all([loadAllUsers(), loadPendingUsers(), loadDashboard()]);
+  };
+  openModal('confirmModal');
+};
+
+window.approveAll = async()=>{
+  const pending = _allUsers.filter(u=>u.status==='pending');
+  if(!pending.length){ showToast('Tidak ada user pending'); return; }
+  for(const u of pending){
+    await getSupabase().from('users').update({status:'active'}).eq('id',u.id);
+  }
+  showToast(`✅ ${pending.length} user di-approve!`,'success');
+  await Promise.all([loadAllUsers(), loadPendingUsers(), loadDashboard()]);
+};
 
 // =============================================
 // EXAM LIST — Parse dari index.html via GitHub
@@ -1345,40 +1296,51 @@ let _examList = [];
 
 async function loadExamListFromIndex(){
   const gh = getGHConfig();
-  const useCache = ()=>{
-    const cache = loadExamCache();
-    if(cache.length){
-      _examList = cache;
-      window._examList = _examList;
-      renderExamList();
-      return true;
-    }
-    return false;
-  };
-
   if(!gh.token || !gh.owner || !gh.repo){
-    useCache();
+    // Fallback: parse dari DOM index.html yang sudah ada
+    parseExamListFromLocalDOM();
     return;
   }
-
   try {
     const res = await fetch(`https://api.github.com/repos/${gh.owner}/${gh.repo}/contents/${gh.indexPath}`, {
       headers: { 'Authorization': `token ${gh.token}`, 'Accept': 'application/vnd.github.v3+json' }
     });
-    if(!res.ok) throw new Error(`HTTP ${res.status}`);
     const json = await res.json();
-    const html = decodeUtf8B64(json.content || '');
-    _examList = parseExamCards(html);
-    if(!_examList.length) throw new Error('Tidak menemukan kartu soal di index.html');
-    window._examList = _examList;
-    window._indexSha = json.sha;
-    saveExamCache(_examList);
-    renderExamList();
-    loadDashboard();
+    if(json.content){
+      const html = atob(json.content.replace(/\n/g,''));
+      _examList = parseExamCards(html);
+      window._examList = _examList;
+      window._indexSha = json.sha;
+      renderExamList();
+      loadDashboard();
+    }
   } catch(e) {
-    console.warn('loadExamListFromIndex failed:', e.message);
-    if(!useCache()) showToast('❌ Gagal memuat index.html: ' + e.message, 'error');
+    parseExamListFromLocalDOM();
   }
+}
+
+function parseExamListFromLocalDOM(){
+  // Hardcode dari data yang ada di index.html yang sudah di-upload
+  const hardcoded = [
+    {key:'n1-2025-12',level:'N1',year:2025,month:'12',title:'JLPT N1 December 2025',desc:'Latest - Oldest JLPT N1 exam simulation.',href:'./jlpt/n1/2025-12-n1.html',isNew:true},
+    {key:'n2-2010-07',level:'N2',year:2010,month:'07',title:'JLPT N2 July 2010',desc:'Latest - Oldest JLPT N2 exam simulation.',href:'./jlpt/n2/2010-07-jlpt.html',isNew:false},
+    {key:'n2-2010-12',level:'N2',year:2010,month:'12',title:'JLPT N2 December 2010',desc:'Latest - Oldest JLPT N2 exam simulation.',href:'./jlpt/n2/2010-12-jlpt.html',isNew:false},
+    {key:'n2-2011-07',level:'N2',year:2011,month:'07',title:'JLPT N2 July 2011',desc:'Latest - Oldest JLPT N2 exam simulation.',href:'./jlpt/n2/2011-07-jlpt.html',isNew:false},
+    {key:'n2-2011-12',level:'N2',year:2011,month:'12',title:'JLPT N2 December 2011',desc:'Latest - Oldest JLPT N2 exam simulation.',href:'./jlpt/n2/2011-12-jlpt.html',isNew:false},
+    {key:'n2-2024-07',level:'N2',year:2024,month:'07',title:'JLPT N2 July 2024',desc:'Latest - Oldest JLPT N2 exam simulation.',href:'./jlpt/n2/2024-07-jlpt.html',isNew:true},
+    {key:'n2-2024-12',level:'N2',year:2024,month:'12',title:'JLPT N2 December 2024',desc:'Latest - Oldest JLPT N2 exam simulation.',href:'./jlpt/n2/2024-12-jlpt.html',isNew:true},
+    {key:'n2-2025-07',level:'N2',year:2025,month:'07',title:'JLPT N2 July 2025',desc:'Latest - Oldest JLPT N2 exam simulation.',href:'./jlpt/n2/2025-07-jlpt.html',isNew:true},
+    {key:'n2-2025-12',level:'N2',year:2025,month:'12',title:'JLPT N2 December 2025',desc:'Latest - Oldest JLPT N2 exam simulation.',href:'./jlpt/n2/2025-12-jlpt.html',isNew:true},
+    {key:'n3-2010-07',level:'N3',year:2010,month:'07',title:'JLPT N3 July 2010',desc:'Latest - Oldest JLPT N3 exam simulation.',href:'./jlpt/n3/2010-07-n3.html',isNew:false},
+    {key:'n3-2024-07',level:'N3',year:2024,month:'07',title:'JLPT N3 July 2024',desc:'Latest - Oldest JLPT N3 exam simulation.',href:'./jlpt/n3/2024-07-n3.html',isNew:false},
+    {key:'n3-2024-12',level:'N3',year:2024,month:'12',title:'JLPT N3 December 2024',desc:'Latest - Oldest JLPT N3 exam simulation.',href:'./jlpt/n3/2024-12-n3.html',isNew:false},
+    {key:'n3-2025-07',level:'N3',year:2025,month:'07',title:'JLPT N3 July 2025',desc:'Latest - Oldest JLPT N3 exam simulation.',href:'./jlpt/n3/2025-07-n3.html',isNew:true},
+    {key:'n3-2025-12',level:'N3',year:2025,month:'12',title:'JLPT N3 December 2025',desc:'Latest - Oldest JLPT N3 exam simulation.',href:'./jlpt/n3/2025-12-n3.html',isNew:true},
+    {key:'n3-2023-07',level:'N3',year:2023,month:'07',title:'JLPT N3 July 2023',desc:'Latest - Oldest JLPT N3 exam simulation.',href:'./jlpt/n3/2023-07-n3.html',isNew:false},
+  ];
+  _examList = hardcoded;
+  window._examList = _examList;
+  renderExamList();
 }
 
 function parseExamCards(html){
@@ -1585,7 +1547,6 @@ window.saveExamInfo = async()=>{
 
   // Push update ke index.html di GitHub
   await updateIndexHtml(null, null, false, true);
-  pushAdminHistory('edit exam', { key, title: newTitle, year: newYear, isNew });
   closeModal('editExamModal');
   renderExamList();
 };
@@ -1595,10 +1556,8 @@ window.confirmDeleteExam = (key, title)=>{
   document.getElementById('confirmOkBtn').onclick = async()=>{
     _examList = _examList.filter(e=>e.key!==key);
     window._examList = _examList;
-    window._pendingExamDeleteKey = key;
     closeModal('confirmModal');
     await updateIndexHtml(null, null, false, true);
-    pushAdminHistory('delete exam', { key, title });
     renderExamList();
     showToast('🗑️ Soal dihapus dari index','success');
   };
@@ -1610,89 +1569,70 @@ window.confirmDeleteExam = (key, title)=>{
 // =============================================
 window.loadReports = async()=>{
   const filter = document.getElementById('reportFilter').value;
-  try {
-    const data = await adminApi(`/admin/reports${filter!=='all' ? '?status='+encodeURIComponent(filter) : ''}`);
-    const reports = data.reports || [];
-    document.getElementById('reportCount').textContent = `${reports.length} laporan`;
-    document.getElementById('reportBadge').textContent = reports.filter(r=>r.status==='pending').length;
-
-    if(!reports.length){
-      document.getElementById('reportsList').innerHTML = '<div class="empty-state"><div class="empty-icon">🎉</div><p>Tidak ada laporan error</p></div>';
-      return;
-    }
-
-    document.getElementById('reportsList').innerHTML = reports.map(r=>`
-      <div class="report-item">
-        <div class="report-header">
-          <div class="report-meta">
-            <span class="report-tag ${r.status==='resolved'?'resolved':''}">${r.status==='resolved'?'✅ Resolved':'⏳ Pending'}</span>
-            <span class="report-exam">📄 ${escHtml(r.exam_title||r.exam_key||'—')}</span>
-          </div>
-          <span style="font-size:11px;color:var(--muted);">${fmtDate(r.created_at)}</span>
-        </div>
-        <div class="report-desc">${escHtml(r.description||'—')}</div>
-        <div class="report-actions">
-          ${r.status==='pending'?`
-            <button class="act-btn edit" onclick="openExamEditor('${escHtml(r.exam_key||'')}','${escHtml(r.exam_title||'')}')">✏️ Edit Soal Ini</button>
-            <button class="act-btn approve" onclick="resolveReport('${r.id}')">✅ Tandai Resolved</button>
-          `:''}
-          <button class="act-btn delete" onclick="deleteReport('${r.id}')">🗑️ Hapus</button>
-        </div>
-      </div>
-    `).join('');
-  } catch (e) {
-    const {data,error} = await getSupabase().from('exam_reports').select('*').order('created_at',{ascending:false});
-    if(error){
-      document.getElementById('reportsList').innerHTML = `
-        <div class="config-desc" style="margin:0;">
-          ℹ️ Tabel <code>exam_reports</code> belum bisa diakses.<br>
-          Cek backend admin API atau policy Supabase.
-        </div>`;
-      return;
-    }
-    const reports = data||[];
-    document.getElementById('reportCount').textContent = `${reports.length} laporan`;
-    document.getElementById('reportBadge').textContent = reports.filter(r=>r.status==='pending').length;
-    if(!reports.length){
-      document.getElementById('reportsList').innerHTML = '<div class="empty-state"><div class="empty-icon">🎉</div><p>Tidak ada laporan error</p></div>';
-      return;
-    }
-    document.getElementById('reportsList').innerHTML = reports.map(r=>`
-      <div class="report-item">
-        <div class="report-header">
-          <div class="report-meta">
-            <span class="report-tag ${r.status==='resolved'?'resolved':''}">${r.status==='resolved'?'✅ Resolved':'⏳ Pending'}</span>
-            <span class="report-exam">📄 ${escHtml(r.exam_title||r.exam_key||'—')}</span>
-          </div>
-          <span style="font-size:11px;color:var(--muted);">${fmtDate(r.created_at)}</span>
-        </div>
-        <div class="report-desc">${escHtml(r.description||'—')}</div>
-        <div class="report-actions">
-          ${r.status==='pending'?`
-            <button class="act-btn edit" onclick="openExamEditor('${escHtml(r.exam_key||'')}','${escHtml(r.exam_title||'')}')">✏️ Edit Soal Ini</button>
-            <button class="act-btn approve" onclick="resolveReport('${r.id}')">✅ Tandai Resolved</button>
-          `:''}
-          <button class="act-btn delete" onclick="deleteReport('${r.id}')">🗑️ Hapus</button>
-        </div>
-      </div>
-    `).join('');
+  let query = getSupabase().from('exam_reports').select('*').order('created_at',{ascending:false});
+  if(filter!=='all') query = query.eq('status',filter);
+  const {data,error} = await query;
+  if(error){
+    // Tabel mungkin belum dibuat, tampilkan info
+    document.getElementById('reportsList').innerHTML = `
+      <div class="config-desc" style="margin:0;">
+        ℹ️ Tabel <code>exam_reports</code> belum ada di Supabase.<br>
+        Jalankan SQL berikut di Supabase SQL Editor:<br><br>
+        <code style="display:block;white-space:pre;font-size:12px;margin-top:8px;">
+CREATE TABLE exam_reports (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES users(id),
+  exam_key TEXT,
+  exam_title TEXT,
+  description TEXT,
+  status TEXT DEFAULT 'pending',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);</code>
+      </div>`;
+    return;
   }
+  const reports = data||[];
+  document.getElementById('reportCount').textContent = `${reports.length} laporan`;
+  document.getElementById('reportBadge').textContent = reports.filter(r=>r.status==='pending').length;
+
+  if(!reports.length){
+    document.getElementById('reportsList').innerHTML = '<div class="empty-state"><div class="empty-icon">🎉</div><p>Tidak ada laporan error</p></div>';
+    return;
+  }
+
+  document.getElementById('reportsList').innerHTML = reports.map(r=>`
+    <div class="report-item">
+      <div class="report-header">
+        <div class="report-meta">
+          <span class="report-tag ${r.status==='resolved'?'resolved':''}">${r.status==='resolved'?'✅ Resolved':'⏳ Pending'}</span>
+          <span class="report-exam">📄 ${escHtml(r.exam_title||r.exam_key||'—')}</span>
+        </div>
+        <span style="font-size:11px;color:var(--muted);">${fmtDate(r.created_at)}</span>
+      </div>
+      <div class="report-desc">${escHtml(r.description||'—')}</div>
+      <div class="report-actions">
+        ${r.status==='pending'?`
+          <button class="act-btn edit" onclick="openExamEditor('${escHtml(r.exam_key||'')}','${escHtml(r.exam_title||'')}')">✏️ Edit Soal Ini</button>
+          <button class="act-btn approve" onclick="resolveReport('${r.id}')">✅ Tandai Resolved</button>
+        `:''}
+        <button class="act-btn delete" onclick="deleteReport('${r.id}')">🗑️ Hapus</button>
+      </div>
+    </div>
+  `).join('');
 };
 
 window.resolveReport = async(id)=>{
-  await adminApi(`/admin/reports/${id}/resolve`, {method:'POST'});
+  await getSupabase().from('exam_reports').update({status:'resolved'}).eq('id',id);
   showToast('✅ Laporan ditandai resolved','success');
   await loadReports();
 };
 
 window.deleteReport = async(id)=>{
-  await adminApi(`/admin/reports/${id}`, {method:'DELETE'});
+  await getSupabase().from('exam_reports').delete().eq('id',id);
   showToast('🗑️ Laporan dihapus');
   await loadReports();
 };
 
-// =============================================
-// UPLOAD SOAL KE GITHUB
 // =============================================
 // UPLOAD SOAL KE GITHUB
 // =============================================
@@ -1799,7 +1739,6 @@ window.doUpload = async()=>{
     window._examList = _examList;
 
     await updateIndexHtml(level, path, isNew);
-    pushAdminHistory('upload', { level, year, month, path, title: customTitle });
 
     setProgress(100,'Selesai!');
     setStep([{label:'Cek file di GitHub',state:'done'},{label:'Upload file HTML',state:'done'},{label:'Update index.html',state:'done'}]);
@@ -1832,78 +1771,70 @@ async function updateIndexHtml(newLevel, newPath, isNewBadge, editOnly=false){
   const gh = getGHConfig();
   if(!gh.token) return;
 
+  // Fetch current index.html
   const res = await fetch(`https://api.github.com/repos/${gh.owner}/${gh.repo}/contents/${gh.indexPath}`, {
     headers:{'Authorization':`token ${gh.token}`,'Accept':'application/vnd.github.v3+json'}
   });
   if(!res.ok) throw new Error('Gagal fetch index.html');
   const json = await res.json();
-  const html = decodeUtf8B64(json.content || '');
+  let html = atob(json.content.replace(/\n/g,''));
   const sha = json.sha;
 
-  const currentList = parseExamCards(html);
-  let nextList = currentList.slice();
-
-  if(editOnly){
-    if(window._pendingExamDeleteKey){
-      nextList = nextList.filter(e => e.key !== window._pendingExamDeleteKey);
-      window._pendingExamDeleteKey = null;
-    } else if(Array.isArray(window._examList) && window._examList.length){
-      const map = new Map(nextList.map(e => [e.key, e]));
-      for(const exam of window._examList) map.set(exam.key, exam);
-      nextList = [...map.values()];
-    }
-  } else if(newLevel && newPath){
+  // Build new card HTML string for injection (if not editOnly)
+  if(!editOnly && newLevel && newPath){
     const n = newLevel.toLowerCase();
-    const year = newPath.match(/(\d{4})/)?.[1] || '';
-    const month = newPath.includes('-07-') || newPath.endsWith('-07.html') ? '07' : '12';
+    const year = newPath.match(/(\d{4})/)?.[1]||'';
+    const month = newPath.includes('-07-')||newPath.endsWith('-07.html')?'07':'12';
     const key = `${n}-${year}-${month}`;
-    const examFromState = Array.isArray(window._examList) ? window._examList.find(e => e.key === key) : null;
-    const fallbackExam = {
-      key,
-      level: newLevel,
-      year: parseInt(year) || 0,
-      month,
-      title: examFromState?.title || `JLPT ${newLevel} ${month === '07' ? 'July' : 'December'} ${year}`,
-      desc: examFromState?.desc || `Latest - Oldest JLPT ${newLevel} exam simulation.`,
-      href: examFromState?.href || `./jlpt/${n}/${year}-${month}-${n}.html`,
-      isNew: examFromState?.isNew ?? !!isNewBadge,
-    };
-    nextList = currentList.filter(e => e.key !== key);
-    nextList.push(examFromState || fallbackExam);
+    const monthName = month==='07'?'July':'December';
+    const exam = _examList.find(e=>e.key===key);
+    const title = exam?.title || `JLPT ${newLevel} ${monthName} ${year}`;
+    const desc  = exam?.desc  || `Latest - Oldest JLPT ${newLevel} exam simulation.`;
+    const href  = `./jlpt/${n}/${year}-${month}-${n}.html`;
+    const levelClass = `level-n${n}`;
+    const newBadge = isNewBadge?'<div class="new-badge">NEW</div>':'';
+    const newCard = `\n<div class="card" data-name="${year}-${month}-jlpt" data-level="${newLevel}" data-year="${year}" data-examkey="${key}">\n<div class="card-kanji">${newLevel}</div>${newBadge}<div class="year">${year}</div>\n<div class="card-body"><div class="exam-title">${title}</div>\n<div class="badges"><span class="badge ${levelClass}">${newLevel}</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>\n<div class="exam-desc">${desc}</div></div>\n<div class="done-stamp">✓ Completed</div>\n<a href="${href}" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>\n</div>`;
+
+    // Insert before closing </div> of examGrid
+    html = html.replace(/(<\/div>\s*<!-- \/examGrid -->|id="examGrid"[^>]*>)/, m=>{
+      if(m.includes('examGrid')) return m + newCard;
+      return newCard + m;
+    }) || html.replace('</div>\n\n<div class="empty-state"', newCard + '</div>\n\n<div class="empty-state"');
+    // Simpler: insert just before last card closing in grid
+    const insertAt = html.lastIndexOf('</div>\n\n</div>');
+    if(insertAt>-1) html = html.slice(0,insertAt) + newCard + '\n' + html.slice(insertAt);
   }
 
-  window._examList = nextList;
-  saveExamCache(nextList);
+  // If editOnly: rebuild all cards in examGrid from _examList
+  if(editOnly){
+    html = rebuildIndexCards(html);
+  }
 
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(html, 'text/html');
-  const grid = doc.getElementById('examGrid');
-  if(!grid) throw new Error('examGrid tidak ditemukan di index.html');
-  grid.innerHTML = buildExamCardsHtml(nextList);
-
-  const finalHtml = '<!DOCTYPE html>\n' + doc.documentElement.outerHTML;
-  const encoded = encodeUtf8B64(finalHtml);
-
+  // Push
+  const encoded = btoa(unescape(encodeURIComponent(html)));
   const putRes = await fetch(`https://api.github.com/repos/${gh.owner}/${gh.repo}/contents/${gh.indexPath}`, {
     method:'PUT',
     headers:{'Authorization':`token ${gh.token}`,'Content-Type':'application/json','Accept':'application/vnd.github.v3+json'},
     body: JSON.stringify({ message:`Admin: update index.html`, content: encoded, sha, branch: gh.branch })
   });
-  const putJson = await putRes.json();
-  if(!putRes.ok){
-    throw new Error(putJson.message || 'Gagal memperbarui index.html');
-  }
-  window._indexSha = putJson.content?.sha || sha;
-  pushAdminHistory(editOnly ? 'sync index' : 'update index', { total: nextList.length, file: gh.indexPath });
+  if(!putRes.ok){ const e=await putRes.json(); throw new Error(e.message); }
   showToast('✅ index.html diperbarui di GitHub','success');
 }
 
 function rebuildIndexCards(html){
-  return html;
+  const levelColors = {N1:'level-n1',N2:'level-n2',N3:'level-n3',N4:'level-n4',N5:'level-n5'};
+  const cardsHtml = _examList.map(e=>{
+    const n = e.level.toLowerCase();
+    const newBadge = e.isNew?'<div class="new-badge">NEW</div>':'';
+    return `<div class="card" data-name="${e.year}-${e.month}-jlpt" data-level="${e.level}" data-year="${e.year}" data-examkey="${e.key}">\n<div class="card-kanji">${e.level}</div>${newBadge}<div class="year">${e.year}</div>\n<div class="card-body"><div class="exam-title">${e.title}</div>\n<div class="badges"><span class="badge ${levelColors[e.level]||''}">${e.level}</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>\n<div class="exam-desc">${e.desc}</div></div>\n<div class="done-stamp">✓ Completed</div>\n<a href="${e.href}" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>\n</div>`;
+  }).join('\n');
+
+  // Replace everything between examGrid opening and .empty-state
+  return html.replace(/(id="examGrid"[^>]*>)([\s\S]*?)(<div class="empty-state")/, (_,open,_cards,after)=>{
+    return open + '\n' + cardsHtml + '\n' + after;
+  });
 }
 
-// =============================================
-// GITHUB CONFIG
 // =============================================
 // GITHUB CONFIG
 // =============================================
@@ -1914,7 +1845,6 @@ window.saveGithubConfig = ()=>{
   localStorage.setItem('gh_branch',document.getElementById('cfgBranch').value.trim()||'main');
   localStorage.setItem('gh_index_path',document.getElementById('cfgIndexPath').value.trim()||'index.html');
   showToast('💾 GitHub config disimpan!','success');
-  renderAdminHistory();
 };
 
 window.saveTelegramConfig = ()=>{
@@ -1974,5 +1904,730 @@ window.togglePwd = window.toggleFieldPwd = function(id, btn){
 };
 
 </script>
+
+<script>
+(() => {
+  const ADMIN_API_BASE = 'https://jlpt-auth-bot-production.up.railway.app';
+  const ACTIVITY_KEY = 'jlpt_admin_activity_v3';
+  const ACTIVITY_LIMIT = 60;
+
+  let realtimeChannel = null;
+  let refreshTimer = null;
+  let examPollTimer = null;
+  let remoteActivityTimer = null;
+
+  const esc = (value='') => {
+    if (typeof escHtml === 'function') return escHtml(String(value));
+    return String(value)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  };
+
+  const nowIso = () => new Date().toISOString();
+
+  function getActivityList(){
+    try {
+      return JSON.parse(localStorage.getItem(ACTIVITY_KEY) || '[]');
+    } catch {
+      return [];
+    }
+  }
+
+  function setActivityList(items){
+    localStorage.setItem(ACTIVITY_KEY, JSON.stringify(items.slice(0, ACTIVITY_LIMIT)));
+  }
+
+  function pushActivity(kind, title, desc='', meta={}){
+    const entry = {
+      id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      kind: kind || 'system',
+      title: title || 'Aktivitas',
+      desc: desc || '',
+      meta: meta || {},
+      time: nowIso()
+    };
+    const items = [entry, ...getActivityList()].slice(0, ACTIVITY_LIMIT);
+    setActivityList(items);
+    renderActivityFeed();
+
+    // best-effort remote log
+    fetch(`${ADMIN_API_BASE}/admin/activity`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        kind: entry.kind,
+        title: entry.title,
+        description: entry.desc,
+        meta: entry.meta
+      })
+    }).catch(() => {});
+    return entry;
+  }
+
+  function fmtTimeShort(ts){
+    try {
+      const d = new Date(ts);
+      return d.toLocaleString('id-ID', {
+        dateStyle: 'short',
+        timeStyle: 'short'
+      });
+    } catch {
+      return ts || '';
+    }
+  }
+
+  function renderActivityFeed(){
+    const wrap = document.getElementById('activityFeed');
+    if (!wrap) return;
+    const items = getActivityList();
+    if (!items.length) {
+      wrap.innerHTML = '<div class="empty-state" style="padding:28px 20px;"><p>Belum ada aktivitas</p></div>';
+      return;
+    }
+    wrap.innerHTML = items.map(item => `
+      <div class="activity-item" data-kind="${esc(item.kind || 'system')}">
+        <div class="activity-dot"></div>
+        <div class="activity-main">
+          <div class="activity-top">
+            <div class="activity-title">${esc(item.title || '')}</div>
+            <div class="activity-meta">${fmtTimeShort(item.time)}</div>
+          </div>
+          ${item.desc ? `<div class="activity-desc">${esc(item.desc)}</div>` : ''}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  async function loadRemoteActivity(){
+    try {
+      const res = await fetch(`${ADMIN_API_BASE}/admin/activity?limit=${ACTIVITY_LIMIT}`);
+      if (!res.ok) return;
+      const json = await res.json();
+      const remote = Array.isArray(json.items) ? json.items : [];
+      const local = getActivityList();
+      const byId = new Map();
+      [...remote, ...local].forEach(item => {
+        const key = item.id || `${item.time || ''}-${item.title || ''}-${item.desc || ''}`;
+        if (!byId.has(key)) byId.set(key, item);
+      });
+      const merged = [...byId.values()].slice(0, ACTIVITY_LIMIT);
+      setActivityList(merged);
+      renderActivityFeed();
+    } catch {}
+  }
+
+  window.refreshAdminActivity = async () => {
+    renderActivityFeed();
+    await loadRemoteActivity();
+  };
+
+  window.clearAdminActivity = () => {
+    localStorage.removeItem(ACTIVITY_KEY);
+    renderActivityFeed();
+    pushActivity('system', 'Riwayat dibersihkan', 'Log aktivitas lokal direset');
+  };
+
+  function decodeGithubContent(base64){
+    const clean = String(base64 || '').replace(/\n/g, '');
+    const binary = atob(clean);
+    const bytes = Uint8Array.from(binary, ch => ch.charCodeAt(0));
+    return new TextDecoder('utf-8').decode(bytes);
+  }
+
+  function encodeGithubContent(text){
+    const bytes = new TextEncoder().encode(String(text || ''));
+    let binary = '';
+    bytes.forEach(b => { binary += String.fromCharCode(b); });
+    return btoa(binary);
+  }
+
+  function cardTemplate(exam){
+    const level = (exam.level || '').toUpperCase();
+    const n = level.toLowerCase();
+    const year = String(exam.year || '');
+    const month = String(exam.month || '12').padStart(2, '0');
+    const levelClass = `level-n${n.replace('n','')}`;
+    const title = esc(exam.title || `JLPT ${level} ${year}`);
+    const desc = esc(exam.desc || `Latest - Oldest JLPT ${level} exam simulation.`);
+    const href = esc(exam.href || `./jlpt/${n}/${year}-${month}-${n}.html`);
+    const newBadge = exam.isNew ? '<div class="new-badge">NEW</div>' : '';
+    return `
+<div class="card" data-name="${esc(exam.key || `${year}-${month}-${n}`)}" data-level="${esc(level)}" data-year="${esc(year)}" data-examkey="${esc(exam.key || '')}">
+<div class="card-kanji">${esc(level)}</div>${newBadge}<div class="year">${esc(year)}</div>
+<div class="card-body"><div class="exam-title">${title}</div>
+<div class="badges"><span class="badge ${levelClass}">${esc(level)}</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
+<div class="exam-desc">${desc}</div></div>
+<div class="done-stamp">✓ Completed</div>
+<a href="${href}" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
+</div>`.trim();
+  }
+
+  function rebuildIndexHtml(html, exams){
+    const cards = (exams || []).map(cardTemplate).join('\n\n');
+    const patterns = [
+      /(<div\s+class="grid"\s+id="examGrid">)[\s\S]*?(<!--\s*\/examGrid\s*-->)/i,
+      /(<div\s+class="grid"\s+id="examGrid"[^>]*>)[\s\S]*?(<!--\s*\/examGrid\s*-->)/i,
+    ];
+    let out = String(html || '');
+    for (const pattern of patterns) {
+      if (pattern.test(out)) {
+        out = out.replace(pattern, `$1\n\n${cards}\n\n$2`);
+        return out;
+      }
+    }
+    throw new Error('Grid exam tidak ditemukan di index.html');
+  }
+
+  async function fetchGithubIndexHtml(){
+    const gh = getGHConfig();
+    if (!gh.token || !gh.owner || !gh.repo) throw new Error('GitHub config belum lengkap');
+    const res = await fetch(`https://api.github.com/repos/${gh.owner}/${gh.repo}/contents/${gh.indexPath}`, {
+      headers: {
+        'Authorization': `token ${gh.token}`,
+        'Accept': 'application/vnd.github.v3+json'
+      }
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Gagal fetch index.html');
+    }
+    const json = await res.json();
+    return { html: decodeGithubContent(json.content), sha: json.sha };
+  }
+
+  async function putGithubIndexHtml(html, sha, message){
+    const gh = getGHConfig();
+    const res = await fetch(`https://api.github.com/repos/${gh.owner}/${gh.repo}/contents/${gh.indexPath}`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `token ${gh.token}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/vnd.github.v3+json'
+      },
+      body: JSON.stringify({
+        message: message || 'Update index.html',
+        content: encodeGithubContent(html),
+        branch: gh.branch || 'main',
+        sha
+      })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Gagal update index.html');
+    }
+    return res.json().catch(() => ({}));
+  }
+
+  async function loadIndexExamsFromGithub(){
+    const gh = getGHConfig();
+    if (!gh.token || !gh.owner || !gh.repo) {
+      if (Array.isArray(window._examList)) renderExamList();
+      return;
+    }
+    try {
+      const { html } = await fetchGithubIndexHtml();
+      const list = parseExamCards(html);
+      window._examList = list;
+      renderExamList();
+      const countEl = document.getElementById('visibleCount');
+      if (countEl) countEl.textContent = `${list.length} exams`;
+      if (typeof loadDashboard === 'function') await loadDashboard();
+    } catch (err) {
+      console.warn('loadIndexExamsFromGithub failed:', err);
+      if (!Array.isArray(window._examList)) window._examList = [];
+    }
+  }
+
+  window.loadExamListFromIndex = loadIndexExamsFromGithub;
+
+  window.updateIndexHtml = async function(newLevel, newPath, isNewBadge, editOnly = false) {
+    const gh = getGHConfig();
+    if (!gh.token) throw new Error('GitHub belum dikonfigurasi');
+
+    const { html, sha } = await fetchGithubIndexHtml();
+    const currentList = Array.isArray(window._examList) ? [...window._examList] : parseExamCards(html);
+
+    // Merge when upload baru atau edit/delete exam
+    let merged = currentList.slice();
+
+    if (!editOnly && newLevel && newPath) {
+      // let doUpload() already push the new exam into _examList, but keep this as safe upsert
+      const level = String(newLevel).toUpperCase();
+      const n = level.toLowerCase();
+      const yearMatch = String(newPath).match(/(\d{4})/);
+      const monthMatch = String(newPath).match(/-(07|12)(?:-|\.html$)/);
+      const year = yearMatch ? parseInt(yearMatch[1], 10) : (new Date()).getFullYear();
+      const month = monthMatch ? monthMatch[1] : '12';
+      const key = `${n}-${year}-${month}`;
+      const existing = merged.find(x => x.key === key);
+      if (!existing) {
+        const titleGuess = `JLPT ${level} ${month === '07' ? 'July' : 'December'} ${year}`;
+        merged.push({
+          key,
+          level,
+          year,
+          month,
+          title: titleGuess,
+          desc: `Latest - Oldest JLPT ${level} exam simulation.`,
+          href: `./jlpt/${n}/${year}-${month}-${n}.html`,
+          isNew: !!isNewBadge,
+        });
+      }
+      pushActivity('upload', 'Soal baru di-upload', `${level} ${year}-${month}`, { key });
+    }
+
+    if (editOnly) {
+      // _examList sudah disesuaikan oleh fungsi edit/delete yang memanggil updateIndexHtml
+      merged = Array.isArray(window._examList) ? [...window._examList] : merged;
+    }
+
+    // Keep order from merged array; preserve existing cards
+    const rebuilt = rebuildIndexHtml(html, merged);
+    await putGithubIndexHtml(rebuilt, sha, editOnly ? 'Update exam metadata' : 'Add or update exam');
+    window._examList = merged;
+    renderExamList();
+    if (typeof loadDashboard === 'function') await loadDashboard();
+
+    // edit actions are logged by the button handlers to avoid duplicates
+  };
+
+  async function apiJson(url, fallback = null) {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return await res.json();
+    } catch (err) {
+      return fallback;
+    }
+  }
+
+  async function loadDashboardFromBackend() {
+    const data = await apiJson(`${ADMIN_API_BASE}/admin/users`, null);
+    const users = Array.isArray(data?.items) ? data.items : null;
+    if (!users) throw new Error('No backend data');
+    const pendingData = await apiJson(`${ADMIN_API_BASE}/admin/pending-users`, { items: [] });
+    const reportsData = await apiJson(`${ADMIN_API_BASE}/admin/reports?status=pending`, { items: [] });
+
+    const pending = Array.isArray(pendingData?.items) ? pendingData.items : [];
+    const reports = Array.isArray(reportsData?.items) ? reportsData.items : [];
+    const active = users.filter(u => u.status === 'active').length;
+    const examCount = Array.isArray(window._examList) ? window._examList.length : 0;
+
+    const set = (id, value) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = value;
+    };
+
+    set('dTotalExam', examCount);
+    set('dTotalUser', users.length);
+    set('dActiveUser', `${active} aktif`);
+    set('dPendingUser', pending.length);
+    set('dReports', reports.length);
+    set('reportBadge', reports.length);
+    set('pendingBadge', pending.length);
+
+    const tbody = document.getElementById('dashUserTable');
+    if (tbody) {
+      tbody.innerHTML = users.slice(0, 8).map(u => `
+        <tr>
+          <td>${esc(u.full_name || u.display_name || '—')}</td>
+          <td style="font-size:12px;color:var(--muted);">${esc(u.email || '—')}</td>
+          <td><span class="status ${esc(u.status || 'pending')}">${esc(u.status || 'pending')}</span></td>
+          <td style="font-size:12px;color:var(--muted);">${fmtDate(u.created_at)}</td>
+          <td><button class="act-btn edit" onclick="openEditUser('${esc(u.id)}')">Edit</button></td>
+        </tr>
+      `).join('') || '<tr><td colspan="5" class="empty-state"><p>Tidak ada user</p></td></tr>';
+    }
+  }
+
+  async function refreshUsersBackend(){
+    const data = await apiJson(`${ADMIN_API_BASE}/admin/users`, null);
+    if (!data || !Array.isArray(data.items)) throw new Error('backend users unavailable');
+    window._allUsers = data.items;
+    if (typeof renderAllUsers === 'function') renderAllUsers(data.items);
+  }
+
+  async function refreshPendingBackend(){
+    const data = await apiJson(`${ADMIN_API_BASE}/admin/pending-users`, null);
+    if (!data || !Array.isArray(data.items)) throw new Error('backend pending unavailable');
+    const users = data.items;
+    const badge = document.getElementById('pendingBadge');
+    if (badge) badge.textContent = users.length;
+    const tbody = document.getElementById('pendingUserTable');
+    if (tbody && typeof fmtDate === 'function') {
+      tbody.innerHTML = users.map(u => `
+        <tr>
+          <td>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div style="width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#ffb547,#ff4f6d);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;flex-shrink:0;">${esc((u.full_name || '?').charAt(0).toUpperCase())}</div>
+              <div><div style="font-weight:700;font-size:14px;">${esc(u.full_name || '—')}</div></div>
+            </div>
+          </td>
+          <td>${esc(u.email || '—')}</td>
+          <td style="font-size:12px;color:var(--muted);">${fmtDate(u.created_at)}</td>
+          <td>
+            <div style="display:flex;gap:6px;">
+              <button class="act-btn approve" onclick="changeUserStatus('${esc(u.id)}','active')">✅ Approve</button>
+              <button class="act-btn reject" onclick="changeUserStatus('${esc(u.id)}','rejected')">❌ Tolak</button>
+              <button class="act-btn delete" onclick="confirmDeleteUser('${esc(u.id)}','${esc(u.full_name || u.email || '')}')">🗑️ Hapus</button>
+            </div>
+          </td>
+        </tr>
+      `).join('') || '<tr><td colspan="4" class="empty-state"><p>Tidak ada user pending 🎉</p></td></tr>';
+    }
+  }
+
+  async function refreshReportsBackend(){
+    const filter = document.getElementById('reportFilter')?.value || 'all';
+    const url = `${ADMIN_API_BASE}/admin/reports?status=${encodeURIComponent(filter)}`;
+    const data = await apiJson(url, null);
+    if (!data || !Array.isArray(data.items)) throw new Error('backend reports unavailable');
+    const reports = data.items;
+    const badge = document.getElementById('reportBadge');
+    const count = document.getElementById('reportCount');
+    if (badge) badge.textContent = reports.filter(r => r.status === 'pending').length;
+    if (count) count.textContent = `${reports.length} laporan`;
+    const list = document.getElementById('reportsList');
+    if (list) {
+      if (!reports.length) {
+        list.innerHTML = '<div class="empty-state"><div class="empty-icon">🎉</div><p>Tidak ada laporan error</p></div>';
+      } else {
+        list.innerHTML = reports.map(r => `
+          <div class="report-item">
+            <div class="report-header">
+              <div class="report-meta">
+                <span class="report-tag ${r.status === 'resolved' ? 'resolved' : ''}">${r.status === 'resolved' ? '✅ Resolved' : '⏳ Pending'}</span>
+                <span class="report-exam">📄 ${esc(r.exam_title || r.exam_key || '—')}</span>
+              </div>
+              <span style="font-size:11px;color:var(--muted);">${fmtDate(r.created_at)}</span>
+            </div>
+            <div class="report-desc">${esc(r.description || '—')}</div>
+            <div class="report-actions">
+              ${r.status === 'pending' ? `
+                <button class="act-btn edit" onclick="openExamEditor('${esc(r.exam_key || '')}','${esc(r.exam_title || '')}')">✏️ Edit Soal Ini</button>
+                <button class="act-btn approve" onclick="resolveReport('${esc(r.id)}')">✅ Tandai Resolved</button>
+              ` : ''}
+              <button class="act-btn delete" onclick="deleteReport('${esc(r.id)}')">🗑️ Hapus</button>
+            </div>
+          </div>
+        `).join('');
+      }
+    }
+  }
+
+  async function refreshAllAdminViews(reason = 'refresh') {
+    clearTimeout(refreshTimer);
+    refreshTimer = setTimeout(async () => {
+      try {
+        await Promise.allSettled([
+          loadDashboardFromBackend().catch(() => typeof loadDashboard === 'function' && loadDashboard()),
+          refreshUsersBackend().catch(() => typeof loadAllUsers === 'function' && loadAllUsers()),
+          refreshPendingBackend().catch(() => typeof loadPendingUsers === 'function' && loadPendingUsers()),
+          refreshReportsBackend().catch(() => typeof loadReports === 'function' && loadReports()),
+          loadIndexExamsFromGithub().catch(() => {}),
+          refreshAdminActivity().catch(() => {}),
+        ]);
+        if (reason === 'boot') pushActivity('system', 'Realtime aktif', 'Panel admin siap memantau perubahan');
+      } catch {}
+    }, 250);
+  }
+
+  window.refreshAllAdminViews = refreshAllAdminViews;
+
+  // ----- override load functions with backend-first fallback
+  window.loadDashboard = async function() {
+    try { await loadDashboardFromBackend(); }
+    catch {
+      const sb = getSupabase && getSupabase();
+      if (!sb) return;
+      const [usersRes, pendingRes] = await Promise.all([
+        sb.from('users').select('*').order('created_at', { ascending: false }),
+        sb.from('users').select('id').eq('status', 'pending'),
+      ]);
+      const users = usersRes.data || [];
+      const pending = pendingRes.data || [];
+      const active = users.filter(u => u.status === 'active').length;
+      const examCount = Array.isArray(window._examList) ? window._examList.length : 0;
+
+      const set = (id, value) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = value;
+      };
+      set('dTotalExam', examCount);
+      set('dTotalUser', users.length);
+      set('dActiveUser', `${active} aktif`);
+      set('dPendingUser', pending.length);
+      const { data: rpts } = await sb.from('exam_reports').select('id').eq('status', 'pending');
+      const rc = (rpts || []).length;
+      set('dReports', rc);
+      set('reportBadge', rc);
+      set('pendingBadge', pending.length);
+
+      const tbody = document.getElementById('dashUserTable');
+      if (tbody) {
+        tbody.innerHTML = users.slice(0, 8).map(u => `
+          <tr>
+            <td>${esc(u.full_name || u.display_name || '—')}</td>
+            <td style="font-size:12px;color:var(--muted);">${esc(u.email || '—')}</td>
+            <td><span class="status ${esc(u.status || 'pending')}">${esc(u.status || 'pending')}</span></td>
+            <td style="font-size:12px;color:var(--muted);">${fmtDate(u.created_at)}</td>
+            <td><button class="act-btn edit" onclick="openEditUser('${esc(u.id)}')">Edit</button></td>
+          </tr>
+        `).join('') || '<tr><td colspan="5" class="empty-state"><p>Tidak ada user</p></td></tr>';
+      }
+    }
+  };
+
+  window.loadAllUsers = async function() {
+    try {
+      await refreshUsersBackend();
+    } catch {
+      const sb = getSupabase && getSupabase();
+      if (!sb) return;
+      const { data, error } = await sb.from('users').select('*').order('created_at', { ascending: false });
+      if (error) { showToast('❌ Gagal memuat users: ' + error.message, 'error'); return; }
+      window._allUsers = data || [];
+      renderAllUsers(window._allUsers);
+    }
+  };
+
+  window.loadPendingUsers = async function() {
+    try {
+      await refreshPendingBackend();
+    } catch {
+      const sb = getSupabase && getSupabase();
+      if (!sb) return;
+      const { data } = await sb.from('users').select('*').eq('status', 'pending').order('created_at', { ascending: false });
+      const users = data || [];
+      const pendingBadge = document.getElementById('pendingBadge');
+      if (pendingBadge) pendingBadge.textContent = users.length;
+      const tbody = document.getElementById('pendingUserTable');
+      if (tbody) {
+        tbody.innerHTML = users.map(u => `
+          <tr>
+            <td>
+              <div style="display:flex;align-items:center;gap:10px;">
+                <div style="width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#ffb547,#ff4f6d);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;flex-shrink:0;">${(u.full_name || '?').charAt(0).toUpperCase()}</div>
+                <div><div style="font-weight:700;font-size:14px;">${esc(u.full_name || '—')}</div></div>
+              </div>
+            </td>
+            <td>${esc(u.email || '—')}</td>
+            <td style="font-size:12px;color:var(--muted);">${fmtDate(u.created_at)}</td>
+            <td>
+              <div style="display:flex;gap:6px;">
+                <button class="act-btn approve" onclick="changeUserStatus('${esc(u.id)}','active')">✅ Approve</button>
+                <button class="act-btn reject" onclick="changeUserStatus('${esc(u.id)}','rejected')">❌ Tolak</button>
+                <button class="act-btn delete" onclick="confirmDeleteUser('${esc(u.id)}','${esc(u.full_name || u.email || '')}')">🗑️ Hapus</button>
+              </div>
+            </td>
+          </tr>
+        `).join('') || '<tr><td colspan="4" class="empty-state"><p>Tidak ada user pending 🎉</p></td></tr>';
+      }
+    }
+  };
+
+  window.loadReports = async function() {
+    try {
+      await refreshReportsBackend();
+    } catch {
+      const sb = getSupabase && getSupabase();
+      if (!sb) return;
+      const filter = document.getElementById('reportFilter').value;
+      let query = sb.from('exam_reports').select('*').order('created_at', { ascending: false });
+      if (filter !== 'all') query = query.eq('status', filter);
+      const { data, error } = await query;
+      if (error) return;
+      const reports = data || [];
+      const count = document.getElementById('reportCount');
+      const badge = document.getElementById('reportBadge');
+      const list = document.getElementById('reportsList');
+      if (count) count.textContent = `${reports.length} laporan`;
+      if (badge) badge.textContent = reports.filter(r => r.status === 'pending').length;
+      if (list) {
+        if (!reports.length) {
+          list.innerHTML = '<div class="empty-state"><div class="empty-icon">🎉</div><p>Tidak ada laporan error</p></div>';
+        } else {
+          list.innerHTML = reports.map(r => `
+            <div class="report-item">
+              <div class="report-header">
+                <div class="report-meta">
+                  <span class="report-tag ${r.status === 'resolved' ? 'resolved' : ''}">${r.status === 'resolved' ? '✅ Resolved' : '⏳ Pending'}</span>
+                  <span class="report-exam">📄 ${esc(r.exam_title || r.exam_key || '—')}</span>
+                </div>
+                <span style="font-size:11px;color:var(--muted);">${fmtDate(r.created_at)}</span>
+              </div>
+              <div class="report-desc">${esc(r.description || '—')}</div>
+              <div class="report-actions">
+                ${r.status === 'pending' ? `
+                  <button class="act-btn edit" onclick="openExamEditor('${esc(r.exam_key || '')}','${esc(r.exam_title || '')}')">✏️ Edit Soal Ini</button>
+                  <button class="act-btn approve" onclick="resolveReport('${esc(r.id)}')">✅ Tandai Resolved</button>
+                ` : ''}
+                <button class="act-btn delete" onclick="deleteReport('${esc(r.id)}')">🗑️ Hapus</button>
+              </div>
+            </div>
+          `).join('');
+        }
+      }
+    }
+  };
+
+  window.loadExamListFromIndex = loadIndexExamsFromGithub;
+
+  // ----- Realtime subscriptions
+  async function startRealtime(){
+    try {
+      const ctx = await getSupabase();
+      const sb = ctx.sb || ctx;
+      if (!sb?.channel) return;
+
+      if (realtimeChannel) {
+        try { await sb.removeChannel(realtimeChannel); } catch {}
+      }
+
+      realtimeChannel = sb.channel('admin-realtime-v3')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, payload => {
+          const row = payload.new || payload.old || {};
+          const title = payload.eventType === 'INSERT' ? 'User baru masuk' :
+                        payload.eventType === 'UPDATE' ? 'User diperbarui' : 'User dihapus';
+          pushActivity('user', title, row.full_name || row.display_name || row.email || '—', { table: 'users', id: row.id, event: payload.eventType });
+          refreshAllAdminViews(`users:${payload.eventType}`);
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'exam_reports' }, payload => {
+          const row = payload.new || payload.old || {};
+          const title = payload.eventType === 'INSERT' ? 'Laporan baru masuk' :
+                        payload.eventType === 'UPDATE' ? 'Laporan diperbarui' : 'Laporan dihapus';
+          pushActivity('report', title, row.exam_title || row.exam_key || row.description || '—', { table: 'exam_reports', id: row.id, event: payload.eventType });
+          refreshAllAdminViews(`reports:${payload.eventType}`);
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'exam_requests' }, payload => {
+          const row = payload.new || payload.old || {};
+          const title = payload.eventType === 'INSERT' ? 'Request soal baru' : 'Request soal berubah';
+          pushActivity('report', title, `${row.level || ''} ${row.types || ''}`.trim() || '—', { table: 'exam_requests', id: row.id, event: payload.eventType });
+          refreshAllAdminViews(`requests:${payload.eventType}`);
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, payload => {
+          const row = payload.new || payload.old || {};
+          pushActivity('system', 'Notifikasi user berubah', row.title || row.message || '—', { table: 'notifications', id: row.id, event: payload.eventType });
+        })
+        .subscribe(status => {
+          if (status === 'SUBSCRIBED') {
+            pushActivity('system', 'Realtime aktif', 'Panel admin sedang memantau perubahan user, laporan, dan request');
+          }
+        });
+
+      examPollTimer = setInterval(() => {
+        loadIndexExamsFromGithub().catch(() => {});
+      }, 60000);
+
+      remoteActivityTimer = setInterval(() => {
+        loadRemoteActivity().catch(() => {});
+      }, 45000);
+
+      window.addEventListener('focus', () => {
+        refreshAllAdminViews('window focus');
+      });
+
+    } catch (err) {
+      console.warn('Realtime init gagal:', err);
+    }
+  }
+
+  // ----- Wrap action handlers to log history
+  const originalSaveEditUser = window.saveEditUser;
+  window.saveEditUser = async function() {
+    await originalSaveEditUser?.();
+    refreshAllAdminViews('saveEditUser');
+  };
+
+  const originalChangeUserStatus = window.changeUserStatus;
+  window.changeUserStatus = async function(id, status) {
+    await originalChangeUserStatus?.(id, status);
+    refreshAllAdminViews('changeUserStatus');
+  };
+
+  const originalConfirmDeleteUser = window.confirmDeleteUser;
+  window.confirmDeleteUser = function(id, name) {
+    originalConfirmDeleteUser?.(id, name);
+    const okBtn = document.getElementById('confirmOkBtn');
+    if (okBtn) {
+      const prev = okBtn.onclick;
+      okBtn.onclick = async (...args) => {
+        await prev?.apply(this, args);
+        refreshAllAdminViews('deleteUser');
+      };
+    }
+  };
+
+  const originalSaveExamInfo = window.saveExamInfo;
+  window.saveExamInfo = async function() {
+    await originalSaveExamInfo?.();
+    const key = document.getElementById('eeKey')?.value || '';
+    pushActivity('edit', 'Info soal diperbarui', key, { key });
+    refreshAllAdminViews('saveExamInfo');
+  };
+
+  const originalSaveEditorToGithub = window.saveEditorToGithub;
+  window.saveEditorToGithub = async function() {
+    await originalSaveEditorToGithub?.();
+    if (window._currentEditFile) {
+      pushActivity('edit', 'File editor disimpan', window._currentEditFile, { file: window._currentEditFile });
+      refreshAllAdminViews('saveEditorToGithub');
+    }
+  };
+
+  const originalSaveGithubConfig = window.saveGithubConfig;
+  window.saveGithubConfig = async function() {
+    await originalSaveGithubConfig?.();
+    pushActivity('system', 'GitHub config disimpan', `${getGHConfig().owner}/${getGHConfig().repo}`, { config: getGHConfig() });
+  };
+
+  const originalConfirmDeleteExam = window.confirmDeleteExam;
+  window.confirmDeleteExam = function(key, title) {
+    originalConfirmDeleteExam?.(key, title);
+    const okBtn = document.getElementById('confirmOkBtn');
+    if (okBtn) {
+      const prev = okBtn.onclick;
+      okBtn.onclick = async (...args) => {
+        await prev?.apply(this, args);
+        pushActivity('delete', 'Soal dihapus', title || key, { key, title });
+        refreshAllAdminViews('deleteExam');
+      };
+    }
+  };
+
+  const originalResolveReport = window.resolveReport;
+  window.resolveReport = async function(id) {
+    await originalResolveReport?.(id);
+    refreshAllAdminViews('resolveReport');
+  };
+
+  const originalDeleteReport = window.deleteReport;
+  window.deleteReport = async function(id) {
+    await originalDeleteReport?.(id);
+    refreshAllAdminViews('deleteReport');
+  };
+
+  // If GitHub config is saved, keep a trace too
+  const originalLoadConfigToForm = window.loadConfigToForm;
+  window.loadConfigToForm = function() {
+    originalLoadConfigToForm?.();
+  };
+
+  // start
+  window.__adminRealtimeBoot = async function() {
+    renderActivityFeed();
+    await loadRemoteActivity();
+    await refreshAllAdminViews('boot');
+    await startRealtime();
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => window.__adminRealtimeBoot?.(), { once: true });
+  } else {
+    window.__adminRealtimeBoot?.();
+  }
+})();
+</script>
+
 </body>
 </html>
