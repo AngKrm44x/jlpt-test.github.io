@@ -1,15 +1,6 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-<!-- STUB: goto tersedia segera agar inline onclick tidak error sebelum script utama load -->
-<script>
-window.goto = function(pane){
-  // Akan di-override oleh script utama. Ini hanya placeholder.
-  document.querySelectorAll('.pane').forEach(function(p){p.classList.remove('active');});
-  var el = document.getElementById('pane-'+pane);
-  if(el) el.classList.add('active');
-};
-</script>
 <!-- ADMIN AUTH GUARD -->
 <script type="module">
   import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
@@ -56,8 +47,6 @@ window.goto = function(pane){
         window._adminEmail    = email;
         window.SUPABASE_URL   = SUPABASE_URL;
         window.SUPABASE_ANON  = SUPABASE_ANON;
-        window._SUPER_ADMIN_EMAIL = SUPER_ADMIN_EMAIL.trim().toLowerCase();
-        window._ADMIN_EMAIL_VAL   = ADMIN_EMAIL.trim().toLowerCase();
       }
     }
   } catch (e) {
@@ -1086,20 +1075,10 @@ async function initApp(){
 
 // Tunggu auth guard selesai, lalu jalankan init
 // Auth guard di head sudah selesai saat script body ini dieksekusi
-function waitForAuthGuard(cb, maxMs = 8000) {
-  const start = Date.now();
-  const check = () => {
-    if (window._supabase && window._session) { cb(); return; }
-    if (Date.now() - start > maxMs) { console.warn('Auth guard timeout'); cb(); return; }
-    setTimeout(check, 80);
-  };
-  check();
-}
-
 if(document.readyState === 'loading'){
-  document.addEventListener('DOMContentLoaded', () => waitForAuthGuard(initApp));
+  document.addEventListener('DOMContentLoaded', initApp);
 } else {
-  waitForAuthGuard(initApp);
+  initApp();
 }
 
 // =============================================
@@ -1203,7 +1182,7 @@ function renderAllUsers(users){
       </td>
       <td style="font-size:13px;">${escHtml(u.email||'—')}</td>
       <td><span class="status ${u.status||'pending'}">${u.status||'pending'}</span></td>
-      <td><span class="role-badge ${u.email===(window._SUPER_ADMIN_EMAIL||'')?'super':u.email===(window._ADMIN_EMAIL_VAL||'')?'admin':'user'}">${u.email===(window._SUPER_ADMIN_EMAIL||'')?'Super Admin':u.email===(window._ADMIN_EMAIL_VAL||'')?'Admin':'User'}</span></td>
+      <td><span class="role-badge user">user</span></td>
       <td style="font-size:12px;color:var(--muted);">${fmtDate(u.created_at)}</td>
       <td>
         <div style="display:flex;gap:5px;flex-wrap:wrap;">
@@ -1632,54 +1611,17 @@ CREATE TABLE exam_reports (
       </div>
       <div class="report-desc">${escHtml(r.description||'—')}</div>
       <div class="report-actions">
-              ${r.status==='pending'?`
-                <button class="act-btn edit" onclick="editExamFromReport('${escHtml(r.exam_key||'')}','${escHtml(r.exam_title||'')}')">✏️ Edit Soal Ini</button>
-                <button class="act-btn approve" onclick="resolveReport('${r.id}')">✅ Tandai Resolved</button>
-              `:''}
+        ${r.status==='pending'?`
+          <button class="act-btn edit" onclick="openExamEditor('${escHtml(r.exam_key||'')}','${escHtml(r.exam_title||'')}')">✏️ Edit Soal Ini</button>
+          <button class="act-btn approve" onclick="resolveReport('${r.id}')">✅ Tandai Resolved</button>
+        `:''}
         <button class="act-btn delete" onclick="deleteReport('${r.id}')">🗑️ Hapus</button>
       </div>
     </div>
   `).join('');
 };
 
-window.editExamFromReport = function(examKey, examTitle){
-  // Cari di _examList dulu
-  const examList = window._examList || [];
-  let found = examList.find(e => e.key === examKey);
-  if(found && found.href){
-    openExamEditor(found.href, found.title || examTitle);
-    return;
-  }
-  // Coba parse path dari key: format "n5-2018-07" atau "n5-juli-2018"
-  // Normalisasi bulan: juli→07, desember→12
-  let key = String(examKey||'').toLowerCase().trim();
-  const monthMap = {juli:'07',july:'07',desember:'12',december:'12'};
-  for(const [name, num] of Object.entries(monthMap)){
-    key = key.replace(name, num);
-  }
-  // Coba match pattern: nX-YYYY-MM atau nX-MM-YYYY
-  const m1 = key.match(/^(n[1-5])[_-](\d{4})[_-](07|12)/i);
-  const m2 = key.match(/^(n[1-5])[_-](07|12)[_-](\d{4})/i);
-  if(m1){
-    const [,level,year,month] = m1;
-    const href = `./jlpt/${level}/${year}-${month}-${level}.html`;
-    openExamEditor(href, examTitle||examKey);
-    return;
-  }
-  if(m2){
-    const [,level,month,year] = m2;
-    const href = `./jlpt/${level}/${year}-${month}-${level}.html`;
-    openExamEditor(href, examTitle||examKey);
-    return;
-  }
-  // Tidak bisa resolve, buka editor dan tampilkan pesan
-  goto('editor');
-  document.getElementById('editorFileLabel').textContent = examKey;
-  document.getElementById('codeEditor').value = `⚠️ Tidak dapat menemukan path file untuk key: "${examKey}"\n\nCoba buka dari halaman Kelola Soal → klik "Edit Soal" pada soal yang dimaksud.\n\nAtau pastikan format key benar: mis. n5-2018-07`;
-  updateEditorStats();
-};
-
-
+window.resolveReport = async(id)=>{
   await getSupabase().from('exam_reports').update({status:'resolved'}).eq('id',id);
   showToast('✅ Laporan ditandai resolved','success');
   await loadReports();
@@ -1969,9 +1911,6 @@ window.togglePwd = window.toggleFieldPwd = function(id, btn){
   const ACTIVITY_KEY = 'jlpt_admin_activity_v3';
   const ACTIVITY_LIMIT = 60;
 
-  // Alias agar bisa akses window._supabase tanpa depend fungsi dari script luar
-  const getSupabase = () => window._supabase;
-
   let realtimeChannel = null;
   let refreshTimer = null;
   let examPollTimer = null;
@@ -2187,13 +2126,7 @@ window.togglePwd = window.toggleFieldPwd = function(id, btn){
     }
     try {
       const { html } = await fetchGithubIndexHtml();
-      let list = parseExamCards(html);
-
-      // Jika index.html parsing kosong, scan folder jlpt/ di GitHub
-      if (!list.length) {
-        list = await scanJlptFoldersFromGithub(gh);
-      }
-
+      const list = parseExamCards(html);
       window._examList = list;
       renderExamList();
       const countEl = document.getElementById('visibleCount');
@@ -2201,66 +2134,9 @@ window.togglePwd = window.toggleFieldPwd = function(id, btn){
       if (typeof loadDashboard === 'function') await loadDashboard();
     } catch (err) {
       console.warn('loadIndexExamsFromGithub failed:', err);
-      // Fallback: scan folder langsung
-      try {
-        const list = await scanJlptFoldersFromGithub(gh);
-        window._examList = list;
-        renderExamList();
-      } catch(e2) {
-        if (!Array.isArray(window._examList)) window._examList = [];
-      }
+      if (!Array.isArray(window._examList)) window._examList = [];
     }
   }
-
-  // Scan folder jlpt/n1 sampai jlpt/n5 di GitHub untuk mendapatkan daftar file
-  async function scanJlptFoldersFromGithub(gh){
-    const levels = ['n1','n2','n3','n4','n5'];
-    const list = [];
-    const levelColors = {N1:'#ff9aaa',N2:'#7cc0ff',N3:'#b69cff',N4:'#5ff0b0',N5:'#ffd18a'};
-
-    for (const n of levels) {
-      try {
-        const res = await fetch(`https://api.github.com/repos/${gh.owner}/${gh.repo}/contents/jlpt/${n}`, {
-          headers: {
-            'Authorization': `token ${gh.token}`,
-            'Accept': 'application/vnd.github.v3+json'
-          }
-        });
-        if (!res.ok) continue;
-        const files = await res.json();
-        if (!Array.isArray(files)) continue;
-
-        for (const file of files) {
-          if (!file.name.endsWith('.html')) continue;
-          // Parse filename: YYYY-MM-nX.html
-          const m = file.name.match(/^(\d{4})-(07|12)-n(\d)\.html$/i);
-          if (!m) continue;
-          const [, year, month, lvlNum] = m;
-          const level = `N${lvlNum}`;
-          const key = `n${lvlNum}-${year}-${month}`;
-          const monthName = month === '07' ? 'July' : 'December';
-          list.push({
-            key,
-            level,
-            year: parseInt(year),
-            month,
-            title: `JLPT ${level} ${monthName} ${year}`,
-            desc: `Latest - Oldest JLPT ${level} exam simulation.`,
-            href: `./jlpt/${n}/${file.name}`,
-            isNew: parseInt(year) >= 2024,
-          });
-        }
-      } catch (e) {
-        console.warn(`scanJlptFolders: failed for ${n}:`, e.message);
-      }
-    }
-
-    // Sort: level asc, year desc, month desc
-    list.sort((a,b) => a.level.localeCompare(b.level) || b.year - a.year || b.month.localeCompare(a.month));
-    return list;
-  }
-
-
 
   window.loadExamListFromIndex = loadIndexExamsFromGithub;
 
@@ -2428,7 +2304,7 @@ window.togglePwd = window.toggleFieldPwd = function(id, btn){
             <div class="report-desc">${esc(r.description || '—')}</div>
             <div class="report-actions">
               ${r.status === 'pending' ? `
-                <button class="act-btn edit" onclick="editExamFromReport('${esc(r.exam_key || '')}','${esc(r.exam_title || '')}')">✏️ Edit Soal Ini</button>
+                <button class="act-btn edit" onclick="openExamEditor('${esc(r.exam_key || '')}','${esc(r.exam_title || '')}')">✏️ Edit Soal Ini</button>
                 <button class="act-btn approve" onclick="resolveReport('${esc(r.id)}')">✅ Tandai Resolved</button>
               ` : ''}
               <button class="act-btn delete" onclick="deleteReport('${esc(r.id)}')">🗑️ Hapus</button>
@@ -2600,8 +2476,9 @@ window.togglePwd = window.toggleFieldPwd = function(id, btn){
   // ----- Realtime subscriptions
   async function startRealtime(){
     try {
-      const sb = window._supabase;
-      if (!sb || !sb.channel) return;
+      const ctx = await getSupabase();
+      const sb = ctx.sb || ctx;
+      if (!sb?.channel) return;
 
       if (realtimeChannel) {
         try { await sb.removeChannel(realtimeChannel); } catch {}
@@ -2744,21 +2621,10 @@ window.togglePwd = window.toggleFieldPwd = function(id, btn){
     await startRealtime();
   };
 
-  // Tunggu sampai auth guard selesai set window._supabase
-  function waitForSupabase(cb, maxMs = 8000) {
-    const start = Date.now();
-    const check = () => {
-      if (window._supabase) { cb(); return; }
-      if (Date.now() - start > maxMs) { console.warn('Supabase tidak tersedia setelah', maxMs, 'ms'); return; }
-      setTimeout(check, 100);
-    };
-    check();
-  }
-
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => waitForSupabase(() => window.__adminRealtimeBoot?.()), { once: true });
+    document.addEventListener('DOMContentLoaded', () => window.__adminRealtimeBoot?.(), { once: true });
   } else {
-    waitForSupabase(() => window.__adminRealtimeBoot?.());
+    window.__adminRealtimeBoot?.();
   }
 })();
 </script>
