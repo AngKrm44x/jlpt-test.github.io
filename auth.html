@@ -247,7 +247,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON);
 // ADMIN EMAILS — ganti dengan email kamu
 // =============================================
 const SUPER_ADMIN_EMAIL = 'sidiqangga44@gmail.com';
-const ADMIN_EMAIL       = 'sidiqangga44@gmail.com'; // sama saja, 1 super admin
+const ADMIN_EMAIL       = 'sidiqangga44@gmail.com';
 
 // ============================================================
 // CEK FLAG PENDING DARI REDIRECT SEBELUMNYA (sebelum async)
@@ -267,11 +267,6 @@ if (session && localStorage.getItem('jlpt_pending') !== '1') {
 // Listen OAuth callback
 supabase.auth.onAuthStateChange(async (event, session) => {
   if (event === 'SIGNED_IN' && session && localStorage.getItem('jlpt_pending') !== '1') {
-    // Cek langsung kalau admin, skip handleSession
-    if (session.user.email === SUPER_ADMIN_EMAIL || session.user.email === ADMIN_EMAIL) {
-      window.location.replace('./admin.html');
-      return;
-    }
     await handleSession(session);
   }
 });
@@ -282,49 +277,61 @@ supabase.auth.onAuthStateChange(async (event, session) => {
 async function handleSession(session) {
   const user = session.user;
 
-  let { data: usr, error: selErr } = await supabase
+  // ─── 1. SUPER ADMIN: bypass semua, langsung ke admin panel ───
+  if (user.email === SUPER_ADMIN_EMAIL || user.email === ADMIN_EMAIL) {
+    localStorage.removeItem('jlpt_pending');
+    window.location.replace('./admin.html');
+    return;
+  }
+
+  // ─── 2. Cek data user di database ───
+  const { data: usr, error: selErr } = await supabase
     .from('users')
     .select('status, full_name, display_name')
     .eq('id', user.id)
     .single();
 
-  console.log('User DB:', usr, 'Error:', selErr);
+  // ─── 3. Kalau query gagal (RLS error / network), jangan anggap user baru ───
+  //        Tampilkan error saja supaya tidak spam notif bot
+  if (selErr && selErr.code !== 'PGRST116') {
+    // PGRST116 = row not found (memang user baru)
+    // Error lain = RLS block atau network issue
+    console.error('DB error:', selErr);
+    await supabase.auth.signOut();
+    showError('loginError', 'loginErrorMsg', 'Gagal mengecek akun. Coba lagi. (' + selErr.code + ')');
+    return;
+  }
 
+  // ─── 4. User BENAR-BENAR baru (belum ada di tabel users) ───
   if (!usr) {
-    // User baru via Google — insert sebagai pending
     const name  = user.user_metadata?.full_name || user.user_metadata?.name || user.email;
     const email = user.email;
     const uid   = user.id;
 
+    // Insert sebagai pending
     const { error: insertErr } = await supabase.from('users').insert({
       id: uid, email, full_name: name,
       status: 'pending',
       created_at: new Date().toISOString()
     });
+    if (insertErr) console.error('INSERT ERROR:', insertErr);
 
-    if (insertErr) {
-      console.error('INSERT ERROR:', insertErr);
-    }
-
-    // Kirim notif ke bot
+    // Kirim notif ke bot (hanya sekali, untuk user benar-benar baru)
     try {
-      const res = await fetch(`${BACKEND_URL}/notify-register`, {
+      await fetch(`${BACKEND_URL}/notify-register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ uid, name, email })
       });
-      console.log('Bot notify:', res.status);
-    } catch(e) {
-      console.error('BOT ERROR:', e);
-    }
+    } catch(e) { console.error('BOT ERROR:', e); }
 
-    // Simpan flag, sign out, tampilkan pending
     localStorage.setItem('jlpt_pending', '1');
     await supabase.auth.signOut();
     showPendingImmediate();
     return;
   }
 
+  // ─── 5. User sudah ada di DB, cek statusnya ───
   if (usr.status === 'pending') {
     localStorage.setItem('jlpt_pending', '1');
     await supabase.auth.signOut();
@@ -338,7 +345,13 @@ async function handleSession(session) {
     return;
   }
 
-  // ✅ Active
+  if (usr.status === 'banned') {
+    await supabase.auth.signOut();
+    showError('loginError', 'loginErrorMsg', 'Your account has been suspended. Contact admin.');
+    return;
+  }
+
+  // ─── 6. Active ✅ ───
   localStorage.removeItem('jlpt_pending');
   showDashboard({ ...user, email: user.email, user_metadata: { full_name: usr.display_name || usr.full_name } });
 }
