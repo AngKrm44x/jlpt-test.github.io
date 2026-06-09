@@ -492,6 +492,38 @@ select.form-input option{background:#0b1120;color:var(--text);}
 
 /* Search highlight */
 .hl{background:rgba(74,158,255,.25);border-radius:2px;}
+
+/* ===== ACTIVITY FEED ===== */
+.activity-toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px;}
+.activity-actions{display:flex;gap:8px;flex-wrap:wrap;}
+.activity-feed{
+  display:flex;flex-direction:column;gap:10px;
+  max-height:360px;overflow:auto;padding-right:6px;
+}
+.activity-feed::-webkit-scrollbar{width:4px;}
+.activity-feed::-webkit-scrollbar-thumb{background:#2f4370;border-radius:4px;}
+.activity-item{
+  display:flex;gap:12px;align-items:flex-start;
+  background:rgba(13,22,38,.55);border:1px solid rgba(255,255,255,.06);
+  border-radius:16px;padding:14px 16px;transition:.2s;
+}
+.activity-item:hover{border-color:#3d5a8a;background:rgba(22,33,62,.7);}
+.activity-dot{
+  width:10px;height:10px;border-radius:50%;margin-top:5px;flex-shrink:0;
+  background:linear-gradient(135deg,var(--primary),var(--primary2));
+  box-shadow:0 0 0 4px rgba(90,169,255,.1);
+}
+.activity-item[data-kind="upload"] .activity-dot{background:linear-gradient(135deg,#19c37d,#00d4aa);}
+.activity-item[data-kind="edit"] .activity-dot{background:linear-gradient(135deg,#5aa9ff,#7c4dff);}
+.activity-item[data-kind="delete"] .activity-dot{background:linear-gradient(135deg,#ff4f6d,#ff6b9d);}
+.activity-item[data-kind="system"] .activity-dot{background:linear-gradient(135deg,#ffb547,#ff8f2b);}
+.activity-main{flex:1;min-width:0;}
+.activity-top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.activity-title{font-size:14px;font-weight:700;color:var(--text);}
+.activity-meta{font-size:11px;color:var(--muted);white-space:nowrap;}
+.activity-desc{font-size:12px;color:var(--muted);line-height:1.6;margin-top:4px;word-break:break-word;}
+.activity-empty{padding:28px 20px;text-align:center;color:var(--muted);}
+
 </style>
 </head>
 <body>
@@ -894,6 +926,19 @@ select.form-input option{background:#0b1120;color:var(--text);}
         </div>
         <button class="submit-btn" onclick="saveTelegramConfig()">💾 Simpan Config Telegram</button>
       </div>
+
+      <div class="config-wrap" style="margin-top:24px;">
+        <div class="config-title">🕘 Riwayat Aktivitas Admin</div>
+        <div class="config-desc">
+          Menampilkan upload, edit, delete, sinkronisasi soal, dan notifikasi realtime. Riwayat ini disimpan lokal dan ikut disinkronkan ke backend bila tersedia.
+        </div>
+        <div class="activity-toolbar">
+          <button class="topbar-btn primary" type="button" onclick="refreshAdminActivity()">🔄 Refresh Riwayat</button>
+          <button class="topbar-btn" type="button" onclick="clearAdminActivity()">🧹 Bersihkan</button>
+        </div>
+        <div class="activity-feed" id="activityFeed"></div>
+      </div>
+
     </div>
 
   </div><!-- /content -->
@@ -3185,6 +3230,200 @@ window.togglePwd = window.toggleFieldPwd = function(id, btn){
     if (typeof window.loadAllUsers === 'function') window.loadAllUsers().catch?.(() => {});
     if (typeof window.loadPendingUsers === 'function') window.loadPendingUsers().catch?.(() => {});
   }, 250);
+})();
+</script>
+
+
+<script>
+(() => {
+  const GH_API = 'https://api.github.com/repos';
+  const safe = (v='') => (typeof escHtml === 'function' ? escHtml(String(v)) : String(v));
+  const encPath = (p='') => String(p || '').replace(/^\/+/, '').split('/').map(encodeURIComponent).join('/');
+  const ghCfg = () => (typeof getGHConfig === 'function' ? getGHConfig() : null);
+  const ghHeaders = (token) => ({ 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json' });
+
+  const refreshEditorUI = () => {
+    if (typeof onEditorChange === 'function') onEditorChange();
+    if (typeof updateEditorStats === 'function') updateEditorStats();
+    if (typeof refreshPreview === 'function' && document.getElementById('previewWrap')?.style.display !== 'none') {
+      refreshPreview();
+    }
+  };
+
+  async function fetchIndexMeta(){
+    const gh = ghCfg();
+    if (!gh?.token || !gh.owner || !gh.repo) throw new Error('GitHub config belum lengkap');
+    const res = await fetch(`${GH_API}/${gh.owner}/${gh.repo}/contents/${encPath(gh.indexPath || 'index.html')}`, {
+      headers: ghHeaders(gh.token)
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || `HTTP ${res.status}`);
+    }
+    return res.json();
+  }
+
+  async function putIndexHtml(html, sha, message){
+    const gh = ghCfg();
+    const body = {
+      message: message || 'Update index.html',
+      content: typeof encodeGithubContentUtf8 === 'function' ? encodeGithubContentUtf8(html) : btoa(unescape(encodeURIComponent(String(html || '')))),
+      branch: gh.branch || 'main',
+      sha
+    };
+    const url = `${GH_API}/${gh.owner}/${gh.repo}/contents/${encPath(gh.indexPath || 'index.html')}`;
+    let res = await fetch(url, {
+      method: 'PUT',
+      headers: { 'Authorization': `token ${gh.token}`, 'Content-Type': 'application/json', 'Accept': 'application/vnd.github.v3+json' },
+      body: JSON.stringify(body)
+    });
+    if (!res.ok && res.status === 404 && body.branch) {
+      const retryBody = { ...body };
+      delete retryBody.branch;
+      res = await fetch(url, {
+        method: 'PUT',
+        headers: { 'Authorization': `token ${gh.token}`, 'Content-Type': 'application/json', 'Accept': 'application/vnd.github.v3+json' },
+        body: JSON.stringify(retryBody)
+      });
+    }
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || `HTTP ${res.status}`);
+    }
+    return res.json().catch(() => ({}));
+  }
+
+  function examGridHtmlFromList(list){
+    const cards = (Array.isArray(list) ? list : []).map(e => {
+      if (typeof cardTemplate === 'function') return cardTemplate(e);
+      const level = String(e.level || '').toUpperCase();
+      const n = level.toLowerCase();
+      const year = String(e.year || '');
+      const month = String(e.month || '12').padStart(2, '0');
+      const href = String(e.href || `./jlpt/${n}/${year}-${month}-${n}.html`);
+      const title = safe(e.title || `JLPT ${level} ${year}`);
+      const desc = safe(e.desc || `Latest - Oldest JLPT ${level} exam simulation.`);
+      const badge = e.isNew ? '<div class="new-badge">NEW</div>' : '';
+      return `
+<div class="card" data-name="${safe(e.key || `${year}-${month}-${n}`)}" data-level="${safe(level)}" data-year="${safe(year)}" data-examkey="${safe(e.key || '')}">
+<div class="card-kanji">${safe(level)}</div>${badge}<div class="year">${safe(year)}</div>
+<div class="card-body"><div class="exam-title">${title}</div>
+<div class="badges"><span class="badge level-n${n.replace('n','')}">${safe(level)}</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
+<div class="exam-desc">${desc}</div></div>
+<div class="done-stamp">✓ Completed</div>
+<a href="${href}" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
+</div>`.trim();
+    }).join('\n\n');
+    return cards;
+  }
+
+  function rebuildIndexPreserveShell(html, cards){
+    const source = String(html || '');
+    const start = source.match(/(<div\s+class="grid"\s+id="examGrid"[^>]*>)/i);
+    const end = source.match(/<!--\s*\/examGrid\s*-->/i);
+    if (!start || !end) throw new Error('Grid exam tidak ditemukan di index.html');
+    const startIdx = start.index + start[1].length;
+    const endIdx = end.index;
+    return source.slice(0, startIdx) + '\n\n' + cards + '\n\n' + source.slice(endIdx);
+  }
+
+  window.updateIndexHtml = async function(newLevel, newPath, isNewBadge, editOnly = false) {
+    const gh = ghCfg();
+    if (!gh?.token || !gh.owner || !gh.repo) return;
+
+    const meta = await fetchIndexMeta();
+    const currentHtml = typeof decodeGithubContentUtf8 === 'function'
+      ? decodeGithubContentUtf8(meta.content)
+      : decodeURIComponent(escape(atob(String(meta.content || '').replace(/\n/g, ''))));
+    const list = Array.isArray(window._examList) ? [...window._examList] : [];
+    const cards = examGridHtmlFromList(list);
+    const rebuilt = rebuildIndexPreserveShell(currentHtml, cards);
+
+    await putIndexHtml(rebuilt, meta.sha, editOnly ? 'Admin: update exam metadata' : 'Admin: update index.html');
+    if (typeof showToast === 'function') showToast('✅ index.html diperbarui di GitHub', 'success');
+  };
+
+  window.saveEditorToGithub = async function() {
+    const gh = ghCfg();
+    if (!gh?.token) {
+      if (typeof showToast === 'function') showToast('⚠️ GitHub token belum diisi', 'error');
+      if (typeof goto === 'function') goto('github');
+      return;
+    }
+
+    let filePath = String(window._currentEditFile || document.getElementById('editorFileLabel')?.textContent || '').replace(/^\.\//, '');
+    if (!filePath) {
+      if (typeof showToast === 'function') showToast('⚠️ File tujuan belum dipilih', 'error');
+      return;
+    }
+
+    const content = document.getElementById('codeEditor')?.value ?? '';
+    const commitMsg = prompt('Pesan commit:', `Update ${filePath.split('/').pop()}`);
+    if (!commitMsg) return;
+
+    const url = `${GH_API}/${gh.owner}/${gh.repo}/contents/${encPath(filePath)}`;
+    const headers = { 'Authorization': `token ${gh.token}`, 'Content-Type': 'application/json', 'Accept': 'application/vnd.github.v3+json' };
+
+    try {
+      let sha = window._currentFileSha;
+      if (!sha) {
+        const metaRes = await fetch(url, { headers });
+        if (metaRes.ok) {
+          const metaJson = await metaRes.json();
+          sha = metaJson.sha;
+          window._currentFileSha = sha;
+        }
+      }
+
+      const makeBody = (includeBranch = true) => {
+        const body = {
+          message: commitMsg,
+          content: typeof encodeGithubContentUtf8 === 'function' ? encodeGithubContentUtf8(content) : btoa(unescape(encodeURIComponent(String(content || ''))))
+        };
+        if (includeBranch) body.branch = gh.branch || 'main';
+        if (sha) body.sha = sha;
+        return body;
+      };
+
+      let res = await fetch(url, { method: 'PUT', headers, body: JSON.stringify(makeBody(true)) });
+      let json = await res.json().catch(() => ({}));
+      if (!res.ok && res.status === 404) {
+        res = await fetch(url, { method: 'PUT', headers, body: JSON.stringify(makeBody(false)) });
+        json = await res.json().catch(() => ({}));
+      }
+
+      if (!res.ok) throw new Error(json.message || 'Gagal menyimpan');
+      window._currentFileSha = json.content?.sha || window._currentFileSha;
+      window._currentEditOriginal = content;
+      const modEl = document.getElementById('edModified');
+      if (modEl) modEl.style.display = 'none';
+      if (typeof showToast === 'function') showToast('🎉 Berhasil disimpan ke GitHub!', 'success');
+      if (typeof pushActivity === 'function') pushActivity('edit', 'File soal disimpan', filePath, { path: filePath });
+    } catch (e) {
+      if (typeof showToast === 'function') showToast('❌ Gagal menyimpan: ' + e.message, 'error');
+    }
+  };
+
+  window.loadExamListFromIndex = async function() {
+    if (typeof loadIndexExamsFromGithub === 'function') {
+      try { await loadIndexExamsFromGithub(); return; } catch {}
+    }
+    if (typeof parseExamListFromLocalDOM === 'function') parseExamListFromLocalDOM();
+  };
+
+  // Keep a visible history area alive
+  window.refreshAdminActivity = async function() {
+    if (typeof renderActivityFeed === 'function') renderActivityFeed();
+    if (typeof loadRemoteActivity === 'function') await loadRemoteActivity();
+  };
+
+  // Re-run a refresh after patches are loaded
+  setTimeout(() => {
+    try {
+      window.loadExamListFromIndex?.();
+      window.refreshAdminActivity?.();
+    } catch {}
+  }, 350);
 })();
 </script>
 
