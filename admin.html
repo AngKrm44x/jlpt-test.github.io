@@ -1323,7 +1323,7 @@ async function loadExamListFromIndex(){
     });
     const json = await res.json();
     if(json.content){
-      const html = atob(json.content.replace(/\n/g,''));
+      const html = (typeof decodeGithubContent === 'function') ? decodeGithubContent(json.content) : new TextDecoder('utf-8').decode(Uint8Array.from(atob(String(json.content || '').replace(/\n/g,'')), ch => ch.charCodeAt(0)));
       _examList = parseExamCards(html);
       window._examList = _examList;
       window._indexSha = json.sha;
@@ -1440,7 +1440,9 @@ window.openExamEditor = async(href, title)=>{
     });
     if(!res.ok) throw new Error(`HTTP ${res.status}`);
     const json = await res.json();
-    const content = atob(json.content.replace(/\n/g,''));
+    const content = (typeof decodeGithubContent === 'function')
+      ? decodeGithubContent(json.content)
+      : new TextDecoder('utf-8').decode(Uint8Array.from(atob(String(json.content || '').replace(/\n/g,'')), ch => ch.charCodeAt(0)));
     window._currentFileSha = json.sha;
     document.getElementById('codeEditor').value = content;
     _currentEditOriginal = content;
@@ -1460,7 +1462,9 @@ window.saveEditorToGithub = async()=>{
   if(!commitMsg) return;
 
   try {
-    const encoded = btoa(unescape(encodeURIComponent(content)));
+    const encoded = (typeof encodeGithubContent === 'function')
+      ? encodeGithubContent(content)
+      : btoa(unescape(encodeURIComponent(content)));
     const body = { message: commitMsg, content: encoded, branch: gh.branch };
     if(window._currentFileSha) body.sha = window._currentFileSha;
 
@@ -1797,7 +1801,7 @@ async function updateIndexHtml(newLevel, newPath, isNewBadge, editOnly=false){
   });
   if(!res.ok) throw new Error('Gagal fetch index.html');
   const json = await res.json();
-  let html = atob(json.content.replace(/\n/g,''));
+  let html = (typeof decodeGithubContent === 'function') ? decodeGithubContent(json.content) : new TextDecoder('utf-8').decode(Uint8Array.from(atob(String(json.content || '').replace(/\n/g,'')), ch => ch.charCodeAt(0)));
   const sha = json.sha;
 
   // Build new card HTML string for injection (if not editOnly)
