@@ -1,0 +1,454 @@
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@300;400;700&family=Noto+Sans+JP:wght@300;400&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body { background: transparent; }
+
+  .scene {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem 1rem 2.5rem;
+    min-height: 700px;
+    overflow: hidden;
+  }
+
+  .petals-container {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    pointer-events: none;
+    overflow: hidden;
+  }
+
+  .falling-petal {
+    position: absolute;
+    top: -40px;
+    opacity: 0;
+    animation: fall linear infinite;
+  }
+
+  @keyframes fall {
+    0%   { transform: translateY(0) rotate(0deg) translateX(0); opacity: 0.9; }
+    80%  { opacity: 0.7; }
+    100% { transform: translateY(760px) rotate(360deg) translateX(60px); opacity: 0; }
+  }
+
+  .card {
+    position: relative;
+    width: 460px;
+    background: #fffaf6;
+    border-radius: 24px;
+    border: 1px solid #e0b898;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 2rem 2rem;
+    z-index: 2;
+  }
+
+  .accent-bar {
+    width: 100%;
+    height: 6px;
+    background: linear-gradient(90deg, #b55e48, #d98a60, #f0c07a, #d98a60, #b55e48);
+  }
+
+  .lantern-row {
+    display: flex;
+    gap: 18px;
+    margin: 1.2rem 0 0.6rem;
+  }
+
+  .lantern {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    transition: transform 0.3s;
+  }
+  .lantern:hover { transform: scale(1.15) rotate(-5deg); }
+  .lantern svg { filter: drop-shadow(0 0 4px rgba(230,150,60,0.4)); }
+
+  .name-tag {
+    background: #b55e48;
+    border-radius: 30px;
+    padding: 6px 24px;
+    margin: 0.3rem 0 0.2rem;
+  }
+  .name-text {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: 2px;
+    text-align: center;
+  }
+
+  .age-row {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin: 0.8rem 0 0.2rem;
+  }
+  .age-big {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 64px;
+    font-weight: 700;
+    color: #b55e48;
+    line-height: 1;
+  }
+  .age-kanji {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 20px;
+    color: #c87850;
+    letter-spacing: 2px;
+  }
+
+  .main-title {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 26px;
+    font-weight: 700;
+    color: #7a2e1a;
+    letter-spacing: 6px;
+    text-align: center;
+    margin: 0.2rem 0;
+  }
+  .subtitle {
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 12px;
+    font-weight: 300;
+    color: #b08060;
+    letter-spacing: 5px;
+    margin-bottom: 0.8rem;
+  }
+
+  .divider-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    max-width: 340px;
+    margin-bottom: 1rem;
+  }
+  .div-line { flex: 1; height: 0.5px; background: #d4a070; }
+  .div-icon { font-family: 'Noto Serif JP', serif; font-size: 13px; color: #c08050; }
+
+  .message-card {
+    background: #fff4ee;
+    border-radius: 14px;
+    border: 0.5px solid #e8b898;
+    padding: 1.2rem 1.4rem;
+    width: 100%;
+    max-width: 380px;
+    margin-bottom: 1rem;
+  }
+  .message-jp {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 14px;
+    font-weight: 300;
+    color: #4a1e0e;
+    line-height: 2.2;
+    text-align: center;
+    letter-spacing: 1px;
+  }
+
+  .wish-section {
+    width: 100%;
+    max-width: 380px;
+    margin-bottom: 1rem;
+  }
+  .wish-title {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 12px;
+    color: #b07050;
+    letter-spacing: 3px;
+    text-align: center;
+    margin-bottom: 8px;
+  }
+  .wish-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+  .wish-btn {
+    background: #fff;
+    border: 0.5px solid #d4a080;
+    border-radius: 10px;
+    padding: 8px 4px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    transition: background 0.2s, transform 0.15s;
+    font-family: inherit;
+  }
+  .wish-btn:hover { background: #fff0e8; transform: translateY(-2px); }
+  .wish-btn.active { background: #b55e48; border-color: #b55e48; }
+  .wish-btn.active .wish-icon { color: #fff; }
+  .wish-btn.active .wish-label { color: #fff; }
+  .wish-icon { font-size: 20px; }
+  .wish-label {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 11px;
+    color: #7a3a20;
+    letter-spacing: 1px;
+  }
+
+  .wish-display {
+    background: #fff4ee;
+    border-radius: 10px;
+    border: 0.5px solid #e8b898;
+    padding: 10px 14px;
+    margin-top: 8px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .wish-display-text {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 13px;
+    color: #5c2e1a;
+    letter-spacing: 1px;
+    text-align: center;
+    line-height: 1.8;
+    transition: opacity 0.3s;
+  }
+
+  .date-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0.4rem 0 0.8rem;
+  }
+  .date-text {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 13px;
+    color: #9e5a3a;
+    letter-spacing: 3px;
+  }
+
+  .confetti-btn {
+    background: #b55e48;
+    color: #fff;
+    border: none;
+    border-radius: 30px;
+    padding: 10px 30px;
+    font-family: 'Noto Serif JP', serif;
+    font-size: 14px;
+    letter-spacing: 3px;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.15s;
+    margin-bottom: 0.4rem;
+  }
+  .confetti-btn:hover { background: #9a4a38; transform: scale(1.04); }
+  .confetti-btn:active { transform: scale(0.97); }
+
+  .footer-note {
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 11px;
+    color: #b08060;
+    letter-spacing: 3px;
+    margin-top: 0.5rem;
+  }
+
+  .accent-bar-bottom {
+    position: absolute;
+    bottom: 0; left: 0;
+    width: 100%;
+    height: 6px;
+    background: linear-gradient(90deg, #b55e48, #d98a60, #f0c07a, #d98a60, #b55e48);
+  }
+
+  .sparkle {
+    position: absolute;
+    pointer-events: none;
+    border-radius: 50%;
+    animation: sparkle-pop 0.7s ease-out forwards;
+  }
+  @keyframes sparkle-pop {
+    0%   { transform: scale(0); opacity: 1; }
+    70%  { transform: scale(1); opacity: 0.8; }
+    100% { transform: scale(1.4); opacity: 0; }
+  }
+</style>
+
+<div class="scene" id="scene">
+  <div class="petals-container" id="petals"></div>
+
+  <div class="card" id="card">
+    <div class="accent-bar"></div>
+
+    <div class="lantern-row">
+      <div class="lantern" onclick="bounceLantern(this)">
+        <svg width="28" height="42" viewBox="0 0 28 42"><rect x="4" y="8" width="20" height="26" rx="10" fill="#e05030"/><rect x="4" y="8" width="20" height="26" rx="10" fill="url(#lg1)" opacity="0.4"/><rect x="10" y="2" width="8" height="7" rx="2" fill="#b84020"/><rect x="12" y="34" width="4" height="6" rx="1" fill="#b84020"/><line x1="14" y1="40" x2="14" y2="44" stroke="#b84020" stroke-width="1.5"/><text x="14" y="25" text-anchor="middle" font-family="Noto Serif JP,serif" font-size="10" fill="#ffe8a0" font-weight="700">寿</text><defs><linearGradient id="lg1" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#fff" stop-opacity="0.5"/><stop offset="50%" stop-color="#fff" stop-opacity="0"/></linearGradient></defs></svg>
+      </div>
+      <div class="lantern" onclick="bounceLantern(this)">
+        <svg width="28" height="42" viewBox="0 0 28 42"><rect x="4" y="8" width="20" height="26" rx="10" fill="#c04828"/><rect x="4" y="8" width="20" height="26" rx="10" fill="url(#lg2)" opacity="0.4"/><rect x="10" y="2" width="8" height="7" rx="2" fill="#903820"/><rect x="12" y="34" width="4" height="6" rx="1" fill="#903820"/><text x="14" y="25" text-anchor="middle" font-family="Noto Serif JP,serif" font-size="10" fill="#ffe8a0" font-weight="700">福</text><defs><linearGradient id="lg2" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#fff" stop-opacity="0.5"/><stop offset="50%" stop-color="#fff" stop-opacity="0"/></linearGradient></defs></svg>
+      </div>
+      <div class="lantern" onclick="bounceLantern(this)">
+        <svg width="28" height="42" viewBox="0 0 28 42"><rect x="4" y="8" width="20" height="26" rx="10" fill="#d85828"/><rect x="4" y="8" width="20" height="26" rx="10" fill="url(#lg3)" opacity="0.4"/><rect x="10" y="2" width="8" height="7" rx="2" fill="#a04018"/><rect x="12" y="34" width="4" height="6" rx="1" fill="#a04018"/><text x="14" y="25" text-anchor="middle" font-family="Noto Serif JP,serif" font-size="10" fill="#ffe8a0" font-weight="700">愛</text><defs><linearGradient id="lg3" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#fff" stop-opacity="0.5"/><stop offset="50%" stop-color="#fff" stop-opacity="0"/></linearGradient></defs></svg>
+      </div>
+    </div>
+
+    <div class="name-tag">
+      <div class="name-text">Thaw Thaw Aung</div>
+    </div>
+
+    <div class="age-row">
+      <span class="age-big">22</span>
+      <span class="age-kanji">歳</span>
+    </div>
+
+    <div class="main-title">お誕生日おめでとう</div>
+    <div class="subtitle">Happy Birthday to You</div>
+
+    <div class="divider-row">
+      <div class="div-line"></div>
+      <span class="div-icon">✿</span>
+      <div class="div-line"></div>
+    </div>
+
+    <div class="message-card">
+      <p class="message-jp">
+        Thaw Thaw Aung さんへ、<br>
+        二十二歳のお誕生日を<br>
+        心よりお祝い申し上げます。<br><br>
+        これからの日々が喜びと<br>
+        希望に満ちあふれますように。
+      </p>
+    </div>
+
+    <div class="wish-section">
+      <div class="wish-title">— 願いを選んでください —</div>
+      <div class="wish-grid" id="wishGrid">
+        <button class="wish-btn" onclick="selectWish(this, '健康・長寿\nいつまでも元気で\n長生きしてください。')">
+          <span class="wish-icon">🌿</span>
+          <span class="wish-label">健康</span>
+        </button>
+        <button class="wish-btn" onclick="selectWish(this, '夢・成功\nあなたの夢が\n必ず叶いますように。')">
+          <span class="wish-icon">⭐</span>
+          <span class="wish-label">夢と成功</span>
+        </button>
+        <button class="wish-btn" onclick="selectWish(this, '幸福・愛\n愛と幸せが\nずっと続きますように。')">
+          <span class="wish-icon">🌸</span>
+          <span class="wish-label">幸福</span>
+        </button>
+        <button class="wish-btn" onclick="selectWish(this, '知恵・成長\n学び続け、\n輝き続けてください。')">
+          <span class="wish-icon">📖</span>
+          <span class="wish-label">知恵</span>
+        </button>
+        <button class="wish-btn" onclick="selectWish(this, '冒険・旅\n新しい世界へ\n旅立ってください。')">
+          <span class="wish-icon">🗺️</span>
+          <span class="wish-label">冒険</span>
+        </button>
+        <button class="wish-btn" onclick="selectWish(this, '友情・絆\n大切な人たちと\nずっと繋がれますように。')">
+          <span class="wish-icon">🤝</span>
+          <span class="wish-label">友情</span>
+        </button>
+      </div>
+      <div class="wish-display">
+        <span class="wish-display-text" id="wishText">上のボタンをタップして願いを選んでください ✨</span>
+      </div>
+    </div>
+
+    <div class="date-row">
+      <span style="color:#c96e5a;font-size:14px;">✦</span>
+      <span class="date-text">二〇二五年　六月十日</span>
+      <span style="color:#c96e5a;font-size:14px;">✦</span>
+    </div>
+
+    <button class="confetti-btn" id="celebBtn" onclick="celebrate()">
+      🎊 &nbsp;祝福する &nbsp;🎊
+    </button>
+
+    <div class="footer-note">祝福と愛をこめて</div>
+    <div class="accent-bar-bottom"></div>
+  </div>
+</div>
+
+<script>
+  function createPetal(immediate) {
+    const c = document.getElementById('petals');
+    const p = document.createElement('div');
+    p.className = 'falling-petal';
+    const colors = ['#f9c0cc','#f4a7b8','#fbd0db','#e88ea0','#fce4ec'];
+    const size = 10 + Math.random() * 10;
+    const left = Math.random() * 100;
+    const dur = 4 + Math.random() * 5;
+    const delay = immediate ? 0 : Math.random() * 6;
+    p.style.cssText = `left:${left}%;width:${size}px;height:${size}px;animation-duration:${dur}s;animation-delay:${delay}s;`;
+    p.innerHTML = `<svg width="${size}" height="${size}" viewBox="0 0 20 20"><ellipse cx="10" cy="6" rx="5" ry="8" fill="${colors[Math.floor(Math.random()*colors.length)]}" transform="rotate(${Math.random()*360} 10 10)" opacity="0.85"/></svg>`;
+    c.appendChild(p);
+    setTimeout(() => p.remove(), (dur + delay) * 1000 + 200);
+  }
+
+  for (let i = 0; i < 18; i++) createPetal(false);
+  setInterval(() => createPetal(true), 700);
+
+  function bounceLantern(el) {
+    el.style.animation = 'none';
+    el.style.transform = 'scale(1.3) rotate(10deg)';
+    setTimeout(() => { el.style.transform = ''; el.style.transition = 'transform 0.4s'; }, 200);
+    spawnSparkles(el);
+  }
+
+  function spawnSparkles(el) {
+    const rect = el.getBoundingClientRect();
+    const scene = document.getElementById('scene').getBoundingClientRect();
+    for (let i = 0; i < 6; i++) {
+      const s = document.createElement('div');
+      s.className = 'sparkle';
+      const sz = 4 + Math.random() * 8;
+      const colors2 = ['#f0c07a','#e88ea0','#f9c0cc','#ffd060','#fff'];
+      s.style.cssText = `width:${sz}px;height:${sz}px;background:${colors2[Math.floor(Math.random()*colors2.length)]};left:${rect.left - scene.left + Math.random()*rect.width}px;top:${rect.top - scene.top + Math.random()*rect.height}px;`;
+      document.getElementById('scene').appendChild(s);
+      setTimeout(() => s.remove(), 700);
+    }
+  }
+
+  function selectWish(btn, text) {
+    document.querySelectorAll('.wish-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const el = document.getElementById('wishText');
+    el.style.opacity = '0';
+    setTimeout(() => {
+      el.textContent = text;
+      el.style.opacity = '1';
+    }, 200);
+  }
+
+  let celebrating = false;
+  function celebrate() {
+    if (celebrating) return;
+    celebrating = true;
+    const btn = document.getElementById('celebBtn');
+    btn.textContent = '🎉 おめでとう！ 🎉';
+    for (let i = 0; i < 30; i++) {
+      setTimeout(() => createPetal(true), i * 60);
+    }
+    for (let i = 0; i < 20; i++) {
+      setTimeout(() => spawnSparkleRandom(), i * 80);
+    }
+    setTimeout(() => {
+      btn.textContent = '🎊 　祝福する 　🎊';
+      celebrating = false;
+    }, 3000);
+  }
+
+  function spawnSparkleRandom() {
+    const scene = document.getElementById('scene');
+    const sr = scene.getBoundingClientRect();
+    const s = document.createElement('div');
+    s.className = 'sparkle';
+    const sz = 6 + Math.random() * 12;
+    const colors3 = ['#f0c07a','#e88ea0','#f9c0cc','#ffd060','#b55e48','#fff','#f4a7b5'];
+    s.style.cssText = `width:${sz}px;height:${sz}px;background:${colors3[Math.floor(Math.random()*colors3.length)]};left:${Math.random()*(sr.width-20)}px;top:${Math.random()*(sr.height-20)}px;`;
+    scene.appendChild(s);
+    setTimeout(() => s.remove(), 700);
+  }
+</script>
