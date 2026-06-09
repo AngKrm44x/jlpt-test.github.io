@@ -1029,6 +1029,20 @@ function getTGConfig(){
   };
 }
 
+// Safe GitHub UTF-8 helpers (avoid mojibake on Japanese HTML)
+function decodeGithubContentUtf8(base64){
+  const clean = String(base64 || '').replace(/\n/g, '');
+  const binary = atob(clean);
+  const bytes = Uint8Array.from(binary, ch => ch.charCodeAt(0));
+  return new TextDecoder('utf-8').decode(bytes);
+}
+function encodeGithubContentUtf8(text){
+  const bytes = new TextEncoder().encode(String(text || ''));
+  let binary = '';
+  bytes.forEach(b => { binary += String.fromCharCode(b); });
+  return btoa(binary);
+}
+
 // =============================================
 // INIT
 // =============================================
@@ -1323,7 +1337,7 @@ async function loadExamListFromIndex(){
     });
     const json = await res.json();
     if(json.content){
-      const html = (typeof decodeGithubContent === 'function') ? decodeGithubContent(json.content) : new TextDecoder('utf-8').decode(Uint8Array.from(atob(String(json.content || '').replace(/\n/g,'')), ch => ch.charCodeAt(0)));
+      const html = decodeGithubContentUtf8(json.content);
       _examList = parseExamCards(html);
       window._examList = _examList;
       window._indexSha = json.sha;
@@ -1440,9 +1454,7 @@ window.openExamEditor = async(href, title)=>{
     });
     if(!res.ok) throw new Error(`HTTP ${res.status}`);
     const json = await res.json();
-    const content = (typeof decodeGithubContent === 'function')
-      ? decodeGithubContent(json.content)
-      : new TextDecoder('utf-8').decode(Uint8Array.from(atob(String(json.content || '').replace(/\n/g,'')), ch => ch.charCodeAt(0)));
+    const content = decodeGithubContentUtf8(json.content);
     window._currentFileSha = json.sha;
     document.getElementById('codeEditor').value = content;
     _currentEditOriginal = content;
@@ -1462,9 +1474,7 @@ window.saveEditorToGithub = async()=>{
   if(!commitMsg) return;
 
   try {
-    const encoded = (typeof encodeGithubContent === 'function')
-      ? encodeGithubContent(content)
-      : btoa(unescape(encodeURIComponent(content)));
+    const encoded = encodeGithubContentUtf8(content);
     const body = { message: commitMsg, content: encoded, branch: gh.branch };
     if(window._currentFileSha) body.sha = window._currentFileSha;
 
@@ -1741,7 +1751,7 @@ window.doUpload = async()=>{
     setStep([{label:'Cek file di GitHub',state:'done'},{label:'Upload file HTML',state:'active'},{label:'Update index.html',state:''}]);
 
     // Upload file HTML
-    const encoded = btoa(unescape(encodeURIComponent(_fileContent)));
+    const encoded = encodeGithubContentUtf8(_fileContent);
     const body = { message:`Add exam: ${customTitle}`, content: encoded, branch: gh.branch };
     if(existingSha) body.sha = existingSha;
 
@@ -1801,7 +1811,7 @@ async function updateIndexHtml(newLevel, newPath, isNewBadge, editOnly=false){
   });
   if(!res.ok) throw new Error('Gagal fetch index.html');
   const json = await res.json();
-  let html = (typeof decodeGithubContent === 'function') ? decodeGithubContent(json.content) : new TextDecoder('utf-8').decode(Uint8Array.from(atob(String(json.content || '').replace(/\n/g,'')), ch => ch.charCodeAt(0)));
+  let html = decodeGithubContentUtf8(json.content);
   const sha = json.sha;
 
   // Build new card HTML string for injection (if not editOnly)
@@ -1835,7 +1845,7 @@ async function updateIndexHtml(newLevel, newPath, isNewBadge, editOnly=false){
   }
 
   // Push
-  const encoded = btoa(unescape(encodeURIComponent(html)));
+  const encoded = encodeGithubContentUtf8(html);
   const putRes = await fetch(`https://api.github.com/repos/${gh.owner}/${gh.repo}/contents/${gh.indexPath}`, {
     method:'PUT',
     headers:{'Authorization':`token ${gh.token}`,'Content-Type':'application/json','Accept':'application/vnd.github.v3+json'},
@@ -2920,7 +2930,7 @@ window.togglePwd = window.toggleFieldPwd = function(id, btn){
     }
     const json = await res.json();
     const content = String(json.content || '').replace(/\n/g, '');
-    return atob(content);
+    return decodeGithubContentUtf8(content);
   }
 
   async function fetchIndexHtmlMaybe() {
@@ -2933,7 +2943,7 @@ window.togglePwd = window.toggleFieldPwd = function(id, btn){
       throw new Error(err.message || `HTTP ${res.status}`);
     }
     const json = await res.json();
-    const html = atob(String(json.content || '').replace(/\n/g, ''));
+    const html = decodeGithubContentUtf8(json.content);
     return { html, sha: json.sha };
   }
 
