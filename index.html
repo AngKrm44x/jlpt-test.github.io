@@ -1,53 +1,7 @@
 <!DOCTYPE html>
 <html lang="ja"><head>
 <!-- AUTH GUARD -->
-<script type="module">
-  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
-  const SUPABASE_URL  = 'https://uincqpdexdenjcmwdfsv.supabase.co';
-  const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpbmNxcGRleGRlbmpjbXdkZnN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5MjM4ODEsImV4cCI6MjA5NTQ5OTg4MX0.Lf1N_P_iiNQ2hnRJhd-Quy9MLKlZFSzbnXtXCnmRCS0';
-  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON);
-  document.documentElement.style.visibility = 'hidden';
 
-  try {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      window.location.replace('./auth.html');
-    } else {
-      // =============================================
-      // ADMIN EMAILS — ganti dengan email kamu
-      // =============================================
-      const SUPER_ADMIN_EMAIL = 'sidiqangga44@gmail.com'; // ← ganti
-      const ADMIN_EMAIL       = 'admin@example.com';       // ← ganti
-
-      // Kalau email admin → redirect langsung ke admin.html
-      if (session.user.email === SUPER_ADMIN_EMAIL || session.user.email === ADMIN_EMAIL) {
-        window.location.replace('./admin.html');
-      } else {
-        const { data: usr, error: usrErr } = await supabase
-          .from('users')
-          .select('status, full_name, display_name, avatar_url')
-          .eq('id', session.user.id)
-          .single();
-        if (usrErr || !usr || usr.status !== 'active') {
-          if (!usr || usr.status !== 'active') await supabase.auth.signOut();
-          window.location.replace('./auth.html');
-        } else {
-          document.documentElement.style.visibility = 'visible';
-          window._supabase = supabase;
-          window._session  = session;
-          window._userDb   = usr;
-        }
-      }
-    }
-  } catch(e) {
-    console.error('Auth guard error:', e);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) window.location.replace('./auth.html');
-      else document.documentElement.style.visibility = 'visible';
-    } catch(e2) { window.location.replace('./auth.html'); }
-  }
-</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>模擬試験　過去問題</title>
@@ -410,7 +364,7 @@ h1{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;letter-spacing:-
 }
 
 /* FOOTER */
-.footer{width:100%;clear:both;align-self:stretch;margin-top:60px;border-top:1px solid var(--border);padding:30px 0;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;color:var(--muted);font-size:14px;}
+.footer{width:100%;clear:both;align-self:stretch;grid-column:1 / -1;margin-top:60px;border-top:1px solid var(--border);padding:30px 0;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;color:var(--muted);font-size:14px;}
 .footer-links{display:flex;gap:20px;}
 .footer-links a{color:var(--muted);text-decoration:none;transition:color .2s;}
 .footer-links a:hover{color:var(--primary);}
