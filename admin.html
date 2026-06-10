@@ -2,58 +2,7 @@
 <html lang="id">
 <head>
 <!-- ADMIN AUTH GUARD -->
-<script type="module">
-  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
-  const SUPABASE_URL  = 'https://uincqpdexdenjcmwdfsv.supabase.co';
-  const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpbmNxcGRleGRlbmpjbXdkZnN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5MjM4ODEsImV4cCI6MjA5NTQ5OTg4MX0.Lf1N_P_iiNQ2hnRJhd-Quy9MLKlZFSzbnXtXCnmRCS0';
-  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON);
-
-  document.documentElement.style.visibility = 'hidden';
-
-  // =============================================
-  // ADMIN EMAILS - ganti dengan email kamu
-  // =============================================
-  const SUPER_ADMIN_EMAIL = 'sidiqangga44@gmail.com'; // ← ganti email super admin
-  const ADMIN_EMAIL       = 'admin@example.com';       // ← ganti email admin biasa
-
-  const goTo = (url) => window.location.replace(url);
-
-  try {
-    const { data: { session } } = await supabase.auth.getSession();
-
-    if (!session) {
-      goTo('./auth.html');
-    } else {
-      const email = (session.user.email || '').trim().toLowerCase();
-      const superAdmin = SUPER_ADMIN_EMAIL.trim().toLowerCase();
-      const adminEmail  = ADMIN_EMAIL.trim().toLowerCase();
-
-      if (email !== superAdmin && email !== adminEmail) {
-        alert('⛔ Akses ditolak. Halaman ini khusus admin.');
-        goTo('./index.html');
-      } else {
-        const { data: usr } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
-
-        document.documentElement.style.visibility = 'visible';
-        window._supabase      = supabase;
-        window._session       = session;
-        window._userDb        = usr;
-        window._isSuperAdmin  = (email === superAdmin);
-        window._adminEmail    = email;
-        window.SUPABASE_URL   = SUPABASE_URL;
-        window.SUPABASE_ANON  = SUPABASE_ANON;
-      }
-    }
-  } catch (e) {
-    console.error('Auth error:', e);
-    goTo('./auth.html');
-  }
-</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin Panel – JLPT Exam Hub</title>
@@ -1223,7 +1172,7 @@ async function loadDashboard(){
     <tr>
       <td>${escHtml(u.full_name||u.display_name||'—')}</td>
       <td style="font-size:12px;color:var(--muted);">${escHtml(u.email||'—')}</td>
-      <td><span class="status ${u.status||'pending'}">${u.status||'pending'}</span></td>
+      <td><span class="status ${normalizeUserStatus(u.status)}">${normalizeUserStatus(u.status)}</span></td>
       <td style="font-size:12px;color:var(--muted);">${fmtDate(u.created_at)}</td>
       <td><button class="act-btn edit" onclick="openEditUser('${u.id}')">Edit</button></td>
     </tr>
@@ -1233,13 +1182,51 @@ async function loadDashboard(){
 // =============================================
 // USER MANAGEMENT
 // =============================================
-let _allUsers = [];
+
+function normalizeUserStatus(value){
+  const s = String(value || '').trim().toLowerCase();
+  if (!s) return 'pending';
+  if (['active', 'aktif', 'approved', 'approve'].includes(s)) return 'active';
+  if (['pending', 'menunggu', 'waiting', 'wait'].includes(s)) return 'pending';
+  if (['rejected', 'reject', 'ditolak', 'tolak'].includes(s)) return 'rejected';
+  if (['banned', 'ban', 'blocked', 'blokir'].includes(s)) return 'banned';
+  return s;
+}
+
+function getAllUsersSource(){
+  return Array.isArray(window._allUsers) ? window._allUsers : (_allUsers || []);
+}
+
+function getFilteredUsersSource(users){
+  const searchEl = document.getElementById('userSearch');
+  const statusEl = document.getElementById('userStatusFilter');
+  const search = (searchEl?.value || '').trim().toLowerCase();
+  const status = normalizeUserStatus(statusEl?.value || '');
+  return (users || []).filter(u => {
+    const fullName = String(u.full_name || '').toLowerCase();
+    const displayName = String(u.display_name || '').toLowerCase();
+    const email = String(u.email || '').toLowerCase();
+    const matchSearch = !search || fullName.includes(search) || displayName.includes(search) || email.includes(search);
+    const matchStatus = !status || normalizeUserStatus(u.status) === status;
+    return matchSearch && matchStatus;
+  });
+}
+
+function syncAllUsersCache(users){
+  const list = Array.isArray(users) ? users : [];
+  window._allUsers = list;
+  try { _allUsers = list; } catch (_) {}
+  return list;
+}
+
+window._allUsers = window._allUsers || [];
+let _allUsers = window._allUsers;
 
 async function loadAllUsers(){
   const {data, error} = await getSupabase().from('users').select('*').order('created_at',{ascending:false});
   if(error){ showToast('❌ Gagal memuat users: '+error.message,'error'); return; }
-  _allUsers = data||[];
-  renderAllUsers(_allUsers);
+  syncAllUsersCache(data||[]);
+  renderAllUsers(getFilteredUsersSource(getAllUsersSource()));
 }
 
 function renderAllUsers(users){
@@ -1256,7 +1243,7 @@ function renderAllUsers(users){
         </div>
       </td>
       <td style="font-size:13px;">${escHtml(u.email||'—')}</td>
-      <td><span class="status ${u.status||'pending'}">${u.status||'pending'}</span></td>
+      <td><span class="status ${normalizeUserStatus(u.status)}">${normalizeUserStatus(u.status)}</span></td>
       <td><span class="role-badge user">user</span></td>
       <td style="font-size:12px;color:var(--muted);">${fmtDate(u.created_at)}</td>
       <td>
@@ -1273,14 +1260,7 @@ function renderAllUsers(users){
 }
 
 window.filterUserTable = ()=>{
-  const search = document.getElementById('userSearch').value.toLowerCase();
-  const status = document.getElementById('userStatusFilter').value;
-  const filtered = _allUsers.filter(u=>{
-    const matchSearch = !search || (u.full_name||'').toLowerCase().includes(search) || (u.email||'').toLowerCase().includes(search);
-    const matchStatus = !status || u.status===status;
-    return matchSearch && matchStatus;
-  });
-  renderAllUsers(filtered);
+  renderAllUsers(getFilteredUsersSource(getAllUsersSource()));
 };
 
 async function loadPendingUsers(){
@@ -1319,12 +1299,15 @@ window.changeUserStatus = async(id, status)=>{
 };
 
 window.openEditUser = (id)=>{
-  const u = _allUsers.find(x=>x.id===id);
-  if(!u) return;
+  const u = getAllUsersSource().find(x => String(x.id) === String(id));
+  if(!u){
+    showToast('⚠️ Data user belum dimuat. Coba muat ulang daftar user dulu.', 'error');
+    return;
+  }
   document.getElementById('euId').value = id;
   document.getElementById('euName').value = u.full_name||'';
   document.getElementById('euDisplayName').value = u.display_name||'';
-  document.getElementById('euStatus').value = u.status||'pending';
+  document.getElementById('euStatus').value = normalizeUserStatus(u.status)||'pending';
   openModal('editUserModal');
 };
 
@@ -1333,7 +1316,7 @@ window.saveEditUser = async()=>{
   const updates = {
     full_name: document.getElementById('euName').value.trim(),
     display_name: document.getElementById('euDisplayName').value.trim(),
-    status: document.getElementById('euStatus').value,
+    status: normalizeUserStatus(document.getElementById('euStatus').value),
   };
   const {error} = await getSupabase().from('users').update(updates).eq('id',id);
   if(error){ showToast('❌ Gagal menyimpan: '+error.message,'error'); return; }
@@ -1355,7 +1338,7 @@ window.confirmDeleteUser = (id, name)=>{
 };
 
 window.approveAll = async()=>{
-  const pending = _allUsers.filter(u=>u.status==='pending');
+  const pending = getAllUsersSource().filter(u => normalizeUserStatus(u.status) === 'pending');
   if(!pending.length){ showToast('Tidak ada user pending'); return; }
   for(const u of pending){
     await getSupabase().from('users').update({status:'active'}).eq('id',u.id);
@@ -2496,8 +2479,8 @@ window.togglePwd = window.toggleFieldPwd = function(id, btn){
   async function refreshUsersBackend(){
     const data = await apiJson(`${ADMIN_API_BASE}/admin/users`, null);
     if (!data || !Array.isArray(data.items)) throw new Error('backend users unavailable');
-    window._allUsers = data.items;
-    if (typeof renderAllUsers === 'function') renderAllUsers(data.items);
+    syncAllUsersCache(data.items);
+    if (typeof renderAllUsers === 'function') renderAllUsers(getFilteredUsersSource(getAllUsersSource()));
   }
 
   async function refreshPendingBackend(){
@@ -2639,8 +2622,8 @@ window.togglePwd = window.toggleFieldPwd = function(id, btn){
       if (!sb) return;
       const { data, error } = await sb.from('users').select('*').order('created_at', { ascending: false });
       if (error) { showToast('❌ Gagal memuat users: ' + error.message, 'error'); return; }
-      window._allUsers = data || [];
-      renderAllUsers(window._allUsers);
+      syncAllUsersCache(data || []);
+      renderAllUsers(getFilteredUsersSource(getAllUsersSource()));
     }
   };
 
