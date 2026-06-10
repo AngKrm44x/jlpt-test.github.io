@@ -2,7 +2,58 @@
 <html lang="id">
 <head>
 <!-- ADMIN AUTH GUARD -->
+<script type="module">
+  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
+  const SUPABASE_URL  = 'https://uincqpdexdenjcmwdfsv.supabase.co';
+  const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpbmNxcGRleGRlbmpjbXdkZnN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5MjM4ODEsImV4cCI6MjA5NTQ5OTg4MX0.Lf1N_P_iiNQ2hnRJhd-Quy9MLKlZFSzbnXtXCnmRCS0';
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON);
+
+  document.documentElement.style.visibility = 'hidden';
+
+  // =============================================
+  // ADMIN EMAILS - ganti dengan email kamu
+  // =============================================
+  const SUPER_ADMIN_EMAIL = 'sidiqangga44@gmail.com'; // ← ganti email super admin
+  const ADMIN_EMAIL       = 'admin@example.com';       // ← ganti email admin biasa
+
+  const goTo = (url) => window.location.replace(url);
+
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+
+    if (!session) {
+      goTo('./auth.html');
+    } else {
+      const email = (session.user.email || '').trim().toLowerCase();
+      const superAdmin = SUPER_ADMIN_EMAIL.trim().toLowerCase();
+      const adminEmail  = ADMIN_EMAIL.trim().toLowerCase();
+
+      if (email !== superAdmin && email !== adminEmail) {
+        alert('⛔ Akses ditolak. Halaman ini khusus admin.');
+        goTo('./index.html');
+      } else {
+        const { data: usr } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+
+        document.documentElement.style.visibility = 'visible';
+        window._supabase      = supabase;
+        window._session       = session;
+        window._userDb        = usr;
+        window._isSuperAdmin  = (email === superAdmin);
+        window._adminEmail    = email;
+        window.SUPABASE_URL   = SUPABASE_URL;
+        window.SUPABASE_ANON  = SUPABASE_ANON;
+      }
+    }
+  } catch (e) {
+    console.error('Auth error:', e);
+    goTo('./auth.html');
+  }
+</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin Panel – JLPT Exam Hub</title>
@@ -1172,7 +1223,7 @@ async function loadDashboard(){
     <tr>
       <td>${escHtml(u.full_name||u.display_name||'—')}</td>
       <td style="font-size:12px;color:var(--muted);">${escHtml(u.email||'—')}</td>
-      <td><span class="status ${normalizeUserStatus(u.status)}">${normalizeUserStatus(u.status)}</span></td>
+      <td><span class="status ${u.status||'pending'}">${u.status||'pending'}</span></td>
       <td style="font-size:12px;color:var(--muted);">${fmtDate(u.created_at)}</td>
       <td><button class="act-btn edit" onclick="openEditUser('${u.id}')">Edit</button></td>
     </tr>
@@ -1182,51 +1233,13 @@ async function loadDashboard(){
 // =============================================
 // USER MANAGEMENT
 // =============================================
-
-function normalizeUserStatus(value){
-  const s = String(value || '').trim().toLowerCase();
-  if (!s) return 'pending';
-  if (['active', 'aktif', 'approved', 'approve'].includes(s)) return 'active';
-  if (['pending', 'menunggu', 'waiting', 'wait'].includes(s)) return 'pending';
-  if (['rejected', 'reject', 'ditolak', 'tolak'].includes(s)) return 'rejected';
-  if (['banned', 'ban', 'blocked', 'blokir'].includes(s)) return 'banned';
-  return s;
-}
-
-function getAllUsersSource(){
-  return Array.isArray(window._allUsers) ? window._allUsers : (_allUsers || []);
-}
-
-function getFilteredUsersSource(users){
-  const searchEl = document.getElementById('userSearch');
-  const statusEl = document.getElementById('userStatusFilter');
-  const search = (searchEl?.value || '').trim().toLowerCase();
-  const status = normalizeUserStatus(statusEl?.value || '');
-  return (users || []).filter(u => {
-    const fullName = String(u.full_name || '').toLowerCase();
-    const displayName = String(u.display_name || '').toLowerCase();
-    const email = String(u.email || '').toLowerCase();
-    const matchSearch = !search || fullName.includes(search) || displayName.includes(search) || email.includes(search);
-    const matchStatus = !status || normalizeUserStatus(u.status) === status;
-    return matchSearch && matchStatus;
-  });
-}
-
-function syncAllUsersCache(users){
-  const list = Array.isArray(users) ? users : [];
-  window._allUsers = list;
-  try { _allUsers = list; } catch (_) {}
-  return list;
-}
-
-window._allUsers = window._allUsers || [];
-let _allUsers = window._allUsers;
+let _allUsers = [];
 
 async function loadAllUsers(){
   const {data, error} = await getSupabase().from('users').select('*').order('created_at',{ascending:false});
   if(error){ showToast('❌ Gagal memuat users: '+error.message,'error'); return; }
-  syncAllUsersCache(data||[]);
-  renderAllUsers(getFilteredUsersSource(getAllUsersSource()));
+  _allUsers = data||[];
+  renderAllUsers(_allUsers);
 }
 
 function renderAllUsers(users){
@@ -1243,7 +1256,7 @@ function renderAllUsers(users){
         </div>
       </td>
       <td style="font-size:13px;">${escHtml(u.email||'—')}</td>
-      <td><span class="status ${normalizeUserStatus(u.status)}">${normalizeUserStatus(u.status)}</span></td>
+      <td><span class="status ${u.status||'pending'}">${u.status||'pending'}</span></td>
       <td><span class="role-badge user">user</span></td>
       <td style="font-size:12px;color:var(--muted);">${fmtDate(u.created_at)}</td>
       <td>
@@ -1260,7 +1273,14 @@ function renderAllUsers(users){
 }
 
 window.filterUserTable = ()=>{
-  renderAllUsers(getFilteredUsersSource(getAllUsersSource()));
+  const search = document.getElementById('userSearch').value.toLowerCase();
+  const status = document.getElementById('userStatusFilter').value;
+  const filtered = _allUsers.filter(u=>{
+    const matchSearch = !search || (u.full_name||'').toLowerCase().includes(search) || (u.email||'').toLowerCase().includes(search);
+    const matchStatus = !status || u.status===status;
+    return matchSearch && matchStatus;
+  });
+  renderAllUsers(filtered);
 };
 
 async function loadPendingUsers(){
@@ -1299,15 +1319,12 @@ window.changeUserStatus = async(id, status)=>{
 };
 
 window.openEditUser = (id)=>{
-  const u = getAllUsersSource().find(x => String(x.id) === String(id));
-  if(!u){
-    showToast('⚠️ Data user belum dimuat. Coba muat ulang daftar user dulu.', 'error');
-    return;
-  }
+  const u = _allUsers.find(x=>x.id===id);
+  if(!u) return;
   document.getElementById('euId').value = id;
   document.getElementById('euName').value = u.full_name||'';
   document.getElementById('euDisplayName').value = u.display_name||'';
-  document.getElementById('euStatus').value = normalizeUserStatus(u.status)||'pending';
+  document.getElementById('euStatus').value = u.status||'pending';
   openModal('editUserModal');
 };
 
@@ -1316,7 +1333,7 @@ window.saveEditUser = async()=>{
   const updates = {
     full_name: document.getElementById('euName').value.trim(),
     display_name: document.getElementById('euDisplayName').value.trim(),
-    status: normalizeUserStatus(document.getElementById('euStatus').value),
+    status: document.getElementById('euStatus').value,
   };
   const {error} = await getSupabase().from('users').update(updates).eq('id',id);
   if(error){ showToast('❌ Gagal menyimpan: '+error.message,'error'); return; }
@@ -1338,7 +1355,7 @@ window.confirmDeleteUser = (id, name)=>{
 };
 
 window.approveAll = async()=>{
-  const pending = getAllUsersSource().filter(u => normalizeUserStatus(u.status) === 'pending');
+  const pending = _allUsers.filter(u=>u.status==='pending');
   if(!pending.length){ showToast('Tidak ada user pending'); return; }
   for(const u of pending){
     await getSupabase().from('users').update({status:'active'}).eq('id',u.id);
@@ -2479,8 +2496,8 @@ window.togglePwd = window.toggleFieldPwd = function(id, btn){
   async function refreshUsersBackend(){
     const data = await apiJson(`${ADMIN_API_BASE}/admin/users`, null);
     if (!data || !Array.isArray(data.items)) throw new Error('backend users unavailable');
-    syncAllUsersCache(data.items);
-    if (typeof renderAllUsers === 'function') renderAllUsers(getFilteredUsersSource(getAllUsersSource()));
+    window._allUsers = data.items;
+    if (typeof renderAllUsers === 'function') renderAllUsers(data.items);
   }
 
   async function refreshPendingBackend(){
@@ -2622,8 +2639,8 @@ window.togglePwd = window.toggleFieldPwd = function(id, btn){
       if (!sb) return;
       const { data, error } = await sb.from('users').select('*').order('created_at', { ascending: false });
       if (error) { showToast('❌ Gagal memuat users: ' + error.message, 'error'); return; }
-      syncAllUsersCache(data || []);
-      renderAllUsers(getFilteredUsersSource(getAllUsersSource()));
+      window._allUsers = data || [];
+      renderAllUsers(window._allUsers);
     }
   };
 
@@ -3407,6 +3424,343 @@ window.togglePwd = window.toggleFieldPwd = function(id, btn){
       window.refreshAdminActivity?.();
     } catch {}
   }, 350);
+})();
+</script>
+
+
+<script>
+(() => {
+  if (window.__jlptUserSyncPatch) return;
+  window.__jlptUserSyncPatch = true;
+
+  const sb = () => (typeof getSupabase === 'function' ? getSupabase() : window._supabase);
+  const esc = (value='') => {
+    if (typeof escHtml === 'function') return escHtml(String(value ?? ''));
+    return String(value ?? '')
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  };
+  const fmt = (value) => (typeof fmtDate === 'function' ? fmtDate(value) : (value || '—'));
+
+  function normalizeStatus(user = {}) {
+    const raw = String(user.status ?? '').trim().toLowerCase();
+    if (raw) return raw;
+    if (user.is_banned === true || user.banned === true) return 'banned';
+    if (user.approved === true) return 'active';
+    return 'pending';
+  }
+
+  function getRoleBadge(user = {}) {
+    if (typeof getRoleBadgeForUser === 'function') return getRoleBadgeForUser(user);
+    const email = String(user.email ?? '').trim().toLowerCase();
+    const superEmail = String(window._adminEmail || 'sidiqangga44@gmail.com').trim().toLowerCase();
+    const userRole = String(user.role || user.user_role || user.account_role || '').trim().toLowerCase();
+    if (email && email === superEmail) return { cls: 'super', label: 'Super Admin' };
+    if (userRole === 'admin') return { cls: 'admin', label: 'Admin' };
+    if (userRole === 'super') return { cls: 'super', label: 'Super Admin' };
+    return { cls: 'user', label: 'User' };
+  }
+
+  function syncUsers(list) {
+    const users = (Array.isArray(list) ? list : []).map(u => ({ ...u, status: normalizeStatus(u) }));
+    window._allUsers = users;
+    return users;
+  }
+
+  function currentFilter() {
+    return {
+      search: (document.getElementById('userSearch')?.value || '').trim().toLowerCase(),
+      status: (document.getElementById('userStatusFilter')?.value || '').trim().toLowerCase(),
+    };
+  }
+
+  window.renderAllUsers = function(users) {
+    const tbody = document.getElementById('allUserTable');
+    if (!tbody) return;
+
+    const rows = (Array.isArray(users) ? users : []).map(u => {
+      const user = { ...u, status: normalizeStatus(u) };
+      const role = getRoleBadge(user);
+      const name = String(user.full_name || user.display_name || '—').trim();
+      const initial = (name || String(user.email || '?')).charAt(0).toUpperCase();
+
+      return `
+        <tr>
+          <td>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div style="width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#3558a8,#6c3fff);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;flex-shrink:0;">${esc(initial)}</div>
+              <div>
+                <div style="font-weight:700;font-size:14px;">${esc(name)}</div>
+                <div style="font-size:11px;color:var(--muted);">${esc(user.display_name || '')}</div>
+              </div>
+            </div>
+          </td>
+          <td style="font-size:13px;">${esc(user.email || '—')}</td>
+          <td><span class="status ${esc(user.status)}">${esc(user.status)}</span></td>
+          <td><span class="role-badge ${esc(role.cls)}">${esc(role.label)}</span></td>
+          <td style="font-size:12px;color:var(--muted);">${fmt(user.created_at)}</td>
+          <td>
+            <div style="display:flex;gap:5px;flex-wrap:wrap;">
+              ${(user.status === 'pending') ? `<button class="act-btn approve" onclick="changeUserStatus('${esc(user.id)}','active')">✅ Approve</button><button class="act-btn reject" onclick="changeUserStatus('${esc(user.id)}','rejected')">❌ Tolak</button>` : ''}
+              ${(user.status === 'active') ? `<button class="act-btn ban" onclick="changeUserStatus('${esc(user.id)}','banned')">🔨 Ban</button>` : ''}
+              ${(user.status === 'banned') ? `<button class="act-btn approve" onclick="changeUserStatus('${esc(user.id)}','active')">♻️ Unban</button>` : ''}
+              <button class="act-btn edit" onclick="openEditUser('${esc(user.id)}')">✏️</button>
+              <button class="act-btn delete" onclick="confirmDeleteUser('${esc(user.id)}','${esc(name || user.email || '')}')">🗑️</button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    tbody.innerHTML = rows || '<tr><td colspan="6" class="empty-state"><p>Tidak ada user</p></td></tr>';
+  };
+
+  window.filterUserTable = function() {
+    const { search, status } = currentFilter();
+    const source = Array.isArray(window._allUsers) ? window._allUsers : [];
+    const filtered = source.filter(u => {
+      const user = { ...u, status: normalizeStatus(u) };
+      const name = String(user.full_name || user.display_name || '').toLowerCase();
+      const email = String(user.email || '').toLowerCase();
+      const matchSearch = !search || name.includes(search) || email.includes(search);
+      const matchStatus = !status || user.status === status;
+      return matchSearch && matchStatus;
+    });
+    window.renderAllUsers(filtered);
+    return filtered;
+  };
+
+  async function fetchUsers() {
+    const s = sb();
+    if (!s?.from) throw new Error('Supabase belum siap');
+    const { data, error } = await s.from('users').select('*').order('created_at', { ascending: false });
+    if (error) throw error;
+    return syncUsers(data || []);
+  }
+
+  async function fetchPending() {
+    const s = sb();
+    if (!s?.from) throw new Error('Supabase belum siap');
+    const { data, error } = await s.from('users').select('*').eq('status', 'pending').order('created_at', { ascending: false });
+    if (error) throw error;
+    return (data || []).map(u => ({ ...u, status: normalizeStatus(u) }));
+  }
+
+  async function fetchCounts() {
+    const s = sb();
+    if (!s?.from) return;
+    const [{ data: users }, { data: pending }, { data: reports }] = await Promise.all([
+      s.from('users').select('id,status,created_at'),
+      s.from('users').select('id').eq('status', 'pending'),
+      s.from('exam_reports').select('id').eq('status', 'pending'),
+    ]);
+    const all = Array.isArray(users) ? users.map(u => ({ ...u, status: normalizeStatus(u) })) : [];
+    const pendingCount = Array.isArray(pending) ? pending.length : 0;
+    const reportsCount = Array.isArray(reports) ? reports.length : 0;
+    const activeCount = all.filter(u => u.status === 'active').length;
+
+    const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    set('dTotalUser', all.length);
+    set('dActiveUser', `${activeCount} aktif`);
+    set('dPendingUser', pendingCount);
+    set('dReports', reportsCount);
+    set('reportBadge', reportsCount);
+    set('pendingBadge', pendingCount);
+  }
+
+  window.loadAllUsers = async function() {
+    try {
+      const users = await fetchUsers();
+      window.renderAllUsers(window.filterUserTable ? window.filterUserTable() : users);
+    } catch (err) {
+      showToast?.('❌ Gagal memuat users: ' + (err?.message || err), 'error');
+    }
+  };
+
+  window.loadPendingUsers = async function() {
+    try {
+      const users = await fetchPending();
+      const badge = document.getElementById('pendingBadge');
+      if (badge) badge.textContent = users.length;
+      const tbody = document.getElementById('pendingUserTable');
+      if (tbody) {
+        tbody.innerHTML = users.map(u => `
+          <tr>
+            <td>
+              <div style="display:flex;align-items:center;gap:10px;">
+                <div style="width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#ffb547,#ff4f6d);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;flex-shrink:0;">${esc((u.full_name || '?').charAt(0).toUpperCase())}</div>
+                <div><div style="font-weight:700;font-size:14px;">${esc(u.full_name || '—')}</div></div>
+              </div>
+            </td>
+            <td>${esc(u.email || '—')}</td>
+            <td style="font-size:12px;color:var(--muted);">${fmt(u.created_at)}</td>
+            <td>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                <button class="act-btn approve" onclick="changeUserStatus('${esc(u.id)}','active')">✅ Approve</button>
+                <button class="act-btn reject" onclick="changeUserStatus('${esc(u.id)}','rejected')">❌ Tolak</button>
+                <button class="act-btn delete" onclick="confirmDeleteUser('${esc(u.id)}','${esc(u.full_name || u.email || '')}')">🗑️ Hapus</button>
+              </div>
+            </td>
+          </tr>
+        `).join('') || '<tr><td colspan="4" class="empty-state"><p>Tidak ada user pending 🎉</p></td></tr>';
+      }
+    } catch (err) {
+      showToast?.('❌ Gagal memuat user pending: ' + (err?.message || err), 'error');
+    }
+  };
+
+  window.loadDashboard = async function() {
+    try {
+      const s = sb();
+      if (!s?.from) throw new Error('Supabase belum siap');
+      const [usersRes, pendingRes, reportsRes] = await Promise.all([
+        s.from('users').select('*').order('created_at', { ascending: false }),
+        s.from('users').select('id').eq('status', 'pending'),
+        s.from('exam_reports').select('id').eq('status', 'pending'),
+      ]);
+
+      const users = (usersRes.data || []).map(u => ({ ...u, status: normalizeStatus(u) }));
+      window._allUsers = users;
+      const pending = pendingRes.data || [];
+      const reports = reportsRes.data || [];
+      const active = users.filter(u => u.status === 'active').length;
+
+      const set = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = value; };
+      const examCount = Array.isArray(window._examList) ? window._examList.length : 0;
+      set('dTotalExam', examCount);
+      set('dTotalUser', users.length);
+      set('dActiveUser', `${active} aktif`);
+      set('dPendingUser', pending.length);
+      set('dReports', reports.length);
+      set('reportBadge', reports.length);
+      set('pendingBadge', pending.length);
+
+      const tbody = document.getElementById('dashUserTable');
+      if (tbody) {
+        tbody.innerHTML = users.slice(0, 8).map(u => `
+          <tr>
+            <td>${esc(u.full_name || u.display_name || '—')}</td>
+            <td style="font-size:12px;color:var(--muted);">${esc(u.email || '—')}</td>
+            <td><span class="status ${esc(u.status)}">${esc(u.status)}</span></td>
+            <td style="font-size:12px;color:var(--muted);">${fmt(u.created_at)}</td>
+            <td><button class="act-btn edit" onclick="openEditUser('${esc(u.id)}')">Edit</button></td>
+          </tr>
+        `).join('') || '<tr><td colspan="5" class="empty-state"><p>Tidak ada user</p></td></tr>';
+      }
+    } catch (err) {
+      showToast?.('❌ Gagal memuat dashboard: ' + (err?.message || err), 'error');
+    }
+  };
+
+  window.openEditUser = function(id) {
+    const user = (Array.isArray(window._allUsers) ? window._allUsers : []).find(x => String(x.id) === String(id));
+    if (!user) {
+      showToast?.('User tidak ditemukan', 'error');
+      return;
+    }
+    document.getElementById('euId').value = user.id || '';
+    document.getElementById('euName').value = user.full_name || '';
+    document.getElementById('euDisplayName').value = user.display_name || '';
+    document.getElementById('euStatus').value = normalizeStatus(user);
+    if (typeof openModal === 'function') openModal('editUserModal');
+  };
+
+  window.saveEditUser = async function() {
+    const id = document.getElementById('euId')?.value?.trim();
+    if (!id) {
+      showToast?.('ID user kosong', 'error');
+      return;
+    }
+
+    const updates = {
+      full_name: document.getElementById('euName')?.value?.trim() || '',
+      display_name: document.getElementById('euDisplayName')?.value?.trim() || '',
+      status: String(document.getElementById('euStatus')?.value || 'pending').toLowerCase(),
+    };
+
+    try {
+      const s = sb();
+      if (!s?.from) throw new Error('Supabase belum siap');
+      const { error } = await s.from('users').update(updates).eq('id', id);
+      if (error) throw error;
+      showToast?.('✅ User berhasil diperbarui', 'success');
+      if (typeof closeModal === 'function') closeModal('editUserModal');
+      await Promise.all([
+        window.loadAllUsers?.(),
+        window.loadPendingUsers?.(),
+        window.loadDashboard?.(),
+      ]);
+    } catch (err) {
+      showToast?.('❌ Gagal menyimpan: ' + (err?.message || err), 'error');
+    }
+  };
+
+  window.changeUserStatus = async function(id, status) {
+    try {
+      const s = sb();
+      if (!s?.from) throw new Error('Supabase belum siap');
+      const normalized = String(status || '').toLowerCase();
+      const { error } = await s.from('users').update({ status: normalized }).eq('id', id);
+      if (error) throw error;
+      showToast?.(`✅ Status diubah ke "${normalized}"`, 'success');
+      await Promise.all([
+        window.loadAllUsers?.(),
+        window.loadPendingUsers?.(),
+        window.loadDashboard?.(),
+      ]);
+    } catch (err) {
+      showToast?.('❌ Gagal mengubah status: ' + (err?.message || err), 'error');
+    }
+  };
+
+  window.filterUserTable = function() {
+    const { search, status } = currentFilter();
+    const source = Array.isArray(window._allUsers) ? window._allUsers : [];
+    const filtered = source.filter(u => {
+      const user = { ...u, status: normalizeStatus(u) };
+      const haystack = `${user.full_name || ''} ${user.display_name || ''} ${user.email || ''}`.toLowerCase();
+      return (!search || haystack.includes(search)) && (!status || user.status === status);
+    });
+    window.renderAllUsers(filtered);
+    return filtered;
+  };
+
+  // Keep counts and table in sync after the whole page settles
+  window.refreshUserState = async function() {
+    try {
+      await Promise.all([
+        window.loadAllUsers?.(),
+        window.loadPendingUsers?.(),
+        fetchCounts(),
+      ]);
+      window.filterUserTable?.();
+    } catch {}
+  };
+
+  const userSearch = document.getElementById('userSearch');
+  const userStatusFilter = document.getElementById('userStatusFilter');
+  if (userSearch && !userSearch.dataset.syncBound) {
+    userSearch.dataset.syncBound = '1';
+    userSearch.addEventListener('input', () => window.filterUserTable?.());
+  }
+  if (userStatusFilter && !userStatusFilter.dataset.syncBound) {
+    userStatusFilter.dataset.syncBound = '1';
+    userStatusFilter.addEventListener('change', () => window.filterUserTable?.());
+  }
+
+  const originalInitApp = window.initApp;
+  if (typeof originalInitApp === 'function') {
+    window.initApp = async function(...args) {
+      const result = await originalInitApp.apply(this, args);
+      await window.refreshUserState?.();
+      return result;
+    };
+  } else {
+    window.addEventListener('DOMContentLoaded', () => window.refreshUserState?.(), { once: true });
+  }
+
+  // expose for manual use
+  window.__refreshUserState = () => window.refreshUserState?.();
 })();
 </script>
 
