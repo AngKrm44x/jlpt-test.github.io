@@ -419,11 +419,31 @@ h1{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;letter-spacing:-
 .skeleton{background:linear-gradient(90deg,rgba(255,255,255,.04) 25%,rgba(255,255,255,.08) 50%,rgba(255,255,255,.04) 75%);background-size:800px 100%;animation:shimmer 1.5s infinite;border-radius:8px;}
 
 @media(max-width:768px){
-  .container{padding:15px;}.hero{padding:25px;}h1{font-size:36px;}.subtitle{font-size:15px;}.hero-deco{display:none;}
-  .grid.list-view .card{grid-template-columns:1fr;}.grid.list-view .open-btn{width:100%;}
+  .container{padding:15px;}
+  .hero{
+    padding:25px;
+    position:relative !important;
+    top:auto !important;
+    margin-bottom:20px;
+    transition:none !important;
+    transform:none !important;
+    opacity:1 !important;
+    box-shadow:0 8px 25px rgba(0,0,0,.28);
+  }
+  .hero.hide{
+    transform:none !important;
+    opacity:1 !important;
+    pointer-events:auto !important;
+  }
+  .hero-deco{display:none;}
+  h1{font-size:30px;}
+  .subtitle{font-size:15px;}
+  .grid.list-view .card{grid-template-columns:1fr;}
+  .grid.list-view .open-btn{width:100%;}
   .footer{flex-direction:column;text-align:center;}
-  .profile-card{flex-wrap:wrap;}.profile-actions{width:100%;flex-direction:row;justify-content:flex-start;flex-wrap:wrap;gap:8px;}
-  h1{font-size:30px;}.hero-actions{top:16px;right:16px;}
+  .profile-card{flex-wrap:wrap;}
+  .profile-actions{width:100%;flex-direction:row;justify-content:flex-start;flex-wrap:wrap;gap:8px;}
+  .hero-actions{top:16px;right:16px;}
   .notif-panel{right:10px;width:calc(100vw - 20px);}
   .history-stats{grid-template-columns:repeat(3,1fr);}
 }
@@ -1768,11 +1788,47 @@ cards.forEach((card,index)=>{
     {duration:500,delay:index*80,fill:'forwards'});
 });
 
-// Sticky hero
+// Sticky hero (desktop only)
 const hero = document.querySelector('.hero');
-let lastScroll=0; let ticking=false;
-function updateHero(){ const s=window.pageYOffset; if(s>120){ if(s>lastScroll) hero.classList.add('hide'); else hero.classList.remove('hide'); }else hero.classList.remove('hide'); lastScroll=s; ticking=false; }
-window.addEventListener('scroll',()=>{ if(!ticking){ requestAnimationFrame(updateHero); ticking=true; } },{passive:true});
+const mobileHeroQuery = window.matchMedia('(max-width: 768px)');
+let lastScroll = 0;
+let ticking = false;
+
+function updateHero() {
+  const isMobile = mobileHeroQuery.matches;
+  const s = window.pageYOffset;
+
+  if (isMobile) {
+    hero.classList.remove('hide');
+    hero.style.position = 'relative';
+    hero.style.top = 'auto';
+    lastScroll = s;
+    ticking = false;
+    return;
+  }
+
+  hero.style.position = '';
+  hero.style.top = '';
+
+  if (s > 120) {
+    if (s > lastScroll) hero.classList.add('hide');
+    else hero.classList.remove('hide');
+  } else {
+    hero.classList.remove('hide');
+  }
+
+  lastScroll = s;
+  ticking = false;
+}
+
+window.addEventListener('scroll', () => {
+  if (!ticking) {
+    requestAnimationFrame(updateHero);
+    ticking = true;
+  }
+}, { passive: true });
+
+mobileHeroQuery.addEventListener?.('change', updateHero);
 
 // Scroll progress
 const progressBar = document.getElementById('scrollProgress');
