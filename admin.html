@@ -392,6 +392,25 @@ select.form-input option{background:#0b1120;color:var(--text);}
 .report-desc{font-size:14px;color:var(--muted);line-height:1.7;margin-bottom:12px;}
 .report-actions{display:flex;gap:8px;flex-wrap:wrap;}
 
+.request-item{
+  background:var(--card);border:1px solid var(--border);border-radius:16px;
+  padding:20px;margin-bottom:14px;transition:border-color .2s;
+}
+.request-item:hover{border-color:#2a4070;}
+.request-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:12px;flex-wrap:wrap;}
+.request-meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.request-tag{
+  padding:4px 11px;border-radius:999px;font-size:11px;font-weight:800;
+  background:rgba(74,158,255,.1);color:#7cc0ff;border:1px solid rgba(74,158,255,.25);
+}
+.request-tag.on_progress{background:rgba(255,181,71,.12);color:#ffd18a;border-color:rgba(255,181,71,.25);}
+.request-tag.done{background:rgba(25,195,125,.1);color:#5ff0b0;border-color:rgba(25,195,125,.25);}
+.request-tag.rejected{background:rgba(255,79,109,.1);color:#ff9aaa;border-color:rgba(255,79,109,.25);}
+.request-level{font-size:13px;font-weight:700;color:var(--primary);}
+.request-desc{font-size:14px;color:var(--muted);line-height:1.7;margin-bottom:12px;}
+.request-actions{display:flex;gap:8px;flex-wrap:wrap;}
+.request-meta-line{font-size:12px;color:var(--muted);line-height:1.6;margin-top:4px;}
+
 /* ===== GITHUB CONFIG ===== */
 .config-wrap{
   background:var(--card);border:1px solid var(--border);border-radius:20px;padding:28px;
@@ -556,6 +575,10 @@ select.form-input option{background:#0b1120;color:var(--text);}
     <div class="nav-item has-notif" onclick="goto('reports')" id="navReports">
       <span class="nav-icon">🐛</span> Laporan Error
       <span class="nav-badge" id="reportBadge">0</span>
+    </div>
+    <div class="nav-item has-notif" onclick="goto('requests')" id="navRequests">
+      <span class="nav-icon">📩</span> Request Soal
+      <span class="nav-badge" id="requestBadge">0</span>
     </div>
 
     <div class="nav-section">Manajemen User</div>
@@ -802,6 +825,23 @@ select.form-input option{background:#0b1120;color:var(--text);}
       </div>
       <div id="reportsList">
         <div class="empty-state"><div class="empty-icon">🐛</div><p>Memuat laporan...</p></div>
+      </div>
+    </div>
+
+    <!-- ===== REQUEST SOAL ===== -->
+    <div class="pane" id="pane-requests">
+      <div style="margin-bottom:20px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <select class="form-input" id="requestFilter" onchange="loadRequests()" style="width:180px;">
+          <option value="pending">Pending</option>
+          <option value="on_progress">On Progress</option>
+          <option value="done">Done</option>
+          <option value="rejected">Rejected</option>
+          <option value="all">Semua</option>
+        </select>
+        <span id="requestCount" style="font-size:13px;color:var(--muted);"></span>
+      </div>
+      <div id="requestsList">
+        <div class="empty-state"><div class="empty-icon">📩</div><p>Memuat request soal...</p></div>
       </div>
     </div>
 
@@ -1168,9 +1208,10 @@ window.goto = function(pane){
   if(pane==='github') loadConfigToForm();
   // Reload config form setiap kali membuka tab github
   if(pane === 'github') loadConfigToForm();
+  if (pane === 'requests' && typeof loadRequests === 'function') loadRequests();
   const titles = {
     dashboard:'Dashboard', upload:'Upload Soal Baru', exams:'Kelola Soal',
-    editor:'Editor Soal', reports:'Laporan Error Soal', users:'Semua User',
+    editor:'Editor Soal', reports:'Laporan Error Soal', requests:'Request Soal', users:'Semua User',
     pending:'User Pending Approval', github:'GitHub & Telegram Config'
   };
   document.getElementById('pageTitle').textContent = titles[pane]||pane;
@@ -1477,9 +1518,10 @@ let _currentEditFile = '';
 let _currentEditOriginal = '';
 
 window.openExamEditor = async(href, title)=>{
+  const resolved = resolveExamInput(href, title) || href;
   goto('editor');
-  document.getElementById('editorFileLabel').textContent = href;
-  document.getElementById('edFile').textContent = href.split('/').pop();
+  document.getElementById('editorFileLabel').textContent = resolved;
+  document.getElementById('edFile').textContent = resolved.split('/').pop();
   document.getElementById('codeEditor').value = '⏳ Memuat file dari GitHub...';
   document.getElementById('edModified').style.display='none';
 
@@ -1490,7 +1532,7 @@ window.openExamEditor = async(href, title)=>{
   }
 
   // Convert relative href to github path
-  const ghPath = href.replace(/^\.\//,'');
+  const ghPath = resolved.replace(/^\.\//,'');
   _currentEditFile = ghPath;
 
   try {
@@ -1710,6 +1752,21 @@ window.deleteReport = async(id)=>{
   await getSupabase().from('exam_reports').delete().eq('id',id);
   showToast('🗑️ Laporan dihapus');
   await loadReports();
+};
+
+window.setRequestStatus = async(id, status) => {
+  const sb = getSupabase();
+  const { error } = await sb.from('exam_requests').update({
+    status,
+    updated_at: new Date().toISOString()
+  }).eq('id', id);
+  if (error) {
+    showToast('❌ Gagal update request: ' + error.message, 'error');
+    return;
+  }
+  showToast('✅ Status request diperbarui', 'success');
+  await loadRequests();
+  if (typeof refreshAllAdminViews === 'function') refreshAllAdminViews('request-status');
 };
 
 // =============================================
@@ -2460,9 +2517,11 @@ window.togglePwd = window.toggleFieldPwd = function(id, btn){
     if (!users) throw new Error('No backend data');
     const pendingData = await apiJson(`${ADMIN_API_BASE}/admin/pending-users`, { items: [] });
     const reportsData = await apiJson(`${ADMIN_API_BASE}/admin/reports?status=pending`, { items: [] });
+    const requestsData = await apiJson(`${ADMIN_API_BASE}/admin/requests?status=pending`, { items: [] });
 
     const pending = Array.isArray(pendingData?.items) ? pendingData.items : [];
     const reports = Array.isArray(reportsData?.items) ? reportsData.items : [];
+    const requests = Array.isArray(requestsData?.items) ? requestsData.items : [];
     const active = users.filter(u => u.status === 'active').length;
     const examCount = Array.isArray(window._examList) ? window._examList.length : 0;
 
@@ -2477,6 +2536,7 @@ window.togglePwd = window.toggleFieldPwd = function(id, btn){
     set('dPendingUser', pending.length);
     set('dReports', reports.length);
     set('reportBadge', reports.length);
+    set('requestBadge', requests.length);
     set('pendingBadge', pending.length);
 
     const tbody = document.getElementById('dashUserTable');
@@ -2568,6 +2628,44 @@ window.togglePwd = window.toggleFieldPwd = function(id, btn){
     }
   }
 
+  async function refreshRequestsBackend(){
+    const filter = document.getElementById('requestFilter')?.value || 'all';
+    const url = `${ADMIN_API_BASE}/admin/requests?status=${encodeURIComponent(filter)}`;
+    const data = await apiJson(url, null);
+    if (!data || !Array.isArray(data.items)) throw new Error('backend requests unavailable');
+    const items = data.items;
+    const badge = document.getElementById('requestBadge');
+    const count = document.getElementById('requestCount');
+    if (badge) badge.textContent = items.filter(r => r.status === 'pending').length;
+    if (count) count.textContent = `${items.length} request`;
+    const list = document.getElementById('requestsList');
+    if (list) {
+      if (!items.length) {
+        list.innerHTML = '<div class="empty-state"><div class="empty-icon">📩</div><p>Tidak ada request soal</p></div>';
+      } else {
+        list.innerHTML = items.map(r => `
+          <div class="request-item">
+            <div class="request-header">
+              <div class="request-meta">
+                <span class="request-tag ${esc(r.status || 'pending')}">${esc(String(r.status || 'pending').replace('_', ' '))}</span>
+                <span class="request-level">📚 JLPT ${esc(r.level || '—')}</span>
+              </div>
+              <span style="font-size:11px;color:var(--muted);">${fmtDate(r.created_at)}</span>
+            </div>
+            <div class="request-desc">${esc(r.note || '—')}</div>
+            <div class="request-meta-line">👤 ${esc(r.name || '—')} · ${esc(r.email || '—')}</div>
+            <div class="request-meta-line">🗂 ${esc(r.question_type || r.types || 'All')}</div>
+            <div class="request-actions" style="margin-top:12px;">
+              <button class="act-btn approve" onclick="setRequestStatus('${esc(r.id)}','on_progress')">🔄 On Progress</button>
+              <button class="act-btn edit" onclick="setRequestStatus('${esc(r.id)}','done')">✅ Done</button>
+              <button class="act-btn delete" onclick="setRequestStatus('${esc(r.id)}','rejected')">❌ Rejected</button>
+            </div>
+          </div>
+        `).join('');
+      }
+    }
+  }
+
   async function refreshAllAdminViews(reason = 'refresh') {
     clearTimeout(refreshTimer);
     refreshTimer = setTimeout(async () => {
@@ -2577,6 +2675,7 @@ window.togglePwd = window.toggleFieldPwd = function(id, btn){
           refreshUsersBackend().catch(() => typeof loadAllUsers === 'function' && loadAllUsers()),
           refreshPendingBackend().catch(() => typeof loadPendingUsers === 'function' && loadPendingUsers()),
           refreshReportsBackend().catch(() => typeof loadReports === 'function' && loadReports()),
+          refreshRequestsBackend().catch(() => typeof loadRequests === 'function' && loadRequests()),
           loadIndexExamsFromGithub().catch(() => {}),
           refreshAdminActivity().catch(() => {}),
         ]);
@@ -2611,9 +2710,12 @@ window.togglePwd = window.toggleFieldPwd = function(id, btn){
       set('dActiveUser', `${active} aktif`);
       set('dPendingUser', pending.length);
       const { data: rpts } = await sb.from('exam_reports').select('id').eq('status', 'pending');
+      const { data: reqs } = await sb.from('exam_requests').select('id').eq('status', 'pending');
       const rc = (rpts || []).length;
+      const rq = (reqs || []).length;
       set('dReports', rc);
       set('reportBadge', rc);
+      set('requestBadge', rq);
       set('pendingBadge', pending.length);
 
       const tbody = document.getElementById('dashUserTable');
@@ -2716,6 +2818,51 @@ window.togglePwd = window.toggleFieldPwd = function(id, btn){
                   <button class="act-btn approve" onclick="resolveReport('${esc(r.id)}')">✅ Tandai Resolved</button>
                 ` : ''}
                 <button class="act-btn delete" onclick="deleteReport('${esc(r.id)}')">🗑️ Hapus</button>
+              </div>
+            </div>
+          `).join('');
+        }
+      }
+    }
+  };
+
+  window.loadRequests = async function() {
+    try {
+      await refreshRequestsBackend();
+    } catch {
+      const sb = getSupabase && getSupabase();
+      if (!sb) return;
+      const filter = document.getElementById('requestFilter').value;
+      let query = sb.from('exam_requests').select('*').order('created_at', { ascending: false });
+      if (filter !== 'all') query = query.eq('status', filter);
+      const { data, error } = await query;
+      if (error) return;
+      const items = data || [];
+      const count = document.getElementById('requestCount');
+      const badge = document.getElementById('requestBadge');
+      const list = document.getElementById('requestsList');
+      if (count) count.textContent = `${items.length} request`;
+      if (badge) badge.textContent = items.filter(r => r.status === 'pending').length;
+      if (list) {
+        if (!items.length) {
+          list.innerHTML = '<div class="empty-state"><div class="empty-icon">📩</div><p>Tidak ada request soal</p></div>';
+        } else {
+          list.innerHTML = items.map(r => `
+            <div class="request-item">
+              <div class="request-header">
+                <div class="request-meta">
+                  <span class="request-tag ${r.status || 'pending'}">${String(r.status || 'pending').replace('_', ' ')}</span>
+                  <span class="request-level">📚 JLPT ${esc(r.level || '—')}</span>
+                </div>
+                <span style="font-size:11px;color:var(--muted);">${fmtDate(r.created_at)}</span>
+              </div>
+              <div class="request-desc">${esc(r.note || '—')}</div>
+              <div class="request-meta-line">👤 ${esc(r.name || '—')} · ${esc(r.email || '—')}</div>
+              <div class="request-meta-line">🗂 ${esc(r.question_type || r.types || 'All')}</div>
+              <div class="request-actions" style="margin-top:12px;">
+                <button class="act-btn approve" onclick="setRequestStatus('${esc(r.id)}','on_progress')">🔄 On Progress</button>
+                <button class="act-btn edit" onclick="setRequestStatus('${esc(r.id)}','done')">✅ Done</button>
+                <button class="act-btn delete" onclick="setRequestStatus('${esc(r.id)}','rejected')">❌ Rejected</button>
               </div>
             </div>
           `).join('');
@@ -3029,18 +3176,71 @@ window.togglePwd = window.toggleFieldPwd = function(id, btn){
     return results;
   }
 
-  function resolveExamInput(input) {
+  function resolveExamInput(input, hintTitle = '') {
     const raw = safeText(input);
-    if (!raw) return null;
+    const hint = safeText(hintTitle);
+    if (!raw && !hint) return null;
+
+    const list = Array.isArray(window._examList) ? window._examList : [];
+    const norm = (v = '') => safeText(v).toLowerCase().replace(/^\.\//, '').replace(/^\/+/, '').replace(/\\/g, '/').replace(/\s+/g, ' ');
+
+    const tryMatch = (needle) => {
+      if (!needle) return null;
+      const n = norm(needle);
+      const exact = list.find(e => e && (
+        norm(e.key) === n ||
+        norm(e.href) === n ||
+        norm(e.title) === n ||
+        norm(e.href).endsWith('/' + n) ||
+        norm(e.href).includes(n) ||
+        norm(e.title).includes(n)
+      ));
+      if (exact?.href) return String(exact.href).replace(/^\.\//, '');
+      const loose = list.find(e => e && (
+        norm(e.key).includes(n) ||
+        norm(e.href).includes(n) ||
+        norm(e.title).includes(n)
+      ));
+      if (loose?.href) return String(loose.href).replace(/^\.\//, '');
+      return null;
+    };
 
     if (/^https?:\/\//i.test(raw)) return raw;
     if (raw.includes('/') || raw.endsWith('.html') || raw.startsWith('./')) {
-      return raw.replace(/^\.\//, '');
+      const direct = raw.replace(/^\.\//, '');
+      const foundDirect = list.find(e => e && norm(e.href) === norm(direct));
+      if (foundDirect?.href) return String(foundDirect.href).replace(/^\.\//, '');
+      return direct;
     }
 
-    const list = Array.isArray(window._examList) ? window._examList : [];
-    const found = list.find(e => e && (e.key === raw || String(e.href || '').includes(raw)));
-    if (found && found.href) return String(found.href).replace(/^\.\//, '');
+    const directMatch = tryMatch(raw) || tryMatch(hint);
+    if (directMatch) return directMatch;
+
+    const combined = `${raw} ${hint}`.trim();
+    const levelMatch = combined.match(/\bN([1-5])\b/i) || combined.match(/\b(JLPT\s*)?([1-5])\b/i);
+    const yearMatch = combined.match(/\b(20\d{2})\b/);
+    const monthMatch = combined.match(/\b(07|12)\b/) || combined.match(/(?:Juli|July|Jul|Desember|December|Dec)\b/i);
+
+    if (levelMatch && yearMatch) {
+      const lvlNum = (levelMatch[1] || levelMatch[2] || '').toUpperCase();
+      const level = lvlNum.startsWith('N') ? lvlNum : `N${lvlNum}`;
+      const year = yearMatch[1];
+      const month = monthMatch ? (String(monthMatch[1] || monthMatch[0]).match(/07|12/)?.[0] || (String(monthMatch[0] || '').match(/dec/i) ? '12' : '07')) : '';
+      const probes = [];
+      if (month) {
+        probes.push(`${year}-${month}-${level.toLowerCase()}.html`);
+        probes.push(`${year}-${month}-${level.toLowerCase()}`);
+        probes.push(`./jlpt/${level.toLowerCase()}/${year}-${month}-${level.toLowerCase()}.html`);
+        probes.push(`${level.toLowerCase()}-${year}-${month}`);
+      }
+      probes.push(`${level.toLowerCase()} ${year}`.trim());
+      probes.push(`${level.toLowerCase()}-${year}`.trim());
+      for (const probe of probes) {
+        const m = tryMatch(probe);
+        if (m) return m;
+      }
+    }
+
     return null;
   }
 
@@ -3170,7 +3370,7 @@ window.togglePwd = window.toggleFieldPwd = function(id, btn){
 
   // ---- Open editor either from real file path or exam key (used by report rows)
   window.openExamEditor = async function(input, title) {
-    const resolved = resolveExamInput(input);
+    const resolved = resolveExamInput(input, title);
     if (!resolved) {
       if (typeof showToast === 'function') showToast('❌ File soal tidak ditemukan', 'error');
       if (typeof goto === 'function') goto('exams');
