@@ -447,11 +447,196 @@ h1{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;letter-spacing:-
   .notif-panel{right:10px;width:calc(100vw - 20px);}
   .history-stats{grid-template-columns:repeat(3,1fr);}
 }
+
+/* SIDEBAR */
+.menu-fab{
+  position:fixed;
+  top:18px;
+  left:18px;
+  z-index:10008;
+  width:50px;height:50px;
+  border:none;
+  border-radius:16px;
+  background:linear-gradient(135deg,#3558a8,#6c3fff);
+  color:#fff;
+  font-size:20px;
+  font-weight:900;
+  cursor:pointer;
+  box-shadow:0 12px 30px rgba(0,0,0,.35);
+  transition:transform .2s, filter .2s, opacity .18s, visibility .18s;
+}
+.menu-fab:hover{transform:translateY(-2px);filter:brightness(1.08);}
+body.sidebar-open .menu-fab{
+  opacity:0;
+  visibility:hidden;
+  pointer-events:none;
+  transform:translateX(-10px) scale(.92);
+}
+.sidebar-overlay{
+  position:fixed;inset:0;
+  background:rgba(0,0,0,.52);
+  backdrop-filter:blur(4px);
+  z-index:10010;
+  opacity:0;
+  pointer-events:none;
+  transition:.22s ease;
+}
+.sidebar-overlay.open{opacity:1;pointer-events:auto;}
+.sidebar{
+  position:fixed;top:0;left:0;
+  z-index:10015;
+  width:min(340px, 88vw);
+  height:100vh;
+  background:linear-gradient(180deg, rgba(17,26,47,.98), rgba(10,16,30,.98));
+  border-right:1px solid var(--border);
+  box-shadow:24px 0 60px rgba(0,0,0,.45);
+  transform:translateX(-104%);
+  transition:.26s cubic-bezier(.4,0,.2,1);
+  display:flex;flex-direction:column;
+}
+.sidebar.open{transform:translateX(0);}
+.sidebar-head{
+  padding:18px 18px 16px;
+  border-bottom:1px solid rgba(255,255,255,.06);
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+}
+.sidebar-title{
+  font-family:'Syne',sans-serif;
+  font-size:18px;
+  font-weight:800;
+  margin:0;
+}
+.sidebar-sub{
+  font-size:12px;
+  color:var(--muted);
+  margin-top:4px;
+  line-height:1.6;
+}
+.sidebar-close{
+  width:40px;height:40px;border:none;border-radius:12px;
+  background:rgba(255,255,255,.05);color:var(--text);
+  cursor:pointer;font-size:18px;
+}
+.sidebar-body{
+  padding:14px;
+  overflow:auto;
+  flex:1;
+}
+.sidebar-section{
+  margin-bottom:14px;
+  border:1px solid rgba(255,255,255,.06);
+  border-radius:18px;
+  overflow:hidden;
+  background:rgba(255,255,255,.03);
+}
+.sidebar-section summary{
+  list-style:none;
+  padding:14px 14px;
+  cursor:pointer;
+  font-weight:800;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  user-select:none;
+}
+.sidebar-section summary::-webkit-details-marker{display:none;}
+.sidebar-section summary span{
+  color:var(--muted);
+  font-size:11px;
+  font-weight:700;
+}
+.sidebar-links{
+  padding:0 10px 10px;
+  display:grid;
+  gap:8px;
+}
+.sidebar-link,.sidebar-link-btn{
+  width:100%;
+  border:none;
+  text-align:left;
+  padding:11px 12px;
+  border-radius:14px;
+  background:rgba(255,255,255,.04);
+  color:var(--text);
+  font-family:inherit;
+  font-size:13px;
+  font-weight:700;
+  cursor:pointer;
+  text-decoration:none;
+  transition:.18s;
+}
+.sidebar-link:hover,.sidebar-link-btn:hover{
+  background:rgba(90,169,255,.14);
+  transform:translateX(2px);
+}
+.sidebar-link small,.sidebar-link-btn small{
+  display:block;
+  color:var(--muted);
+  font-size:11px;
+  font-weight:600;
+  margin-top:2px;
+}
+@media(max-width:768px){
+  .menu-fab{top:12px;left:12px;width:46px;height:46px;border-radius:14px;}
+}
+
 </style>
 </head>
 <body>
 
 <div id="scrollProgress"></div>
+
+<button class="menu-fab" id="menuBtn" aria-label="Open sidebar">☰</button>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+<aside class="sidebar" id="sidebar" aria-label="Sidebar navigation">
+  <div class="sidebar-head">
+    <div>
+      <h2 class="sidebar-title" data-i18n="sidebarTitle">Menu Cepat</h2>
+      <div class="sidebar-sub" data-i18n="sidebarSubtitle">Pilih bagian yang mau dibuka</div>
+    </div>
+    <button class="sidebar-close" id="closeSidebar" aria-label="Close sidebar">✕</button>
+  </div>
+  <div class="sidebar-body">
+    <details class="sidebar-section" open>
+      <summary><span data-i18n="sidebarJump">Lompat ke halaman</span> <span>⌁</span></summary>
+      <div class="sidebar-links">
+        <button class="sidebar-link-btn" onclick="scrollToTop()"><span data-i18n="navDashboard">Dashboard</span><small data-i18n="navDashboardSub">Kembali ke bagian atas</small></button>
+        <button class="sidebar-link-btn" onclick="scrollToSection('profileCard')"><span data-i18n="navProfile">Profil</span><small data-i18n="navProfileSub">Akun dan tombol utama</small></button>
+        <button class="sidebar-link-btn" onclick="scrollToSection('statsSection')"><span data-i18n="navStats">Statistik</span><small data-i18n="navStatsSub">Ringkasan halaman</small></button>
+        <button class="sidebar-link-btn" onclick="scrollToSection('levelPills')"><span data-i18n="navFilters">Filter Level</span><small data-i18n="navFiltersSub">Pilih N1 sampai N5</small></button>
+        <button class="sidebar-link-btn" onclick="scrollToSection('examGrid')"><span data-i18n="navExamList">Daftar Ujian</span><small data-i18n="navExamListSub">Semua soal tersedia</small></button>
+        <button class="sidebar-link-btn" onclick="scrollToSection('notifPanel')"><span data-i18n="navNotifications">Notifikasi</span><small data-i18n="navNotificationsSub">Update terbaru</small></button>
+      </div>
+    </details>
+
+    <details class="sidebar-section" open>
+      <summary><span data-i18n="sidebarResources">Resource</span> <span>PDF-ZIP-RAR</span></summary>
+      <div class="sidebar-links">
+        <a class="sidebar-link" href="./resource-hub.html"><span data-i18n="navResourceHub">Buka Resource Hub</span><small data-i18n="navResourceHubSub">JLPT, SSW, NAT, JFT, Marugoto</small></a>
+      </div>
+    </details>
+
+    <details class="sidebar-section">
+      <summary><span data-i18n="sidebarOfficial">Situs resmi</span> <span>↗</span></summary>
+      <div class="sidebar-links">
+        <a class="sidebar-link" href="https://jlptonline.or.id/" target="_blank" rel="noopener">JLPT Indonesia<small>jlptonline.or.id</small></a>
+        <a class="sidebar-link" href="https://www.jlpt.jp/e/" target="_blank" rel="noopener">JLPT Jepang<small>jlpt.jp/e</small></a>
+        <a class="sidebar-link" href="https://www.prometric-jp.com/" target="_blank" rel="noopener">SSW Indonesia<small>prometric-jp.com</small></a>
+      </div>
+    </details>
+
+    <details class="sidebar-section">
+      <summary><span data-i18n="sidebarAccount">Akun</span> <span>⋯</span></summary>
+      <div class="sidebar-links">
+        <button class="sidebar-link-btn" onclick="toggleNotifPanel();closeSidebar()"><span data-i18n="navNotifications">Notifikasi</span><small data-i18n="navNotificationsSub">Lihat pesan terbaru</small></button>
+        <button class="sidebar-link-btn" onclick="openHistoryModal();closeSidebar()"><span data-i18n="navHistory">Riwayat Ujian</span><small data-i18n="navHistorySub">Lihat progres kamu</small></button>
+        <button class="sidebar-link-btn" onclick="doLogout();closeSidebar()"><span data-i18n="navLogout">Keluar</span><small data-i18n="navLogoutSub">Akhiri sesi</small></button>
+      </div>
+    </details>
+  </div>
+</aside>
+
 
 <div class="container">
 
@@ -553,7 +738,7 @@ h1{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;letter-spacing:-
 </div>
 
 <!-- ======== STATS ======== -->
-<div class="stats">
+<div class="stats" id="statsSection">
   <div class="stat-box"><div class="stat-num" id="totalExam">29</div><div class="stat-label" data-i18n="totalExams">Total Exams</div></div>
   <div class="stat-box"><div class="stat-num">N5–N1</div><div class="stat-label" data-i18n="jlptLevel">JLPT Level</div></div>
   <div class="stat-box"><div class="stat-num">2026</div><div class="stat-label" data-i18n="updated">Updated</div></div>
@@ -1116,6 +1301,17 @@ const TRANSLATIONS = {
     notFound:'Ujian tidak ditemukan',notFoundSub:'Coba ubah filter pencarian atau kata kunci.',
     showAll:'✦ Tampilkan Semua',allLevels:'Semua Level',newest:'Terbaru',oldest:'Terlama',
     notifCompletedTip:'Kamu sudah menyelesaikan ujian ini',
+    sidebarTitle:'Menu Cepat',sidebarSubtitle:'Pilih bagian yang mau dibuka',sidebarJump:'Lompat ke halaman',
+    navDashboard:'Dashboard',navDashboardSub:'Kembali ke bagian atas',
+    navProfile:'Profil',navProfileSub:'Akun dan tombol utama',
+    navStats:'Statistik',navStatsSub:'Ringkasan halaman',
+    navFilters:'Filter Level',navFiltersSub:'Pilih N1 sampai N5',
+    navExamList:'Daftar Ujian',navExamListSub:'Semua soal tersedia',
+    navNotifications:'Notifikasi',navNotificationsSub:'Update terbaru',
+    sidebarResources:'Resource',navResourceHub:'Buka Resource Hub',navResourceHubSub:'JLPT, SSW, NAT, JFT, Marugoto',
+    sidebarOfficial:'Situs resmi',sidebarAccount:'Akun',
+    navHistory:'Riwayat Ujian',navHistorySub:'Lihat progres kamu',
+    navLogout:'Keluar',navLogoutSub:'Akhiri sesi',
   },
   en: {
     heroTitle:'日本語能力　模擬試験　過去問題集',
@@ -1133,6 +1329,17 @@ const TRANSLATIONS = {
     notFound:'Exam not found',notFoundSub:'Try changing the search filters or keywords.',
     showAll:'✦ Show All',allLevels:'All Levels',newest:'Newest',oldest:'Oldest',
     notifCompletedTip:'You have completed this exam',
+    sidebarTitle:'Quick Menu',sidebarSubtitle:'Choose a section to open',sidebarJump:'Jump to page',
+    navDashboard:'Dashboard',navDashboardSub:'Back to the top',
+    navProfile:'Profile',navProfileSub:'Account and main buttons',
+    navStats:'Statistics',navStatsSub:'Page summary',
+    navFilters:'Level Filters',navFiltersSub:'Choose N1 to N5',
+    navExamList:'Exam List',navExamListSub:'All available tests',
+    navNotifications:'Notifications',navNotificationsSub:'Latest updates',
+    sidebarResources:'Resources',navResourceHub:'Open Resource Hub',navResourceHubSub:'JLPT, SSW, NAT, JFT, Marugoto',
+    sidebarOfficial:'Official sites',sidebarAccount:'Account',
+    navHistory:'Exam History',navHistorySub:'View your progress',
+    navLogout:'Logout',navLogoutSub:'End session',
   },
   ja: {
     heroTitle:'日本語能力　模擬試験　過去問題集',
@@ -1150,6 +1357,17 @@ const TRANSLATIONS = {
     notFound:'試験が見つかりません',notFoundSub:'検索フィルターやキーワードを変更してみてください。',
     showAll:'✦ すべて表示',allLevels:'全レベル',newest:'新しい順',oldest:'古い順',
     notifCompletedTip:'この試験を完了しました',
+    sidebarTitle:'クイックメニュー',sidebarSubtitle:'開きたいセクションを選択',sidebarJump:'ページ内移動',
+    navDashboard:'ダッシュボード',navDashboardSub:'上部に戻る',
+    navProfile:'プロフィール',navProfileSub:'アカウントと主要ボタン',
+    navStats:'統計',navStatsSub:'ページの概要',
+    navFilters:'レベルフィルター',navFiltersSub:'N1〜N5 を選択',
+    navExamList:'試験一覧',navExamListSub:'利用可能な全試験',
+    navNotifications:'通知',navNotificationsSub:'最新のお知らせ',
+    sidebarResources:'リソース',navResourceHub:'リソースハブを開く',navResourceHubSub:'JLPT、SSW、NAT、JFT、Marugoto',
+    sidebarOfficial:'公式サイト',sidebarAccount:'アカウント',
+    navHistory:'受験履歴',navHistorySub:'進捗を確認',
+    navLogout:'ログアウト',navLogoutSub:'セッションを終了',
   }
 };
 
@@ -1167,6 +1385,7 @@ function applyLang(){
   updatePlaceholders();
   // update visibleCount text
   updateVisibleCount();
+  applySidebarOfficialLabels();
   // update lang btn display
   const langs = {id:{flag:'🇮🇩',code:'ID'},en:{flag:'🇬🇧',code:'EN'},ja:{flag:'🇯🇵',code:'JA'}};
   const l = langs[currentLang];
@@ -1177,6 +1396,23 @@ function applyLang(){
   // mark active in menu
   document.querySelectorAll('.lang-opt').forEach(o=>{
     o.classList.toggle('active', o.dataset.lang === currentLang);
+  });
+}
+
+
+function applySidebarOfficialLabels(){
+  const labelSets = {
+    id: ['JLPT Indonesia', 'JLPT Jepang', 'SSW Indonesia'],
+    en: ['JLPT Indonesia', 'JLPT Japan', 'SSW Indonesia'],
+    ja: ['JLPTインドネシア', 'JLPT日本', 'SSWインドネシア']
+  };
+  const labels = labelSets[currentLang] || labelSets.id;
+  const links = document.querySelectorAll('#sidebar .sidebar-section:nth-of-type(3) .sidebar-link');
+  links.forEach((link, i) => {
+    if (!labels[i]) return;
+    const small = link.querySelector('small');
+    const sub = small ? small.textContent.trim() : '';
+    link.innerHTML = `${labels[i]}<small>${sub}</small>`;
   });
 }
 
@@ -1199,6 +1435,49 @@ document.addEventListener('click', e=>{
     const m = document.getElementById('langMenu');
     if(m) m.style.display='none';
   }
+});
+
+
+// =============================================
+// SIDEBAR NAVIGATION
+// =============================================
+const sidebar = document.getElementById('sidebar');
+const sidebarOverlay = document.getElementById('sidebarOverlay');
+const menuBtn = document.getElementById('menuBtn');
+const closeSidebarBtn = document.getElementById('closeSidebar');
+
+function openSidebar(){
+  sidebar.classList.add('open');
+  sidebarOverlay.classList.add('open');
+  document.body.classList.add('sidebar-open');
+}
+function closeSidebar(){
+  sidebar.classList.remove('open');
+  sidebarOverlay.classList.remove('open');
+  document.body.classList.remove('sidebar-open');
+}
+function scrollToTop(){
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  closeSidebar();
+}
+function scrollToSection(id){
+  const el = document.getElementById(id);
+  if(el){
+    el.scrollIntoView({ behavior:'smooth', block:'start' });
+  }
+  closeSidebar();
+}
+
+if(menuBtn) menuBtn.addEventListener('click', openSidebar);
+if(closeSidebarBtn) closeSidebarBtn.addEventListener('click', closeSidebar);
+if(sidebarOverlay) sidebarOverlay.addEventListener('click', closeSidebar);
+
+document.querySelectorAll('#sidebar .sidebar-link, #sidebar .sidebar-link-btn').forEach(el=>{
+  el.addEventListener('click', ()=>closeSidebar());
+});
+
+document.addEventListener('keydown', e=>{
+  if(e.key === 'Escape') closeSidebar();
 });
 
 // =============================================
