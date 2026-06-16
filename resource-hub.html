@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="id">
-	<!-- AUTH GUARD -->
+<!-- AUTH GUARD -->
 <script type="module">
   import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
   const SUPABASE_URL  = 'https://uincqpdexdenjcmwdfsv.supabase.co';
@@ -55,7 +55,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700;900&family=Space+Grotesk:wght@400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
 
   <!-- PDF.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -76,13 +76,25 @@
       --danger:#ff6b8b;
       --shadow:0 20px 60px rgba(0,0,0,.35);
       --radius:22px;
+      /* Level colors - consistent with index.html */
+      --n1:#ff9aaa; --n1-bg:rgba(255,95,115,.15);
+      --n2:#7cc0ff; --n2-bg:rgba(90,169,255,.15);
+      --n3:#b69cff; --n3-bg:rgba(124,77,255,.15);
+      --n4:#5ff0b0; --n4-bg:rgba(25,195,125,.15);
+      --n5:#ffd18a; --n5-bg:rgba(255,181,71,.15);
+      /* SSW level colors */
+      --tg1:#f9a8d4; --tg1-bg:rgba(236,72,153,.15);
+      --tg2:#fdba74; --tg2-bg:rgba(249,115,22,.15);
+      --nat:#a5f3fc; --nat-bg:rgba(6,182,212,.15);
+      --jft:#86efac; --jft-bg:rgba(34,197,94,.15);
+      --maru:#c4b5fd; --maru-bg:rgba(139,92,246,.15);
     }
 
     *{box-sizing:border-box}
     html{scroll-behavior:smooth}
     body{
       margin:0;
-      font-family:Inter,system-ui,sans-serif;
+      font-family:'Space Grotesk','Inter',system-ui,sans-serif;
       background:
         radial-gradient(circle at top left, rgba(102,169,255,.13), transparent 28%),
         radial-gradient(circle at bottom right, rgba(140,109,255,.13), transparent 22%),
@@ -142,6 +154,7 @@
       margin:0;
       font-size:15px;
       font-weight:800;
+      font-family:'Syne',sans-serif;
       letter-spacing:.2px;
       white-space:nowrap;
       overflow:hidden;
@@ -345,8 +358,12 @@
     .hero h1{
       margin:8px 0 10px;
       font-size:clamp(30px, 4vw, 52px);
+      font-family:'Syne',sans-serif;
+      font-weight:800;
       line-height:1.04;
       letter-spacing:-.03em;
+      background:linear-gradient(135deg,#fff 30%,#91bcff 70%,#b69cff);
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
     }
     .hero p{
       margin:0;
@@ -433,6 +450,8 @@
     .section-title{
       margin:0;
       font-size:22px;
+      font-family:'Syne',sans-serif;
+      font-weight:800;
       letter-spacing:-.02em;
     }
     .section-desc{
@@ -479,11 +498,46 @@
       border-color:rgba(102,169,255,.3);
       box-shadow:0 18px 38px rgba(0,0,0,.3);
     }
+    .card::after{
+      content:'';
+      position:absolute;
+      top:0;left:0;right:0;
+      height:2px;
+      background:var(--card-accent, linear-gradient(90deg,var(--accent),var(--accent2)));
+      opacity:0;
+      transition:opacity .3s;
+    }
+    .card:hover::after{opacity:1;}
     .card::before{
       content:"";
       position:absolute;inset:0;
       background:linear-gradient(135deg, rgba(255,255,255,.05), transparent 40%);
       pointer-events:none;
+    }
+    /* Level-specific card accents */
+    .card[data-level="N1"]{--card-accent:linear-gradient(90deg,transparent,var(--n1),transparent);}
+    .card[data-level="N1"]:hover{border-color:rgba(255,154,170,.35);}
+    .card[data-level="N2"]{--card-accent:linear-gradient(90deg,transparent,var(--n2),transparent);}
+    .card[data-level="N2"]:hover{border-color:rgba(124,192,255,.35);}
+    .card[data-level="N3"]{--card-accent:linear-gradient(90deg,transparent,var(--n3),transparent);}
+    .card[data-level="N3"]:hover{border-color:rgba(182,156,255,.35);}
+    .card[data-level="N4"]{--card-accent:linear-gradient(90deg,transparent,var(--n4),transparent);}
+    .card[data-level="N4"]:hover{border-color:rgba(95,240,176,.35);}
+    .card[data-level="N5"]{--card-accent:linear-gradient(90deg,transparent,var(--n5),transparent);}
+    .card[data-level="N5"]:hover{border-color:rgba(255,209,138,.35);}
+    .card[data-level="NAT"]{--card-accent:linear-gradient(90deg,transparent,var(--nat),transparent);}
+    .card[data-level="NAT"]:hover{border-color:rgba(165,243,252,.35);}
+    .card[data-level="JFT"]{--card-accent:linear-gradient(90deg,transparent,var(--jft),transparent);}
+    .card[data-level="JFT"]:hover{border-color:rgba(134,239,172,.35);}
+    .card[data-level="MARU"]{--card-accent:linear-gradient(90deg,transparent,var(--maru),transparent);}
+    .card[data-level="MARU"]:hover{border-color:rgba(196,181,253,.35);}
+    .card.disabled{opacity:.55;pointer-events:none;}
+    .card-unavailable-badge{
+      display:inline-flex;align-items:center;gap:5px;
+      font-size:10px;font-weight:800;
+      background:rgba(255,107,139,.12);border:1px solid rgba(255,107,139,.25);
+      color:#ff9aaa;padding:3px 9px;border-radius:999px;letter-spacing:.4px;
+      text-transform:uppercase;margin-left:6px;
     }
     .card-top{
       display:flex;
@@ -495,11 +549,22 @@
       width:46px;height:46px;
       border-radius:16px;
       display:grid;place-items:center;
-      background:rgba(102,169,255,.14);
-      border:1px solid rgba(102,169,255,.18);
-      font-size:20px;
+      background:var(--icon-bg, rgba(102,169,255,.14));
+      border:1px solid var(--icon-border, rgba(102,169,255,.18));
+      font-size:13px;
+      font-weight:900;
+      font-family:'Syne',sans-serif;
+      color:var(--icon-color, var(--accent));
       flex:0 0 auto;
     }
+    .card[data-level="N1"] .card-icon{--icon-bg:var(--n1-bg);--icon-border:rgba(255,154,170,.25);--icon-color:var(--n1);}
+    .card[data-level="N2"] .card-icon{--icon-bg:var(--n2-bg);--icon-border:rgba(124,192,255,.25);--icon-color:var(--n2);}
+    .card[data-level="N3"] .card-icon{--icon-bg:var(--n3-bg);--icon-border:rgba(182,156,255,.25);--icon-color:var(--n3);}
+    .card[data-level="N4"] .card-icon{--icon-bg:var(--n4-bg);--icon-border:rgba(95,240,176,.25);--icon-color:var(--n4);}
+    .card[data-level="N5"] .card-icon{--icon-bg:var(--n5-bg);--icon-border:rgba(255,209,138,.25);--icon-color:var(--n5);}
+    .card[data-level="NAT"] .card-icon{--icon-bg:var(--nat-bg);--icon-border:rgba(165,243,252,.25);--icon-color:var(--nat);}
+    .card[data-level="JFT"] .card-icon{--icon-bg:var(--jft-bg);--icon-border:rgba(134,239,172,.25);--icon-color:var(--jft);}
+    .card[data-level="MARU"] .card-icon{--icon-bg:var(--maru-bg);--icon-border:rgba(196,181,253,.25);--icon-color:var(--maru);}
     .card-title{
       margin:0 0 5px;
       font-size:16px;
@@ -523,6 +588,17 @@
       border-radius:999px;
       padding:6px 10px;
     }
+    .tag-n1{color:var(--n1);background:var(--n1-bg);border-color:rgba(255,154,170,.2);}
+    .tag-n2{color:var(--n2);background:var(--n2-bg);border-color:rgba(124,192,255,.2);}
+    .tag-n3{color:var(--n3);background:var(--n3-bg);border-color:rgba(182,156,255,.2);}
+    .tag-n4{color:var(--n4);background:var(--n4-bg);border-color:rgba(95,240,176,.2);}
+    .tag-n5{color:var(--n5);background:var(--n5-bg);border-color:rgba(255,209,138,.2);}
+    .tag-nat{color:var(--nat);background:var(--nat-bg);border-color:rgba(165,243,252,.2);}
+    .tag-jft{color:var(--jft);background:var(--jft-bg);border-color:rgba(134,239,172,.2);}
+    .tag-maru{color:var(--maru);background:var(--maru-bg);border-color:rgba(196,181,253,.2);}
+    .tag-ssw{color:var(--tg1);background:var(--tg1-bg);border-color:rgba(236,72,153,.2);}
+    .tag-zip{color:var(--tg2);background:var(--tg2-bg);border-color:rgba(249,115,22,.2);}
+    .tag-pdf{color:#94a3b8;background:rgba(148,163,184,.1);border-color:rgba(148,163,184,.15);}
     .open-row{
       display:flex;
       align-items:center;
@@ -806,7 +882,7 @@
           <summary>Resource PDF </summary>
           <div class="nav-links">
             <button class="nav-link-btn" onclick="scrollToSection('jlpt')">JLPT Resource<small>Buku, soal, latihan N5–N1</small></button>
-            <button class="nav-link-btn" onclick="scrollToSection('ssw')">SSW Resource<small>TG1 & TG2 + manufaktur</small></button>
+            <button class="nav-link-btn" onclick="scrollToSection('ssw')">SSW Resource<small>TG1 & TG2 — 15 bidang manufaktur</small></button>
             <button class="nav-link-btn" onclick="scrollToSection('nat')">NAT Test<small>5Q–1Q & past paper</small></button>
             <button class="nav-link-btn" onclick="scrollToSection('jft')">JFT Basic A2<small>PDF learning set</small></button>
             <button class="nav-link-btn" onclick="scrollToSection('marugoto')">Marugoto<small>A1 sampai B1</small></button>
@@ -829,10 +905,8 @@
         <div class="hero-grid">
           <div>
             <span class="highlight">📅 Countdown  JLPT</span>
-            <h1>All You Need is Here!
-			</h1>
-            
-            
+            <h1>Semua Ada di Sini!</h1>
+            <p class="subtitle">Satu tempat untuk semua resource belajar bahasa Jepang — JLPT, SSW, NAT Test, JFT Basic, Marugoto, dan link resmi.</p>
           </div>
 
           <div class="countdown-card">
@@ -846,7 +920,7 @@
               <div class="timer-box"><div class="timer-num" id="minutes">0</div><div class="timer-label">Minutes</div></div>
               <div class="timer-box"><div class="timer-num" id="seconds">0</div><div class="timer-label">Seconds</div></div>
             </div>
-            
+            <p id="countdownNote" style="margin:10px 0 0;font-size:11px;color:var(--muted);text-align:center;line-height:1.6;"></p>
           </div>
         </div>
       </section>
@@ -866,10 +940,10 @@
       <section class="section section-anchor" id="ssw">
         <div class="section-head">
           <div>
-            <h2 class="section-title">2. Resource SSW</h2>
-            <p class="section-desc">Materi, modul, dan latihan soal untuk TG1 / TG2 beserta semua manufaktur.</p>
+            <h2 class="section-title">2. Resource SSW (Tokutei Ginou)</h2>
+            <p class="section-desc">Materi persiapan Tokutei Ginou — TG1 (tes bahasa) dan TG2 (tes keahlian) untuk semua bidang manufaktur & jasa.</p>
           </div>
-          <div class="section-badge">🛠 TG1 & TG2</div>
+          <div class="section-badge">🛠 TG1 & TG2 · 15 Bidang</div>
         </div>
 
         <div class="resource-grid" id="sswGrid"></div>
@@ -879,9 +953,9 @@
         <div class="section-head">
           <div>
             <h2 class="section-title">3. Resource NAT Test</h2>
-            <p class="section-desc">Kumpulan PDF NAT Test level 5Q sampai 1Q, plus past paper exams.</p>
+            <p class="section-desc">Kumpulan soal NAT Test dari level 5Q (pemula) hingga 1Q (mahir). Resource tersedia untuk Q5 sampai Q1.</p>
           </div>
-          <div class="section-badge">📝 Past Paper</div>
+          <div class="section-badge">📝 5Q sampai 1Q</div>
         </div>
 
         <div class="cards" id="natCards"></div>
@@ -891,9 +965,9 @@
         <div class="section-head">
           <div>
             <h2 class="section-title">4. Resource JFT Basic A2</h2>
-            <p class="section-desc">Satu tempat untuk materi JFT Basic A2.</p>
+            <p class="section-desc">Paket belajar lengkap JFT Basic A2 — diunduh sebagai file ZIP, lalu dibuka di perangkat kamu.</p>
           </div>
-          <div class="section-badge">🎯 A2 Level</div>
+          <div class="section-badge">🎯 A2 · File ZIP</div>
         </div>
 
         <div class="cards" id="jftCards"></div>
@@ -903,9 +977,9 @@
         <div class="section-head">
           <div>
             <h2 class="section-title">5. Marugoto</h2>
-            <p class="section-desc">Koleksi Marugoto dari A1 sampai B1-2.</p>
+            <p class="section-desc">Buku pelajaran Marugoto dari A1 sampai B1-2 — klik tombol untuk membuka PDF langsung di tab baru, tanpa perlu download.</p>
           </div>
-          <div class="section-badge">📖 Learning set</div>
+          <div class="section-badge">📖 A1 sampai B1-2 · PDF</div>
         </div>
 
         <div class="cards" id="marugotoCards"></div>
@@ -915,25 +989,25 @@
         <div class="section-head">
           <div>
             <h2 class="section-title">6. Info Resmi</h2>
-            <p class="section-desc">Situs resmi.</p>
+            <p class="section-desc">Link situs resmi untuk pendaftaran dan informasi ujian JLPT, SSW, dan lainnya.</p>
           </div>
-          <div class="section-badge">🌐 Official links</div>
+          <div class="section-badge">🌐 Link Resmi</div>
         </div>
 
         <div class="info-links">
           <div class="link-card">
-            <h4>Info JLPT Indonesia</h4>
-            <p>Halaman resmi JLPT Indonesia.</p>
+            <h4>JLPT Indonesia</h4>
+            <p>Situs resmi pendaftaran dan informasi JLPT di Indonesia.</p>
             <a class="open-btn external-btn" href="https://jlptonline.or.id/" target="_blank" rel="noopener">Buka Situs →</a>
           </div>
           <div class="link-card">
-            <h4>Info JLPT Jepang</h4>
-            <p>Website resmi JLPT dari Jepang.</p>
+            <h4>JLPT Jepang</h4>
+            <p>Website resmi JLPT dari Japan Foundation dan JEES.</p>
             <a class="open-btn external-btn" href="https://www.jlpt.jp/e/" target="_blank" rel="noopener">Buka Situs →</a>
           </div>
           <div class="link-card">
-            <h4>Info SSW Indonesia</h4>
-            <p>Prometric / SSW official portal.</p>
+            <h4>SSW — Prometric Indonesia</h4>
+            <p>Portal resmi tes Tokutei Ginou (SSW) via Prometric.</p>
             <a class="open-btn external-btn" href="https://www.prometric-jp.com/" target="_blank" rel="noopener">Buka Situs →</a>
           </div>
         </div>
@@ -982,69 +1056,81 @@
 
     const resources = {
       jlpt: [
-        { title: 'JLPT N5 - Buku / Soal', subtitle: 'PDF untuk level N5', icon: 'N5', tags: ['N5', 'PDF'], file: './pdf/jlpt/n5/sample.pdf' },
-        { title: 'JLPT N4 - Buku / Soal', subtitle: 'PDF untuk level N4', icon: 'N4', tags: ['N4', 'PDF'], file: './pdf/jlpt/n4/sample.pdf' },
-        { title: 'JLPT N3 - Buku / Soal', subtitle: 'PDF untuk level N3', icon: 'N3', tags: ['N3', 'PDF'], file: './pdf/jlpt/n3/sample.pdf' },
-        { title: 'JLPT N2 - Buku / Soal', subtitle: 'PDF untuk level N2', icon: 'N2', tags: ['N2', 'PDF'], file: './pdf/jlpt/n2/sample.pdf' },
-        { title: 'JLPT N1 - Buku / Soal', subtitle: 'PDF untuk level N1', icon: 'N1', tags: ['N1', 'PDF'], file: './pdf/jlpt/n1/sample.pdf' }
+        { title: 'JLPT N5', subtitle: 'Buku & latihan soal level N5', icon: 'N5', level:'N5', tags: [['N5','tag-n5'], ['PDF','tag-pdf']], file: './pdf/jlpt/n5/sample.pdf' },
+        { title: 'JLPT N4', subtitle: 'Buku & latihan soal level N4', icon: 'N4', level:'N4', tags: [['N4','tag-n4'], ['PDF','tag-pdf']], file: './pdf/jlpt/n4/sample.pdf' },
+        { title: 'JLPT N3', subtitle: 'Buku & latihan soal level N3', icon: 'N3', level:'N3', tags: [['N3','tag-n3'], ['PDF','tag-pdf']], file: './pdf/jlpt/n3/sample.pdf' },
+        { title: 'JLPT N2', subtitle: 'Buku & latihan soal level N2', icon: 'N2', level:'N2', tags: [['N2','tag-n2'], ['PDF','tag-pdf']], file: './pdf/jlpt/n2/sample.pdf' },
+        { title: 'JLPT N1', subtitle: 'Buku & latihan soal level N1', icon: 'N1', level:'N1', tags: [['N1','tag-n1'], ['PDF','tag-pdf']], file: './pdf/jlpt/n1/sample.pdf' }
       ],
       ssw: [
         {
-          title: 'TG1',
-          subtitle: 'Materi / modul / latihan PDF',
+          title: 'TG1 — Penguji Kemampuan',
+          subtitle: 'Tes kemampuan bahasa Jepang sesuai bidang kerja',
           icon: 'TG1',
+          color: 'tg1',
           items: [
-            ['Airport Ground Handling', './pdf/ssw/tg1/airport-ground-handling.pdf'],
-            ['Kaigo', './pdf/ssw/tg1/kaigo.pdf'],
-            ['Jidousha Seibi', './pdf/ssw/tg1/jidousha-seibi.pdf'],
-            ['Building Cleaning', './pdf/ssw/tg1/building-cleaning.pdf'],
-            ['Hotel', './pdf/ssw/tg1/hotel.pdf'],
-            ['Pengolahan Makanan', './pdf/ssw/tg1/pengolahan-makanan.pdf'],
-            ['Restoran', './pdf/ssw/tg1/restoran.pdf'],
+            ['Perawat Lansia (Kaigo)', './pdf/ssw/tg1/kaigo.pdf'],
+            ['Pembersihan Gedung (Building Cleaning)', './pdf/ssw/tg1/building-cleaning.pdf'],
+            ['Industri Makanan & Minuman (Pengolahan Makanan)', './pdf/ssw/tg1/pengolahan-makanan.pdf'],
+            ['Restoran & Layanan Makan', './pdf/ssw/tg1/restoran.pdf'],
             ['Peternakan', './pdf/ssw/tg1/peternakan.pdf'],
             ['Pertanian', './pdf/ssw/tg1/pertanian.pdf'],
-            ['Perikanan Kapal Tangkap Pancing', './pdf/ssw/tg1/perikanan-kapal-tangkap-pancing.pdf'],
-            ['Perikanan Budidaya', './pdf/ssw/tg1/perikanan-budidaya.pdf']
+            ['Perikanan — Kapal Tangkap', './pdf/ssw/tg1/perikanan-kapal-tangkap-pancing.pdf'],
+            ['Perikanan — Budidaya', './pdf/ssw/tg1/perikanan-budidaya.pdf'],
+            ['Industri Permesinan & Logam (Kikai Kinzoku)', './pdf/ssw/tg1/kikai-kinzoku.pdf'],
+            ['Konstruksi Bangunan (Kenchiku)', './pdf/ssw/tg1/kenchiku.pdf'],
+            ['Pengecoran Logam (Zousen)', './pdf/ssw/tg1/zousen.pdf'],
+            ['Pengelasan Industri (Yousetsu)', './pdf/ssw/tg1/yousetsu.pdf'],
+            ['Otomotif & Perawatan Kendaraan (Jidousha Seibi)', './pdf/ssw/tg1/jidousha-seibi.pdf'],
+            ['Penerbangan — Ground Handling', './pdf/ssw/tg1/airport-ground-handling.pdf'],
+            ['Akomodasi & Perhotelan', './pdf/ssw/tg1/hotel.pdf']
           ]
         },
         {
-          title: 'TG2',
-          subtitle: 'Materi / modul / latihan PDF',
+          title: 'TG2 — Penguji Keahlian Khusus',
+          subtitle: 'Tes keterampilan teknis di bidang manufaktur & jasa',
           icon: 'TG2',
+          color: 'tg2',
           items: [
-            ['Airport Ground Handling', './pdf/ssw/tg2/airport-ground-handling.pdf'],
-            ['Kaigo', './pdf/ssw/tg2/kaigo.pdf'],
-            ['Jidousha Seibi', './pdf/ssw/tg2/jidousha-seibi.pdf'],
-            ['Building Cleaning', './pdf/ssw/tg2/building-cleaning.pdf'],
-            ['Hotel', './pdf/ssw/tg2/hotel.pdf'],
-            ['Pengolahan Makanan', './pdf/ssw/tg2/pengolahan-makanan.pdf'],
-            ['Restoran', './pdf/ssw/tg2/restoran.pdf'],
+            ['Perawat Lansia (Kaigo)', './pdf/ssw/tg2/kaigo.pdf'],
+            ['Pembersihan Gedung (Building Cleaning)', './pdf/ssw/tg2/building-cleaning.pdf'],
+            ['Industri Makanan & Minuman (Pengolahan Makanan)', './pdf/ssw/tg2/pengolahan-makanan.pdf'],
+            ['Restoran & Layanan Makan', './pdf/ssw/tg2/restoran.pdf'],
             ['Peternakan', './pdf/ssw/tg2/peternakan.pdf'],
             ['Pertanian', './pdf/ssw/tg2/pertanian.pdf'],
-            ['Perikanan Kapal Tangkap Pancing', './pdf/ssw/tg2/perikanan-kapal-tangkap-pancing.pdf'],
-            ['Perikanan Budidaya', './pdf/ssw/tg2/perikanan-budidaya.pdf']
+            ['Perikanan — Kapal Tangkap', './pdf/ssw/tg2/perikanan-kapal-tangkap-pancing.pdf'],
+            ['Perikanan — Budidaya', './pdf/ssw/tg2/perikanan-budidaya.pdf'],
+            ['Industri Permesinan & Logam (Kikai Kinzoku)', './pdf/ssw/tg2/kikai-kinzoku.pdf'],
+            ['Konstruksi Bangunan (Kenchiku)', './pdf/ssw/tg2/kenchiku.pdf'],
+            ['Pengecoran Logam (Zousen)', './pdf/ssw/tg2/zousen.pdf'],
+            ['Pengelasan Industri (Yousetsu)', './pdf/ssw/tg2/yousetsu.pdf'],
+            ['Otomotif & Perawatan Kendaraan (Jidousha Seibi)', './pdf/ssw/tg2/jidousha-seibi.pdf'],
+            ['Penerbangan — Ground Handling', './pdf/ssw/tg2/airport-ground-handling.pdf'],
+            ['Akomodasi & Perhotelan', './pdf/ssw/tg2/hotel.pdf']
           ]
         }
       ],
+      // NAT: kamu punya Q5-Q1 tapi tidak semua. Tandai yang ada dan tidak ada
       nat: [
-        { title: 'NAT Test 5Q', subtitle: 'PDF level 5Q', icon: '5Q', tags: ['NAT', 'PDF'], file: './pdf/nat/5q/sample.pdf' },
-        { title: 'NAT Test 4Q', subtitle: 'PDF level 4Q', icon: '4Q', tags: ['NAT', 'PDF'], file: './pdf/nat/4q/sample.pdf' },
-        { title: 'NAT Test 3Q', subtitle: 'PDF level 3Q', icon: '3Q', tags: ['NAT', 'PDF'], file: './pdf/nat/3q/sample.pdf' },
-        { title: 'NAT Test 2Q', subtitle: 'PDF level 2Q', icon: '2Q', tags: ['NAT', 'PDF'], file: './pdf/nat/2q/sample.pdf' },
-        { title: 'NAT Test 1Q', subtitle: 'PDF level 1Q', icon: '1Q', tags: ['NAT', 'PDF'], file: './pdf/nat/1q/sample.pdf' },
-        { title: 'Past Paper Exams', subtitle: 'Kumpulan soal lama', icon: 'PP', tags: ['PAST', 'EXAM'], file: './pdf/nat/past-paper-exams.pdf' }
+        { title: 'NAT Test 5Q', subtitle: 'Setara JLPT N5 — soal & latihan', icon: '5Q', level:'NAT', available: true, tags: [['NAT','tag-nat'], ['5Q','tag-pdf']], file: './pdf/nat/5q/sample.pdf' },
+        { title: 'NAT Test 4Q', subtitle: 'Setara JLPT N4 — soal & latihan', icon: '4Q', level:'NAT', available: true, tags: [['NAT','tag-nat'], ['4Q','tag-pdf']], file: './pdf/nat/4q/sample.pdf' },
+        { title: 'NAT Test 3Q', subtitle: 'Setara JLPT N3 — soal & latihan', icon: '3Q', level:'NAT', available: true, tags: [['NAT','tag-nat'], ['3Q','tag-pdf']], file: './pdf/nat/3q/sample.pdf' },
+        { title: 'NAT Test 2Q', subtitle: 'Setara JLPT N2 — soal & latihan', icon: '2Q', level:'NAT', available: true, tags: [['NAT','tag-nat'], ['2Q','tag-pdf']], file: './pdf/nat/2q/sample.pdf' },
+        { title: 'NAT Test 1Q', subtitle: 'Setara JLPT N1 — soal & latihan', icon: '1Q', level:'NAT', available: true, tags: [['NAT','tag-nat'], ['1Q','tag-pdf']], file: './pdf/nat/1q/sample.pdf' }
       ],
+      // JFT: format ZIP — tombol download langsung
       jft: [
-        { title: 'JFT Basic A2', subtitle: 'PDF pembelajaran A2', icon: 'A2', tags: ['JFT', 'A2'], file: './pdf/jft/basic-a2.pdf' }
+        { title: 'JFT Basic A2 — Learning Set', subtitle: 'Materi lengkap JFT Basic A2 (file ZIP)', icon: 'A2', level:'JFT', type:'zip', tags: [['JFT','tag-jft'], ['A2','tag-pdf'], ['ZIP','tag-zip']], file: './pdf/jft/basic-a2.zip' }
       ],
+      // Marugoto: PDF → buka di tab baru langsung
       marugoto: [
-        { title: 'A1 Katsudo', subtitle: 'PDF Marugoto A1 Katsudo', icon: 'A1', tags: ['Marugoto', 'A1'], file: './pdf/marugoto/a1-katsudo.pdf' },
-        { title: 'A1 Rikai', subtitle: 'PDF Marugoto A1 Rikai', icon: 'A1', tags: ['Marugoto', 'A1'], file: './pdf/marugoto/a1-rikai.pdf' },
-        { title: 'A2 Katsudo', subtitle: 'PDF Marugoto A2 Katsudo', icon: 'A2', tags: ['Marugoto', 'A2'], file: './pdf/marugoto/a2-katsudo.pdf' },
-        { title: 'A2 Rikai', subtitle: 'PDF Marugoto A2 Rikai', icon: 'A2', tags: ['Marugoto', 'A2'], file: './pdf/marugoto/a2-rikai.pdf' },
-        { title: 'A2-B1 Katsudo Rikai', subtitle: 'PDF Marugoto A2-B1', icon: 'A2', tags: ['Marugoto', 'A2-B1'], file: './pdf/marugoto/a2-b1-katsudo-rikai.pdf' },
-        { title: 'B1-1 Katsudo Rikai', subtitle: 'PDF Marugoto B1-1', icon: 'B1', tags: ['Marugoto', 'B1-1'], file: './pdf/marugoto/b1-1-katsudo-rikai.pdf' },
-        { title: 'B1-2 Katsudo Rikai', subtitle: 'PDF Marugoto B1-2', icon: 'B1', tags: ['Marugoto', 'B1-2'], file: './pdf/marugoto/b1-2-katsudo-rikai.pdf' }
+        { title: 'A1 かつどう (Katsudo)', subtitle: 'Buku aktivitas komunikasi Marugoto A1', icon: 'A1', level:'MARU', type:'pdf-direct', tags: [['Marugoto','tag-maru'], ['A1','tag-pdf']], file: './pdf/marugoto/a1-katsudo.pdf' },
+        { title: 'A1 りかい (Rikai)', subtitle: 'Buku pemahaman bahasa Marugoto A1', icon: 'A1', level:'MARU', type:'pdf-direct', tags: [['Marugoto','tag-maru'], ['A1','tag-pdf']], file: './pdf/marugoto/a1-rikai.pdf' },
+        { title: 'A2 かつどう (Katsudo)', subtitle: 'Buku aktivitas komunikasi Marugoto A2', icon: 'A2', level:'MARU', type:'pdf-direct', tags: [['Marugoto','tag-maru'], ['A2','tag-pdf']], file: './pdf/marugoto/a2-katsudo.pdf' },
+        { title: 'A2 りかい (Rikai)', subtitle: 'Buku pemahaman bahasa Marugoto A2', icon: 'A2', level:'MARU', type:'pdf-direct', tags: [['Marugoto','tag-maru'], ['A2','tag-pdf']], file: './pdf/marugoto/a2-rikai.pdf' },
+        { title: 'A2-B1 かつどう & りかい', subtitle: 'Buku gabungan aktivitas & pemahaman A2-B1', icon: 'A2+', level:'MARU', type:'pdf-direct', tags: [['Marugoto','tag-maru'], ['A2-B1','tag-pdf']], file: './pdf/marugoto/a2-b1-katsudo-rikai.pdf' },
+        { title: 'B1-1 かつどう & りかい', subtitle: 'Buku gabungan aktivitas & pemahaman B1 bagian 1', icon: 'B1', level:'MARU', type:'pdf-direct', tags: [['Marugoto','tag-maru'], ['B1-1','tag-pdf']], file: './pdf/marugoto/b1-1-katsudo-rikai.pdf' },
+        { title: 'B1-2 かつどう & りかい', subtitle: 'Buku gabungan aktivitas & pemahaman B1 bagian 2', icon: 'B1', level:'MARU', type:'pdf-direct', tags: [['Marugoto','tag-maru'], ['B1-2','tag-pdf']], file: './pdf/marugoto/b1-2-katsudo-rikai.pdf' }
       ]
     };
 
@@ -1074,26 +1160,46 @@
     }
 
     function makePdfCard(item) {
-      const tags = item.tags.map(t => `<span class="tag">${escapeHtml(t)}</span>`).join('');
+      const tags = item.tags.map(([label, cls]) => `<span class="tag ${cls}">${escapeHtml(label)}</span>`).join('');
+      const isUnavailable = item.available === false;
+      const isDirectPdf = item.type === 'pdf-direct';
+      const isZip = item.type === 'zip';
+
+      let btnHtml;
+      if (isUnavailable) {
+        btnHtml = `<button class="open-btn" style="background:rgba(255,255,255,.06);cursor:not-allowed;opacity:.5;" disabled>Belum tersedia</button>`;
+      } else if (isDirectPdf) {
+        btnHtml = `<a class="open-btn" href="${item.file}" target="_blank" rel="noopener">Buka PDF →</a>`;
+      } else if (isZip) {
+        btnHtml = `<a class="open-btn" href="${item.file}" download style="background:linear-gradient(135deg,#f9a8d4,#fdba74);color:#1a0a00;">⬇ Unduh ZIP</a>`;
+      } else {
+        btnHtml = `<button class="open-btn" onclick="openPdf('${item.file}','${escapeHtml(item.title)}')">Buka PDF →</button>`;
+      }
+
+      const unavailableBadge = isUnavailable ? `<span class="card-unavailable-badge">Segera hadir</span>` : '';
+
       return `
-        <article class="card">
+        <article class="card${isUnavailable?' disabled':''}" data-level="${escapeHtml(item.level||'')}">
           <div class="card-top">
             <div style="min-width:0">
-              <h3 class="card-title">${escapeHtml(item.title)}</h3>
+              <h3 class="card-title">${escapeHtml(item.title)}${unavailableBadge}</h3>
               <p class="card-sub">${escapeHtml(item.subtitle)}</p>
             </div>
             <div class="card-icon">${escapeHtml(item.icon)}</div>
           </div>
           <div class="tag-row">${tags}</div>
           <div class="open-row">
-            <button class="open-btn" onclick="openPdf('${item.file}','${escapeHtml(item.title)}')">Buka PDF →</button>
-            
+            ${btnHtml}
           </div>
         </article>
       `;
     }
 
     function makeMiniList(item, groupKey){
+      const colorMap = { tg1:'var(--tg1)', tg2:'var(--tg2)' };
+      const bgMap = { tg1:'var(--tg1-bg)', tg2:'var(--tg2-bg)' };
+      const iconColor = colorMap[item.color] || 'var(--accent)';
+      const iconBg = bgMap[item.color] || 'rgba(102,169,255,.14)';
       return `
         <div class="resource">
           <div class="card-top" style="margin-bottom:10px">
@@ -1101,16 +1207,16 @@
               <h4>${escapeHtml(item.title)}</h4>
               <p>${escapeHtml(item.subtitle)}</p>
             </div>
-            <div class="card-icon">${escapeHtml(item.icon)}</div>
+            <div class="card-icon" style="background:${iconBg};color:${iconColor};border-color:${iconColor}33;">${escapeHtml(item.icon)}</div>
           </div>
           <div class="resource-list">
             ${item.items.map(([name, file]) => `
               <div class="mini-item">
                 <div>
                   <strong>${escapeHtml(name)}</strong>
-                  <span>PDF — ${escapeHtml(item.title)}</span>
+                  <span>${escapeHtml(item.icon)} · PDF</span>
                 </div>
-                <button class="open-btn" style="padding:10px 12px" onclick="openPdf('${file}','${escapeHtml(groupKey)} - ${escapeHtml(name)}')">Buka</button>
+                <button class="open-btn" style="padding:10px 12px;font-size:12px;" onclick="openPdf('${file}','${escapeHtml(groupKey)} — ${escapeHtml(name)}')">Buka</button>
               </div>
             `).join('')}
           </div>
@@ -1341,69 +1447,64 @@
     id: {
       pageTitle: 'Japanese Resource Hub',
       brandTitle: 'Japanese Resource Hub',
-      brandSub: 'JLPT, SSW, NAT, JFT, Marugoto, plus info resmi',
+      brandSub: 'JLPT, SSW, NAT, JFT, Marugoto — semua di satu tempat',
       countdownPill: 'Countdown',
       viewResources: 'Lihat Resource',
       menuTitle: 'Menu',
       dashboardTitle: 'Dashboard',
-      navCountdown: 'JLPT Countdown',
-      navCountdownSub: 'Countdown to the July exam',
-      navOfficialInfo: 'Official Info',
-      navOfficialInfoSub: 'JLPT & SSW official links',
-      dashboardTitle: 'Dashboard',
       navCountdown: 'Countdown JLPT',
-      navCountdownSub: 'Menuju ujian bulan Juli',
+      navCountdownSub: 'Hitung mundur menuju ujian Juli',
       navOfficialInfo: 'Info Resmi',
-      navOfficialInfoSub: 'JLPT & SSW official links',
-      sidebarJump: 'Lompat ke halaman',
-      sidebarResources: 'Resource PDF',
-      sidebarOfficial: 'Situs resmi',
+      navOfficialInfoSub: 'Link resmi JLPT & SSW',
+      sidebarJump: 'Lompat ke bagian',
+      sidebarResources: 'Resource PDF & ZIP',
+      sidebarOfficial: 'Situs Resmi',
       navDashboard: 'Dashboard',
-      navDashboardSub: 'Menuju bagian atas',
+      navDashboardSub: 'Kembali ke atas',
       navInfo: 'Info Resmi',
-      navInfoSub: 'JLPT & SSW official links',
+      navInfoSub: 'Link resmi JLPT & SSW',
       navResourceHub: 'Resource Hub',
       navResourceHubSub: 'JLPT, SSW, NAT, JFT, Marugoto',
       jlptId: 'JLPT Indonesia',
       jlptJp: 'JLPT Jepang',
       sswId: 'SSW Indonesia',
       heroHighlight: '📅 Countdown JLPT',
-      heroTitle: 'All You Need is Here!',
-      heroSubtitle: 'Semua resource belajar bahasa Jepang ada di satu tempat: JLPT, SSW, NAT, JFT Basic, Marugoto, dan link resmi.',
+      heroTitle: 'Semua Ada di Sini!',
+      heroSubtitle: 'Satu tempat untuk semua resource belajar bahasa Jepang — JLPT, SSW, NAT Test, JFT Basic, Marugoto, dan link resmi.',
       countdownTitle: 'Menuju JLPT Juli',
-      countdownNote: 'Countdown dihitung ke hari Minggu pertama bulan Juli.',
+      countdownNote: 'Countdown dihitung ke Minggu pertama bulan Juli.',
       jlptTitle: '1. Resource JLPT',
-      jlptDesc: 'Buku, soal, dan latihan PDF dari N5 sampai N1.',
-      jlptBadge: '📚 PDF Viewer langsung',
-      sswTitle: '2. Resource SSW',
-      sswDesc: 'Materi, modul, dan latihan soal untuk TG1 / TG2 beserta semua manufaktur.',
-      sswBadge: '🛠 TG1 & TG2',
+      jlptDesc: 'Buku, soal, dan latihan PDF untuk semua level N5 sampai N1.',
+      jlptBadge: '📚 Buka langsung di viewer',
+      sswTitle: '2. Resource SSW (Tokutei Ginou)',
+      sswDesc: 'Materi persiapan Tokutei Ginou — TG1 (tes bahasa) dan TG2 (tes keahlian khusus) untuk semua bidang manufaktur & jasa.',
+      sswBadge: '🛠 TG1 & TG2 · 15 Bidang',
       natTitle: '3. Resource NAT Test',
-      natDesc: 'Kumpulan PDF NAT Test level 5Q sampai 1Q, plus past paper exams.',
-      natBadge: '📝 Past Paper',
+      natDesc: 'Kumpulan soal NAT Test dari level 5Q (pemula) hingga 1Q (mahir). Resource tersedia untuk Q5 hingga Q1.',
+      natBadge: '📝 5Q sampai 1Q',
       jftTitle: '4. Resource JFT Basic A2',
-      jftDesc: 'Satu tempat untuk materi JFT Basic A2.',
-      jftBadge: '🎯 A2 Level',
+      jftDesc: 'Paket belajar lengkap JFT Basic A2 — diunduh sebagai file ZIP.',
+      jftBadge: '🎯 A2 · File ZIP',
       marugotoTitle: '5. Marugoto',
-      marugotoDesc: 'Koleksi Marugoto dari A1 sampai B1-2.',
-      marugotoBadge: '📖 Learning set',
+      marugotoDesc: 'Buku pelajaran Marugoto dari A1 sampai B1-2 — buka langsung di browser tanpa download.',
+      marugotoBadge: '📖 A1 sampai B1-2 · PDF',
       infoTitle: '6. Info Resmi',
-      infoDesc: 'Situs resmi.',
-      infoBadge: '🌐 Official links',
-      infoJlptIdTitle: 'Info JLPT Indonesia',
-      infoJlptIdDesc: 'Halaman resmi JLPT Indonesia.',
-      infoJlptJpTitle: 'Info JLPT Jepang',
-      infoJlptJpDesc: 'Website resmi JLPT dari Jepang.',
-      infoSswTitle: 'Info SSW Indonesia',
-      infoSswDesc: 'Prometric / SSW official portal.',
+      infoDesc: 'Kumpulan link situs resmi untuk pendaftaran dan informasi ujian.',
+      infoBadge: '🌐 Link Resmi',
+      infoJlptIdTitle: 'JLPT Indonesia',
+      infoJlptIdDesc: 'Situs resmi pendaftaran dan informasi JLPT di Indonesia.',
+      infoJlptJpTitle: 'JLPT Jepang',
+      infoJlptJpDesc: 'Website resmi JLPT dari Japan Foundation dan JEES.',
+      infoSswTitle: 'SSW — Prometric Indonesia',
+      infoSswDesc: 'Portal resmi tes Tokutei Ginou (SSW) via Prometric.',
       openSite: 'Buka Situs →',
       openPdf: 'Buka PDF →',
       openMini: 'Buka',
       pdfTitle: 'PDF Viewer',
-      prev: '← Prev',
-      next: 'Next →',
-      zoomOut: '− Zoom',
-      zoomIn: '+ Zoom',
+      prev: '← Sebelumnya',
+      next: 'Berikutnya →',
+      zoomOut: '− Kecilkan',
+      zoomIn: '+ Perbesar',
       close: 'Tutup',
       days: 'Hari',
       hours: 'Jam',
@@ -1413,13 +1514,18 @@
     en: {
       pageTitle: 'Japanese Resource Hub',
       brandTitle: 'Japanese Resource Hub',
-      brandSub: 'JLPT, SSW, NAT, JFT, Marugoto, plus official info',
+      brandSub: 'JLPT, SSW, NAT, JFT, Marugoto — all in one place',
       countdownPill: 'Countdown',
       viewResources: 'View Resources',
       menuTitle: 'Menu',
-      sidebarJump: 'Jump to page',
-      sidebarResources: 'PDF Resources',
-      sidebarOfficial: 'Official sites',
+      dashboardTitle: 'Dashboard',
+      navCountdown: 'JLPT Countdown',
+      navCountdownSub: 'Countdown to the July exam',
+      navOfficialInfo: 'Official Info',
+      navOfficialInfoSub: 'JLPT & SSW official links',
+      sidebarJump: 'Jump to section',
+      sidebarResources: 'PDF & ZIP Resources',
+      sidebarOfficial: 'Official Sites',
       navDashboard: 'Dashboard',
       navDashboardSub: 'Back to the top',
       navInfo: 'Official Info',
@@ -1430,42 +1536,42 @@
       jlptJp: 'JLPT Japan',
       sswId: 'SSW Indonesia',
       heroHighlight: '📅 JLPT Countdown',
-      heroTitle: 'All You Need Is Here!',
-      heroSubtitle: 'Everything you need to study Japanese in one place: JLPT, SSW, NAT, JFT Basic, Marugoto, and official links.',
+      heroTitle: 'Everything You Need is Here!',
+      heroSubtitle: 'One place for all your Japanese study resources — JLPT, SSW, NAT Test, JFT Basic, Marugoto, and official links.',
       countdownTitle: 'Countdown to JLPT July',
-      countdownNote: 'The countdown is set to the first Sunday in July.',
+      countdownNote: 'Countdown targets the first Sunday of July.',
       jlptTitle: '1. JLPT Resources',
-      jlptDesc: 'Books, exams, and PDF practice from N5 to N1.',
-      jlptBadge: '📚 Direct PDF viewer',
-      sswTitle: '2. SSW Resources',
-      sswDesc: 'Materials, modules, and practice exams for TG1 / TG2 and all sectors.',
-      sswBadge: '🛠 TG1 & TG2',
+      jlptDesc: 'Books, past exams, and PDF practice from N5 to N1.',
+      jlptBadge: '📚 In-page PDF viewer',
+      sswTitle: '2. SSW (Tokutei Ginou) Resources',
+      sswDesc: 'Preparation materials for Tokutei Ginou — TG1 (language test) and TG2 (skills test) covering all manufacturing & service sectors.',
+      sswBadge: '🛠 TG1 & TG2 · 15 Sectors',
       natTitle: '3. NAT Test Resources',
-      natDesc: 'A collection of NAT Test PDFs from 5Q to 1Q, plus past paper exams.',
-      natBadge: '📝 Past papers',
+      natDesc: 'NAT Test materials from 5Q (beginner) to 1Q (advanced). Resources available for Q5 through Q1.',
+      natBadge: '📝 5Q to 1Q',
       jftTitle: '4. JFT Basic A2 Resources',
-      jftDesc: 'A single place for JFT Basic A2 study materials.',
-      jftBadge: '🎯 A2 Level',
+      jftDesc: 'Complete JFT Basic A2 study pack — downloaded as a ZIP file.',
+      jftBadge: '🎯 A2 · ZIP File',
       marugotoTitle: '5. Marugoto',
-      marugotoDesc: 'Marugoto collection from A1 to B1-2.',
-      marugotoBadge: '📖 Learning set',
+      marugotoDesc: 'Marugoto textbooks from A1 to B1-2 — open directly in browser.',
+      marugotoBadge: '📖 A1 to B1-2 · PDF',
       infoTitle: '6. Official Info',
-      infoDesc: 'Official websites.',
-      infoBadge: '🌐 Official links',
-      infoJlptIdTitle: 'JLPT Indonesia Info',
-      infoJlptIdDesc: 'Official JLPT Indonesia page.',
-      infoJlptJpTitle: 'JLPT Japan Info',
-      infoJlptJpDesc: 'Official JLPT website from Japan.',
-      infoSswTitle: 'SSW Indonesia Info',
-      infoSswDesc: 'Prometric / SSW official portal.',
+      infoDesc: 'Official websites for registration and exam information.',
+      infoBadge: '🌐 Official Links',
+      infoJlptIdTitle: 'JLPT Indonesia',
+      infoJlptIdDesc: 'Official JLPT registration and info page for Indonesia.',
+      infoJlptJpTitle: 'JLPT Japan',
+      infoJlptJpDesc: 'Official JLPT website from Japan Foundation and JEES.',
+      infoSswTitle: 'SSW — Prometric Indonesia',
+      infoSswDesc: 'Official Tokutei Ginou (SSW) test portal via Prometric.',
       openSite: 'Open Site →',
       openPdf: 'Open PDF →',
       openMini: 'Open',
       pdfTitle: 'PDF Viewer',
       prev: '← Prev',
       next: 'Next →',
-      zoomOut: '− Zoom',
-      zoomIn: '+ Zoom',
+      zoomOut: '− Zoom Out',
+      zoomIn: '+ Zoom In',
       close: 'Close',
       days: 'Days',
       hours: 'Hours',
@@ -1475,64 +1581,64 @@
     ja: {
       pageTitle: 'Japanese Resource Hub',
       brandTitle: 'Japanese Resource Hub',
-      brandSub: 'JLPT、SSW、NAT、JFT、Marugoto、公式情報',
+      brandSub: 'JLPT・SSW・NAT・JFT・まるごと — すべてここに',
       countdownPill: 'カウントダウン',
       viewResources: 'リソースを見る',
       menuTitle: 'メニュー',
       dashboardTitle: 'ダッシュボード',
       navCountdown: 'JLPT カウントダウン',
-      navCountdownSub: '7月試験までのカウントダウン',
+      navCountdownSub: '7月試験までの残り日数',
       navOfficialInfo: '公式情報',
       navOfficialInfoSub: 'JLPT と SSW の公式リンク',
-      sidebarJump: 'ページ内移動',
-      sidebarResources: 'PDF リソース',
+      sidebarJump: 'セクションへ移動',
+      sidebarResources: 'PDF・ZIPリソース',
       sidebarOfficial: '公式サイト',
       navDashboard: 'ダッシュボード',
       navDashboardSub: '先頭に戻る',
       navInfo: '公式情報',
       navInfoSub: 'JLPT と SSW の公式リンク',
       navResourceHub: 'リソースハブ',
-      navResourceHubSub: 'JLPT、SSW、NAT、JFT、Marugoto',
+      navResourceHubSub: 'JLPT・SSW・NAT・JFT・まるごと',
       jlptId: 'JLPTインドネシア',
       jlptJp: 'JLPT日本',
       sswId: 'SSWインドネシア',
       heroHighlight: '📅 JLPT カウントダウン',
-      heroTitle: '必要なものはここに。',
-      heroSubtitle: 'JLPT、SSW、NAT、JFT Basic、Marugoto、そして公式リンクを一か所にまとめました。',
+      heroTitle: '必要なものはすべてここに！',
+      heroSubtitle: 'JLPT・SSW・NAT Test・JFT Basic・まるごと・公式リンクを1か所にまとめました。',
       countdownTitle: 'JLPT 7月までのカウントダウン',
-      countdownNote: 'カウントダウンは7月最初の日曜日に設定されています。',
+      countdownNote: 'カウントダウンは7月最初の日曜日が対象です。',
       jlptTitle: '1. JLPT リソース',
-      jlptDesc: 'N5 から N1 までの本・問題・PDF 練習問題。',
-      jlptBadge: '📚 直接PDF表示',
-      sswTitle: '2. SSW リソース',
-      sswDesc: 'TG1 / TG2 と全業種の教材・モジュール・練習問題。',
-      sswBadge: '🛠 TG1 & TG2',
+      jlptDesc: 'N5〜N1 の教材・過去問・PDF練習問題。',
+      jlptBadge: '📚 ページ内PDFビューア',
+      sswTitle: '2. SSW（特定技能）リソース',
+      sswDesc: '特定技能試験の準備教材 — TG1（日本語テスト）とTG2（技能テスト）、全業種対応。',
+      sswBadge: '🛠 TG1 & TG2 · 15業種',
       natTitle: '3. NAT Test リソース',
-      natDesc: '5Q から 1Q までの NAT Test PDF と過去問題集。',
-      natBadge: '📝 過去問',
+      natDesc: '5Q（初級）から1Q（上級）までのNAT Test教材。Q5〜Q1まで対応。',
+      natBadge: '📝 5Q〜1Q',
       jftTitle: '4. JFT Basic A2 リソース',
-      jftDesc: 'JFT Basic A2 の教材をまとめています。',
-      jftBadge: '🎯 A2 レベル',
+      jftDesc: 'JFT Basic A2 完全学習セット — ZIPファイルでダウンロード。',
+      jftBadge: '🎯 A2 · ZIPファイル',
       marugotoTitle: '5. まるごと',
-      marugotoDesc: 'A1 から B1-2 までの Marugoto コレクション。',
-      marugotoBadge: '📖 学習セット',
+      marugotoDesc: 'A1〜B1-2 の「まるごと」教科書 — ブラウザで直接開けます。',
+      marugotoBadge: '📖 A1〜B1-2 · PDF',
       infoTitle: '6. 公式情報',
-      infoDesc: '公式サイト。',
+      infoDesc: '試験登録や情報確認のための公式サイト一覧。',
       infoBadge: '🌐 公式リンク',
-      infoJlptIdTitle: 'JLPTインドネシア情報',
-      infoJlptIdDesc: 'JLPT インドネシアの公式ページ。',
-      infoJlptJpTitle: 'JLPT日本情報',
-      infoJlptJpDesc: '日本の公式 JLPT サイト。',
-      infoSswTitle: 'SSWインドネシア情報',
-      infoSswDesc: 'Prometric / SSW 公式ポータル。',
+      infoJlptIdTitle: 'JLPTインドネシア',
+      infoJlptIdDesc: 'インドネシアのJLPT公式登録・情報ページ。',
+      infoJlptJpTitle: 'JLPT日本公式',
+      infoJlptJpDesc: '国際交流基金・日本国際教育支援協会の公式JLPTサイト。',
+      infoSswTitle: 'SSW — Prometric Indonesia',
+      infoSswDesc: 'Prometric 経由の特定技能（SSW）公式試験ポータル。',
       openSite: 'サイトを開く →',
       openPdf: 'PDFを開く →',
       openMini: '開く',
       pdfTitle: 'PDFビューア',
       prev: '← 前へ',
       next: '次へ →',
-      zoomOut: '− ズーム',
-      zoomIn: '+ ズーム',
+      zoomOut: '− 縮小',
+      zoomIn: '+ 拡大',
       close: '閉じる',
       days: '日',
       hours: '時間',
@@ -1606,9 +1712,10 @@
   }
 
   function updateCardButtons(){
-    document.querySelectorAll('.card .open-btn').forEach(btn => {
+    // Only update PDF viewer buttons (not direct-link PDF, zip, or disabled)
+    document.querySelectorAll('.card button.open-btn:not([disabled])').forEach(btn => {
       if (btn.closest('.link-card')) return;
-      btn.innerHTML = `${t('openPdf')}`;
+      btn.textContent = t('openPdf');
     });
     document.querySelectorAll('.mini-item .open-btn').forEach(btn => {
       btn.textContent = t('openMini');
@@ -1676,6 +1783,9 @@
     if (descs[5]) descs[5].textContent = t('infoDesc');
     if (badges[5]) badges[5].textContent = t('infoBadge');
 
+    const heroSubEl = document.querySelector('.hero .subtitle');
+    if (heroSubEl) heroSubEl.textContent = t('heroSubtitle');
+
     const linkCards = document.querySelectorAll('.link-card');
     if (linkCards[0]) {
       const h = linkCards[0].querySelector('h4');
@@ -1695,6 +1805,10 @@
       if (h) h.textContent = t('infoSswTitle');
       if (p) p.textContent = t('infoSswDesc');
     }
+    // Update open-btn text on link cards
+    document.querySelectorAll('.link-card .open-btn.external-btn').forEach(btn => {
+      btn.textContent = t('openSite');
+    });
   }
 
   function updateTopbar(){
