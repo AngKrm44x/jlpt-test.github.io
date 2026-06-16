@@ -1,0 +1,1744 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Japanese Resource Hub</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+
+  <!-- PDF.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+  <style>
+    :root{
+      --bg:#07111f;
+      --bg2:#0c1728;
+      --panel:#101c31;
+      --panel2:#15233b;
+      --line:#243556;
+      --text:#f4f7ff;
+      --muted:#a9b6d1;
+      --accent:#66a9ff;
+      --accent2:#8c6dff;
+      --ok:#24c38a;
+      --warn:#ffcc66;
+      --danger:#ff6b8b;
+      --shadow:0 20px 60px rgba(0,0,0,.35);
+      --radius:22px;
+    }
+
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{
+      margin:0;
+      font-family:Inter,system-ui,sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(102,169,255,.13), transparent 28%),
+        radial-gradient(circle at bottom right, rgba(140,109,255,.13), transparent 22%),
+        linear-gradient(180deg, var(--bg), #050a14 100%);
+      color:var(--text);
+      min-height:100vh;
+      overflow-x:hidden;
+    }
+
+    a{color:inherit}
+    .app{
+      display:grid;
+      grid-template-columns: 1fr;
+      min-height:100vh;
+    }
+
+    .topbar{
+      position:fixed;
+      top:0;left:0;right:0;
+      z-index:60;
+      display:flex;
+      align-items:center;
+      gap:14px;
+      padding:14px 18px;
+      background:rgba(7,17,31,.72);
+      backdrop-filter:blur(14px);
+      border-bottom:1px solid rgba(255,255,255,.06);
+    }
+
+    .menu-btn{
+      width:46px;height:46px;
+      border:none;
+      border-radius:14px;
+      background:linear-gradient(135deg, rgba(102,169,255,.22), rgba(140,109,255,.22));
+      color:var(--text);
+      font-size:18px;
+      cursor:pointer;
+      box-shadow:var(--shadow);
+      transition:.2s transform,.2s filter;
+      flex:0 0 auto;
+    }
+    .menu-btn:hover{transform:translateY(-1px);filter:brightness(1.08)}
+    .brand{
+      display:flex;align-items:center;gap:12px;min-width:0;
+      flex:1;
+    }
+    .brand-badge{
+      width:40px;height:40px;border-radius:14px;
+      display:grid;place-items:center;
+      background:linear-gradient(135deg, var(--accent), var(--accent2));
+      font-weight:900;
+      box-shadow:0 12px 30px rgba(102,169,255,.25);
+      flex:0 0 auto;
+    }
+    .brand-text{min-width:0}
+    .brand-title{
+      margin:0;
+      font-size:15px;
+      font-weight:800;
+      letter-spacing:.2px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .brand-sub{
+      margin:2px 0 0;
+      color:var(--muted);
+      font-size:12px;
+    }
+
+    .top-actions{
+      display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+    }
+    .pill{
+      display:inline-flex;align-items:center;gap:8px;
+      padding:10px 14px;
+      border:1px solid rgba(255,255,255,.08);
+      background:rgba(255,255,255,.04);
+      border-radius:999px;
+      color:var(--muted);
+      font-size:12px;
+      font-weight:700;
+      white-space:nowrap;
+    }
+    .pill strong{color:var(--text)}
+    .ghost-btn{
+      border:none;
+      background:linear-gradient(135deg, var(--accent), var(--accent2));
+      color:white;
+      font-weight:800;
+      padding:11px 16px;
+      border-radius:14px;
+      cursor:pointer;
+      box-shadow:0 10px 30px rgba(102,169,255,.22);
+      transition:.2s transform,.2s filter;
+    }
+    .ghost-btn:hover{transform:translateY(-1px);filter:brightness(1.06)}
+
+    .lang-wrap{position:relative;flex:0 0 auto}
+    .lang-btn{
+      display:inline-flex;align-items:center;gap:8px;
+      border:none;background:rgba(255,255,255,.05);
+      color:var(--text);font-weight:800;
+      padding:11px 14px;border-radius:14px;
+      cursor:pointer;box-shadow:var(--shadow);
+      transition:.2s transform,.2s filter;
+    }
+    .lang-btn:hover{transform:translateY(-1px);filter:brightness(1.06)}
+    .lang-menu{
+      position:absolute;top:54px;right:0;z-index:65;
+      min-width:170px;padding:8px;
+      border:1px solid rgba(255,255,255,.08);
+      background:rgba(16,28,49,.98);
+      backdrop-filter:blur(12px);
+      border-radius:16px;
+      box-shadow:var(--shadow);
+      display:none;
+    }
+    .lang-menu.open{display:block}
+    .lang-opt{
+      display:flex;align-items:center;gap:10px;
+      width:100%;
+      padding:10px 12px;border-radius:12px;
+      cursor:pointer;color:var(--muted);font-weight:700;
+      transition:.15s;
+    }
+    .lang-opt:hover,.lang-opt.active{background:rgba(102,169,255,.12);color:var(--text)}
+    .lang-flag{font-size:16px}
+
+    .sidebar-overlay{
+      position:fixed;inset:0;
+      background:rgba(0,0,0,.5);
+      backdrop-filter:blur(4px);
+      z-index:70;
+      opacity:0;pointer-events:none;
+      transition:.22s ease;
+    }
+    .sidebar-overlay.open{opacity:1;pointer-events:auto}
+
+    .sidebar{
+      position:fixed;
+      top:0;left:0;
+      z-index:80;
+      width:min(330px, 88vw);
+      height:100vh;
+      background:linear-gradient(180deg, rgba(16,28,49,.98), rgba(11,20,36,.98));
+      border-right:1px solid rgba(255,255,255,.07);
+      box-shadow:24px 0 60px rgba(0,0,0,.4);
+      transform:translateX(-104%);
+      transition:.26s cubic-bezier(.4,0,.2,1);
+      display:flex;
+      flex-direction:column;
+    }
+    .sidebar.open{transform:translateX(0)}
+    .side-head{
+      padding:20px;
+      border-bottom:1px solid rgba(255,255,255,.06);
+      display:flex;align-items:center;justify-content:space-between;gap:12px;
+    }
+    .side-title{
+      margin:0;
+      font-size:18px;
+      font-weight:900;
+    }
+    .close-btn{
+      width:40px;height:40px;
+      border:none;border-radius:12px;
+      background:rgba(255,255,255,.06);
+      color:var(--text);
+      cursor:pointer;
+    }
+    .side-nav{
+      padding:14px;
+      overflow:auto;
+      flex:1;
+    }
+    .nav-group{
+      margin-bottom:14px;
+      border:1px solid rgba(255,255,255,.06);
+      border-radius:18px;
+      overflow:hidden;
+      background:rgba(255,255,255,.03);
+    }
+    .nav-group summary{
+      list-style:none;
+      padding:15px 16px;
+      cursor:pointer;
+      font-weight:800;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      user-select:none;
+    }
+    .nav-group summary::-webkit-details-marker{display:none}
+    .nav-group summary span{color:var(--muted);font-size:12px;font-weight:700}
+    .nav-links{
+      padding:0 10px 12px;
+      display:grid;
+      gap:8px;
+    }
+    .nav-link, .nav-link-btn{
+      width:100%;
+      text-align:left;
+      border:none;
+      padding:11px 12px;
+      border-radius:14px;
+      background:rgba(255,255,255,.04);
+      color:var(--text);
+      font-weight:700;
+      cursor:pointer;
+      text-decoration:none;
+      transition:.18s;
+    }
+    .nav-link:hover, .nav-link-btn:hover{
+      background:rgba(102,169,255,.14);
+      transform:translateX(2px);
+    }
+    .nav-link small, .nav-link-btn small{
+      display:block;
+      color:var(--muted);
+      font-size:11px;
+      font-weight:600;
+      margin-top:2px;
+    }
+
+    .content{
+      width:min(1400px, calc(100% - 32px));
+      margin:86px auto 40px;
+      padding-bottom:40px;
+    }
+
+    .hero{
+      background:linear-gradient(180deg, rgba(16,28,49,.92), rgba(16,28,49,.72));
+      border:1px solid rgba(255,255,255,.07);
+      border-radius:28px;
+      padding:28px;
+      box-shadow:var(--shadow);
+      position:relative;
+      overflow:hidden;
+    }
+    .hero::after{
+      content:"試験";
+      position:absolute;
+      right:24px;
+      bottom:-10px;
+      font-family:"Noto Sans JP",sans-serif;
+      font-size:120px;
+      font-weight:900;
+      color:rgba(255,255,255,.03);
+      pointer-events:none;
+      line-height:1;
+    }
+    .hero-grid{
+      display:grid;
+      grid-template-columns: 1.3fr .9fr;
+      gap:18px;
+      align-items:start;
+    }
+    .hero h1{
+      margin:8px 0 10px;
+      font-size:clamp(30px, 4vw, 52px);
+      line-height:1.04;
+      letter-spacing:-.03em;
+    }
+    .hero p{
+      margin:0;
+      color:var(--muted);
+      line-height:1.8;
+      max-width:760px;
+      font-size:14px;
+    }
+    .highlight{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:8px 12px;
+      border-radius:999px;
+      background:rgba(102,169,255,.12);
+      color:#cfe3ff;
+      border:1px solid rgba(102,169,255,.22);
+      font-weight:800;
+      font-size:12px;
+    }
+
+    .countdown-card{
+      background:rgba(8,14,26,.55);
+      border:1px solid rgba(255,255,255,.07);
+      border-radius:24px;
+      padding:18px;
+    }
+    .countdown-title{
+      display:flex;align-items:center;justify-content:space-between;gap:10px;
+      margin-bottom:12px;
+      font-weight:900;
+      font-size:15px;
+    }
+    .countdown-date{
+      color:var(--muted);
+      font-size:12px;
+      font-weight:700;
+    }
+    .timer-grid{
+      display:grid;
+      grid-template-columns:repeat(4, 1fr);
+      gap:10px;
+    }
+    .timer-box{
+      background:rgba(255,255,255,.04);
+      border:1px solid rgba(255,255,255,.06);
+      border-radius:18px;
+      padding:14px 10px;
+      text-align:center;
+    }
+    .timer-num{
+      font-size:clamp(22px, 3vw, 34px);
+      font-weight:900;
+      line-height:1.05;
+      background:linear-gradient(135deg, #fff, #91bcff);
+      -webkit-background-clip:text;
+      -webkit-text-fill-color:transparent;
+      background-clip:text;
+    }
+    .timer-label{
+      font-size:11px;
+      color:var(--muted);
+      margin-top:6px;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+    }
+
+    .section{
+      margin-top:22px;
+      background:rgba(16,28,49,.72);
+      border:1px solid rgba(255,255,255,.07);
+      border-radius:28px;
+      padding:22px;
+      box-shadow:var(--shadow);
+    }
+    .section-head{
+      display:flex;
+      align-items:flex-end;
+      justify-content:space-between;
+      gap:14px;
+      flex-wrap:wrap;
+      margin-bottom:18px;
+    }
+    .section-title{
+      margin:0;
+      font-size:22px;
+      letter-spacing:-.02em;
+    }
+    .section-desc{
+      margin:5px 0 0;
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.7;
+    }
+    .section-badge{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      border:1px solid rgba(255,255,255,.08);
+      background:rgba(255,255,255,.04);
+      color:var(--muted);
+      padding:10px 14px;
+      border-radius:999px;
+      font-size:12px;
+      font-weight:800;
+      white-space:nowrap;
+    }
+
+    .cards{
+      display:grid;
+      grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));
+      gap:14px;
+    }
+    .card{
+      background:linear-gradient(180deg, rgba(21,35,59,.95), rgba(15,26,44,.95));
+      border:1px solid rgba(255,255,255,.07);
+      border-radius:22px;
+      padding:18px;
+      min-height:168px;
+      display:flex;
+      flex-direction:column;
+      justify-content:space-between;
+      gap:14px;
+      transition:.2s transform,.2s border-color,.2s box-shadow;
+      position:relative;
+      overflow:hidden;
+    }
+    .card:hover{
+      transform:translateY(-3px);
+      border-color:rgba(102,169,255,.3);
+      box-shadow:0 18px 38px rgba(0,0,0,.3);
+    }
+    .card::before{
+      content:"";
+      position:absolute;inset:0;
+      background:linear-gradient(135deg, rgba(255,255,255,.05), transparent 40%);
+      pointer-events:none;
+    }
+    .card-top{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .card-icon{
+      width:46px;height:46px;
+      border-radius:16px;
+      display:grid;place-items:center;
+      background:rgba(102,169,255,.14);
+      border:1px solid rgba(102,169,255,.18);
+      font-size:20px;
+      flex:0 0 auto;
+    }
+    .card-title{
+      margin:0 0 5px;
+      font-size:16px;
+      font-weight:900;
+    }
+    .card-sub{
+      margin:0;
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.7;
+    }
+    .tag-row{
+      display:flex;flex-wrap:wrap;gap:8px;
+    }
+    .tag{
+      font-size:11px;
+      font-weight:800;
+      color:#d9e6ff;
+      background:rgba(102,169,255,.12);
+      border:1px solid rgba(102,169,255,.14);
+      border-radius:999px;
+      padding:6px 10px;
+    }
+    .open-row{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .open-btn{
+      border:none;
+      background:linear-gradient(135deg, var(--accent), var(--accent2));
+      color:white;
+      padding:11px 14px;
+      border-radius:14px;
+      cursor:pointer;
+      font-weight:900;
+      font-size:13px;
+      text-decoration:none;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      transition:.2s transform,.2s filter;
+    }
+    .open-btn:hover{transform:translateY(-1px);filter:brightness(1.05)}
+    .external-btn{
+      border:1px solid rgba(255,255,255,.08);
+      background:rgba(255,255,255,.04);
+      color:var(--text);
+    }
+
+    .resource-grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fit, minmax(260px, 1fr));
+      gap:14px;
+    }
+    .resource{
+      background:rgba(255,255,255,.035);
+      border:1px solid rgba(255,255,255,.06);
+      border-radius:20px;
+      padding:18px;
+    }
+    .resource h4{
+      margin:0 0 6px;
+      font-size:15px;
+    }
+    .resource p{
+      margin:0 0 14px;
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.7;
+    }
+    .resource-list{
+      display:grid;
+      gap:10px;
+    }
+    .mini-item{
+      padding:12px 12px;
+      border-radius:16px;
+      border:1px solid rgba(255,255,255,.06);
+      background:rgba(10,18,31,.55);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+    }
+    .mini-item strong{
+      display:block;
+      font-size:13px;
+      margin-bottom:2px;
+    }
+    .mini-item span{
+      color:var(--muted);
+      font-size:11px;
+    }
+
+    .info-links{
+      display:grid;
+      grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));
+      gap:14px;
+    }
+    .link-card{
+      background:linear-gradient(180deg, rgba(21,35,59,.95), rgba(15,26,44,.95));
+      border:1px solid rgba(255,255,255,.07);
+      border-radius:22px;
+      padding:18px;
+    }
+    .link-card h4{margin:0 0 8px;font-size:16px}
+    .link-card p{margin:0 0 16px;color:var(--muted);font-size:12px;line-height:1.7}
+
+    .footer-note{
+      margin:18px 2px 0;
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.8;
+    }
+
+    .pdf-modal{
+      position:fixed;inset:0;
+      z-index:100;
+      background:rgba(0,0,0,.66);
+      backdrop-filter:blur(6px);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:18px;
+    }
+    .pdf-modal.open{display:flex}
+    .viewer{
+      width:min(1100px, 100%);
+      height:min(92vh, 920px);
+      background:linear-gradient(180deg, #0d1628, #0a111d);
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:24px;
+      box-shadow:0 28px 80px rgba(0,0,0,.6);
+      overflow:hidden;
+      display:flex;
+      flex-direction:column;
+    }
+    .viewer-head{
+      padding:14px 16px;
+      border-bottom:1px solid rgba(255,255,255,.06);
+      display:flex;align-items:center;justify-content:space-between;gap:12px;
+      background:rgba(255,255,255,.02);
+    }
+    .viewer-title{
+      margin:0;
+      font-size:14px;
+      font-weight:900;
+      overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+    }
+    .viewer-actions{
+      display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+    }
+    .viewer-btn{
+      border:none;
+      background:rgba(255,255,255,.06);
+      color:var(--text);
+      border-radius:12px;
+      padding:9px 12px;
+      cursor:pointer;
+      font-weight:800;
+      font-size:12px;
+    }
+    .viewer-btn.primary{
+      background:linear-gradient(135deg, var(--accent), var(--accent2));
+    }
+    .viewer-body{
+      flex:1;
+      overflow:auto;
+      padding:16px;
+    }
+    .pdf-stage{
+      min-height:100%;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap:12px;
+    }
+    #pdfCanvas{
+      max-width:100%;
+      border-radius:14px;
+      background:white;
+      box-shadow:0 20px 50px rgba(0,0,0,.35);
+    }
+    .viewer-meta{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      justify-content:center;
+      color:var(--muted);
+      font-size:12px;
+      font-weight:700;
+    }
+    .viewer-error{
+      display:none;
+      color:#ffb5c2;
+      background:rgba(255,107,139,.1);
+      border:1px solid rgba(255,107,139,.2);
+      border-radius:16px;
+      padding:14px 16px;
+      margin-top:14px;
+      font-size:13px;
+      line-height:1.7;
+    }
+
+    .section-anchor{scroll-margin-top:110px}
+    .muted{color:var(--muted)}
+
+    .toast{
+      position:fixed;
+      right:18px;
+      bottom:18px;
+      z-index:120;
+      background:rgba(16,28,49,.96);
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:16px;
+      padding:12px 14px;
+      color:var(--text);
+      box-shadow:var(--shadow);
+      transform:translateY(18px);
+      opacity:0;
+      transition:.24s ease;
+      pointer-events:none;
+      font-size:13px;
+      font-weight:700;
+    }
+    .toast.show{
+      opacity:1;
+      transform:translateY(0);
+    }
+
+    @media (max-width: 960px){
+      .hero-grid{grid-template-columns:1fr}
+      .timer-grid{grid-template-columns:repeat(2,1fr)}
+      .topbar{padding:12px 14px}
+      .content{width:min(100% - 20px, 1400px); margin-top:82px}
+    }
+
+    @media (max-width: 640px){
+      .brand-sub{display:none}
+      .top-actions{display:none}
+      .hero{padding:20px}
+      .section{padding:18px}
+      .cards, .resource-grid, .info-links{grid-template-columns:1fr}
+      .timer-grid{grid-template-columns:repeat(2,1fr)}
+      .viewer{height:92vh}
+      .viewer-head{align-items:flex-start;flex-direction:column}
+      .viewer-actions{width:100%}
+      .viewer-btn{flex:1}
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <button class="menu-btn" id="menuBtn" aria-label="Buka sidebar">☰</button>
+      <div class="brand">
+        <div class="brand-badge">日</div>
+        <div class="brand-text">
+          <h1 class="brand-title">Japanese Resource Hub</h1>
+          <p class="brand-sub">JLPT, SSW, NAT, JFT, Marugoto, plus info resmi</p>
+        </div>
+      </div>
+
+      <div class="lang-wrap">
+        <button class="lang-btn" id="rhLangBtn" aria-label="Language">
+          <span class="lang-flag" id="rhLangFlag">🇮🇩</span>
+          <span id="rhLangCode">ID</span>
+          <span style="font-size:10px;opacity:.7;">▾</span>
+        </button>
+        <div class="lang-menu" id="rhLangMenu" aria-label="Language menu">
+          <div class="lang-opt" data-lang="id">🇮🇩 <span>Indonesia</span></div>
+          <div class="lang-opt" data-lang="en">🇬🇧 <span>English</span></div>
+          <div class="lang-opt" data-lang="ja">🇯🇵 <span>日本語</span></div>
+        </div>
+      </div>
+      <div class="top-actions">
+        <span class="pill">Countdown <strong id="miniCountdown">--</strong></span>
+        <button class="ghost-btn" onclick="scrollToSection('jlpt')"><span class="view-resource-label">Lihat Resource</span></button>
+      </div>
+    </header>
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <aside class="sidebar" id="sidebar">
+      <div class="side-head">
+        <div>
+          <h2 class="side-title">Menu</h2>
+        </div>
+        <button class="close-btn" id="closeSidebar" aria-label="Tutup sidebar">✕</button>
+      </div>
+      <div class="side-nav">
+        <details class="nav-group" open>
+          <summary>Dashboard </summary>
+          <div class="nav-links">
+            <button class="nav-link-btn" onclick="scrollToSection('hero')">Countdown JLPT<small>menuju ujian bulan Juli</small></button>
+            <button class="nav-link-btn" onclick="scrollToSection('info')">Info Resmi<small>JLPT & SSW official links</small></button>
+          </div>
+        </details>
+
+        <details class="nav-group" open>
+          <summary>Resource PDF </summary>
+          <div class="nav-links">
+            <button class="nav-link-btn" onclick="scrollToSection('jlpt')">JLPT Resource<small>Buku, soal, latihan N5–N1</small></button>
+            <button class="nav-link-btn" onclick="scrollToSection('ssw')">SSW Resource<small>TG1 & TG2 + manufaktur</small></button>
+            <button class="nav-link-btn" onclick="scrollToSection('nat')">NAT Test<small>5Q–1Q & past paper</small></button>
+            <button class="nav-link-btn" onclick="scrollToSection('jft')">JFT Basic A2<small>PDF learning set</small></button>
+            <button class="nav-link-btn" onclick="scrollToSection('marugoto')">Marugoto<small>A1 sampai B1</small></button>
+          </div>
+        </details>
+
+        <details class="nav-group">
+          <summary>Info Situs</summary>
+          <div class="nav-links">
+            <a class="nav-link" href="https://jlptonline.or.id/" target="_blank" rel="noopener">Info JLPT Indonesia<small>jlptonline.or.id</small></a>
+            <a class="nav-link" href="https://www.jlpt.jp/e/" target="_blank" rel="noopener">Info JLPT Jepang<small>jlpt.jp/e</small></a>
+            <a class="nav-link" href="https://www.prometric-jp.com/" target="_blank" rel="noopener">Info SSW Indonesia<small>prometric-jp.com</small></a>
+          </div>
+        </details>
+      </div>
+    </aside>
+
+    <main class="content">
+      <section class="hero section-anchor" id="hero">
+        <div class="hero-grid">
+          <div>
+            <span class="highlight">📅 Countdown  JLPT</span>
+            <h1>All You Need is Here!
+			</h1>
+            
+            
+          </div>
+
+          <div class="countdown-card">
+            <div class="countdown-title">
+              <span>Menuju JLPT Juli</span>
+              <span class="countdown-date" id="targetDateLabel">--</span>
+            </div>
+            <div class="timer-grid">
+              <div class="timer-box"><div class="timer-num" id="days">0</div><div class="timer-label">Days</div></div>
+              <div class="timer-box"><div class="timer-num" id="hours">0</div><div class="timer-label">Hours</div></div>
+              <div class="timer-box"><div class="timer-num" id="minutes">0</div><div class="timer-label">Minutes</div></div>
+              <div class="timer-box"><div class="timer-num" id="seconds">0</div><div class="timer-label">Seconds</div></div>
+            </div>
+            
+          </div>
+        </div>
+      </section>
+
+      <section class="section section-anchor" id="jlpt">
+        <div class="section-head">
+          <div>
+            <h2 class="section-title">1. Resource JLPT</h2>
+            <p class="section-desc">Buku, soal, dan latihan PDF dari N5 sampai N1.</p>
+          </div>
+          <div class="section-badge">📚 PDF Viewer langsung</div>
+        </div>
+
+        <div class="cards" id="jlptCards"></div>
+      </section>
+
+      <section class="section section-anchor" id="ssw">
+        <div class="section-head">
+          <div>
+            <h2 class="section-title">2. Resource SSW</h2>
+            <p class="section-desc">Materi, modul, dan latihan soal untuk TG1 / TG2 beserta semua manufaktur.</p>
+          </div>
+          <div class="section-badge">🛠 TG1 & TG2</div>
+        </div>
+
+        <div class="resource-grid" id="sswGrid"></div>
+      </section>
+
+      <section class="section section-anchor" id="nat">
+        <div class="section-head">
+          <div>
+            <h2 class="section-title">3. Resource NAT Test</h2>
+            <p class="section-desc">Kumpulan PDF NAT Test level 5Q sampai 1Q, plus past paper exams.</p>
+          </div>
+          <div class="section-badge">📝 Past Paper</div>
+        </div>
+
+        <div class="cards" id="natCards"></div>
+      </section>
+
+      <section class="section section-anchor" id="jft">
+        <div class="section-head">
+          <div>
+            <h2 class="section-title">4. Resource JFT Basic A2</h2>
+            <p class="section-desc">Satu tempat untuk materi JFT Basic A2.</p>
+          </div>
+          <div class="section-badge">🎯 A2 Level</div>
+        </div>
+
+        <div class="cards" id="jftCards"></div>
+      </section>
+
+      <section class="section section-anchor" id="marugoto">
+        <div class="section-head">
+          <div>
+            <h2 class="section-title">5. Marugoto</h2>
+            <p class="section-desc">Koleksi Marugoto dari A1 sampai B1-2.</p>
+          </div>
+          <div class="section-badge">📖 Learning set</div>
+        </div>
+
+        <div class="cards" id="marugotoCards"></div>
+      </section>
+
+      <section class="section section-anchor" id="info">
+        <div class="section-head">
+          <div>
+            <h2 class="section-title">6. Info Resmi</h2>
+            <p class="section-desc">Situs resmi.</p>
+          </div>
+          <div class="section-badge">🌐 Official links</div>
+        </div>
+
+        <div class="info-links">
+          <div class="link-card">
+            <h4>Info JLPT Indonesia</h4>
+            <p>Halaman resmi JLPT Indonesia.</p>
+            <a class="open-btn external-btn" href="https://jlptonline.or.id/" target="_blank" rel="noopener">Buka Situs →</a>
+          </div>
+          <div class="link-card">
+            <h4>Info JLPT Jepang</h4>
+            <p>Website resmi JLPT dari Jepang.</p>
+            <a class="open-btn external-btn" href="https://www.jlpt.jp/e/" target="_blank" rel="noopener">Buka Situs →</a>
+          </div>
+          <div class="link-card">
+            <h4>Info SSW Indonesia</h4>
+            <p>Prometric / SSW official portal.</p>
+            <a class="open-btn external-btn" href="https://www.prometric-jp.com/" target="_blank" rel="noopener">Buka Situs →</a>
+          </div>
+        </div>
+
+        
+      </section>
+    </main>
+  </div>
+
+  <div class="pdf-modal" id="pdfModal" aria-hidden="true">
+    <div class="viewer">
+      <div class="viewer-head">
+        <div style="min-width:0">
+          <h3 class="viewer-title" id="viewerTitle">PDF Viewer</h3>
+          <div class="viewer-meta">
+            <span id="viewerSource">—</span>
+            <span>•</span>
+            <span id="pageInfo">Page 1 / 1</span>
+            <span>•</span>
+            <span id="zoomInfo">100%</span>
+          </div>
+        </div>
+        <div class="viewer-actions">
+          <button class="viewer-btn" id="prevPageBtn">← Prev</button>
+          <button class="viewer-btn" id="nextPageBtn">Next →</button>
+          <button class="viewer-btn" id="zoomOutBtn">− Zoom</button>
+          <button class="viewer-btn" id="zoomInBtn">+ Zoom</button>
+          <button class="viewer-btn primary" id="closePdfBtn">Tutup</button>
+        </div>
+      </div>
+      <div class="viewer-body">
+        <div class="pdf-stage">
+          <canvas id="pdfCanvas"></canvas>
+          <div class="viewer-error" id="viewerError"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // PDF.js worker
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+    const resources = {
+      jlpt: [
+        { title: 'JLPT N5 - Buku / Soal', subtitle: 'PDF untuk level N5', icon: 'N5', tags: ['N5', 'PDF'], file: './pdf/jlpt/n5/sample.pdf' },
+        { title: 'JLPT N4 - Buku / Soal', subtitle: 'PDF untuk level N4', icon: 'N4', tags: ['N4', 'PDF'], file: './pdf/jlpt/n4/sample.pdf' },
+        { title: 'JLPT N3 - Buku / Soal', subtitle: 'PDF untuk level N3', icon: 'N3', tags: ['N3', 'PDF'], file: './pdf/jlpt/n3/sample.pdf' },
+        { title: 'JLPT N2 - Buku / Soal', subtitle: 'PDF untuk level N2', icon: 'N2', tags: ['N2', 'PDF'], file: './pdf/jlpt/n2/sample.pdf' },
+        { title: 'JLPT N1 - Buku / Soal', subtitle: 'PDF untuk level N1', icon: 'N1', tags: ['N1', 'PDF'], file: './pdf/jlpt/n1/sample.pdf' }
+      ],
+      ssw: [
+        {
+          title: 'TG1',
+          subtitle: 'Materi / modul / latihan PDF',
+          icon: 'TG1',
+          items: [
+            ['Airport Ground Handling', './pdf/ssw/tg1/airport-ground-handling.pdf'],
+            ['Kaigo', './pdf/ssw/tg1/kaigo.pdf'],
+            ['Jidousha Seibi', './pdf/ssw/tg1/jidousha-seibi.pdf'],
+            ['Building Cleaning', './pdf/ssw/tg1/building-cleaning.pdf'],
+            ['Hotel', './pdf/ssw/tg1/hotel.pdf'],
+            ['Pengolahan Makanan', './pdf/ssw/tg1/pengolahan-makanan.pdf'],
+            ['Restoran', './pdf/ssw/tg1/restoran.pdf'],
+            ['Peternakan', './pdf/ssw/tg1/peternakan.pdf'],
+            ['Pertanian', './pdf/ssw/tg1/pertanian.pdf'],
+            ['Perikanan Kapal Tangkap Pancing', './pdf/ssw/tg1/perikanan-kapal-tangkap-pancing.pdf'],
+            ['Perikanan Budidaya', './pdf/ssw/tg1/perikanan-budidaya.pdf']
+          ]
+        },
+        {
+          title: 'TG2',
+          subtitle: 'Materi / modul / latihan PDF',
+          icon: 'TG2',
+          items: [
+            ['Airport Ground Handling', './pdf/ssw/tg2/airport-ground-handling.pdf'],
+            ['Kaigo', './pdf/ssw/tg2/kaigo.pdf'],
+            ['Jidousha Seibi', './pdf/ssw/tg2/jidousha-seibi.pdf'],
+            ['Building Cleaning', './pdf/ssw/tg2/building-cleaning.pdf'],
+            ['Hotel', './pdf/ssw/tg2/hotel.pdf'],
+            ['Pengolahan Makanan', './pdf/ssw/tg2/pengolahan-makanan.pdf'],
+            ['Restoran', './pdf/ssw/tg2/restoran.pdf'],
+            ['Peternakan', './pdf/ssw/tg2/peternakan.pdf'],
+            ['Pertanian', './pdf/ssw/tg2/pertanian.pdf'],
+            ['Perikanan Kapal Tangkap Pancing', './pdf/ssw/tg2/perikanan-kapal-tangkap-pancing.pdf'],
+            ['Perikanan Budidaya', './pdf/ssw/tg2/perikanan-budidaya.pdf']
+          ]
+        }
+      ],
+      nat: [
+        { title: 'NAT Test 5Q', subtitle: 'PDF level 5Q', icon: '5Q', tags: ['NAT', 'PDF'], file: './pdf/nat/5q/sample.pdf' },
+        { title: 'NAT Test 4Q', subtitle: 'PDF level 4Q', icon: '4Q', tags: ['NAT', 'PDF'], file: './pdf/nat/4q/sample.pdf' },
+        { title: 'NAT Test 3Q', subtitle: 'PDF level 3Q', icon: '3Q', tags: ['NAT', 'PDF'], file: './pdf/nat/3q/sample.pdf' },
+        { title: 'NAT Test 2Q', subtitle: 'PDF level 2Q', icon: '2Q', tags: ['NAT', 'PDF'], file: './pdf/nat/2q/sample.pdf' },
+        { title: 'NAT Test 1Q', subtitle: 'PDF level 1Q', icon: '1Q', tags: ['NAT', 'PDF'], file: './pdf/nat/1q/sample.pdf' },
+        { title: 'Past Paper Exams', subtitle: 'Kumpulan soal lama', icon: 'PP', tags: ['PAST', 'EXAM'], file: './pdf/nat/past-paper-exams.pdf' }
+      ],
+      jft: [
+        { title: 'JFT Basic A2', subtitle: 'PDF pembelajaran A2', icon: 'A2', tags: ['JFT', 'A2'], file: './pdf/jft/basic-a2.pdf' }
+      ],
+      marugoto: [
+        { title: 'A1 Katsudo', subtitle: 'PDF Marugoto A1 Katsudo', icon: 'A1', tags: ['Marugoto', 'A1'], file: './pdf/marugoto/a1-katsudo.pdf' },
+        { title: 'A1 Rikai', subtitle: 'PDF Marugoto A1 Rikai', icon: 'A1', tags: ['Marugoto', 'A1'], file: './pdf/marugoto/a1-rikai.pdf' },
+        { title: 'A2 Katsudo', subtitle: 'PDF Marugoto A2 Katsudo', icon: 'A2', tags: ['Marugoto', 'A2'], file: './pdf/marugoto/a2-katsudo.pdf' },
+        { title: 'A2 Rikai', subtitle: 'PDF Marugoto A2 Rikai', icon: 'A2', tags: ['Marugoto', 'A2'], file: './pdf/marugoto/a2-rikai.pdf' },
+        { title: 'A2-B1 Katsudo Rikai', subtitle: 'PDF Marugoto A2-B1', icon: 'A2', tags: ['Marugoto', 'A2-B1'], file: './pdf/marugoto/a2-b1-katsudo-rikai.pdf' },
+        { title: 'B1-1 Katsudo Rikai', subtitle: 'PDF Marugoto B1-1', icon: 'B1', tags: ['Marugoto', 'B1-1'], file: './pdf/marugoto/b1-1-katsudo-rikai.pdf' },
+        { title: 'B1-2 Katsudo Rikai', subtitle: 'PDF Marugoto B1-2', icon: 'B1', tags: ['Marugoto', 'B1-2'], file: './pdf/marugoto/b1-2-katsudo-rikai.pdf' }
+      ]
+    };
+
+    const jlptCards = document.getElementById('jlptCards');
+    const sswGrid = document.getElementById('sswGrid');
+    const natCards = document.getElementById('natCards');
+    const jftCards = document.getElementById('jftCards');
+    const marugotoCards = document.getElementById('marugotoCards');
+
+    const toast = document.getElementById('toast');
+    let toastTimer;
+
+    function showToast(msg) {
+      toast.textContent = msg;
+      toast.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toast.classList.remove('show'), 2400);
+    }
+
+    function escapeHtml(str){
+      return String(str)
+        .replaceAll('&','&amp;')
+        .replaceAll('<','&lt;')
+        .replaceAll('>','&gt;')
+        .replaceAll('"','&quot;')
+        .replaceAll("'","&#039;");
+    }
+
+    function makePdfCard(item) {
+      const tags = item.tags.map(t => `<span class="tag">${escapeHtml(t)}</span>`).join('');
+      return `
+        <article class="card">
+          <div class="card-top">
+            <div style="min-width:0">
+              <h3 class="card-title">${escapeHtml(item.title)}</h3>
+              <p class="card-sub">${escapeHtml(item.subtitle)}</p>
+            </div>
+            <div class="card-icon">${escapeHtml(item.icon)}</div>
+          </div>
+          <div class="tag-row">${tags}</div>
+          <div class="open-row">
+            <button class="open-btn" onclick="openPdf('${item.file}','${escapeHtml(item.title)}')">Buka PDF →</button>
+            
+          </div>
+        </article>
+      `;
+    }
+
+    function makeMiniList(item, groupKey){
+      return `
+        <div class="resource">
+          <div class="card-top" style="margin-bottom:10px">
+            <div>
+              <h4>${escapeHtml(item.title)}</h4>
+              <p>${escapeHtml(item.subtitle)}</p>
+            </div>
+            <div class="card-icon">${escapeHtml(item.icon)}</div>
+          </div>
+          <div class="resource-list">
+            ${item.items.map(([name, file]) => `
+              <div class="mini-item">
+                <div>
+                  <strong>${escapeHtml(name)}</strong>
+                  <span>PDF — ${escapeHtml(item.title)}</span>
+                </div>
+                <button class="open-btn" style="padding:10px 12px" onclick="openPdf('${file}','${escapeHtml(groupKey)} - ${escapeHtml(name)}')">Buka</button>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    jlptCards.innerHTML = resources.jlpt.map(makePdfCard).join('');
+    natCards.innerHTML = resources.nat.map(makePdfCard).join('');
+    jftCards.innerHTML = resources.jft.map(makePdfCard).join('');
+    marugotoCards.innerHTML = resources.marugoto.map(makePdfCard).join('');
+    sswGrid.innerHTML = `
+      ${makeMiniList(resources.ssw[0], 'SSW TG1')}
+      ${makeMiniList(resources.ssw[1], 'SSW TG2')}
+    `;
+
+    // Sidebar
+    const sidebar = document.getElementById('sidebar');
+    const sidebarOverlay = document.getElementById('sidebarOverlay');
+    const menuBtn = document.getElementById('menuBtn');
+    const closeSidebar = document.getElementById('closeSidebar');
+
+    function openSidebar(){
+      sidebar.classList.add('open');
+      sidebarOverlay.classList.add('open');
+    }
+    function hideSidebar(){
+      sidebar.classList.remove('open');
+      sidebarOverlay.classList.remove('open');
+    }
+
+    menuBtn.addEventListener('click', openSidebar);
+    closeSidebar.addEventListener('click', hideSidebar);
+    sidebarOverlay.addEventListener('click', hideSidebar);
+
+    function scrollToSection(id){
+      const el = document.getElementById(id);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        hideSidebar();
+      }
+    }
+    window.scrollToSection = scrollToSection;
+
+    // Countdown to the first Sunday in July
+    function firstSundayOfJuly(year) {
+      const d = new Date(year, 6, 1, 0, 0, 0, 0); // July 1
+      const day = d.getDay(); // 0 = Sunday
+      const offset = (7 - day) % 7;
+      d.setDate(1 + offset);
+      d.setHours(0, 0, 0, 0);
+      return d;
+    }
+
+    function getTargetDate() {
+      const now = new Date();
+      let target = firstSundayOfJuly(now.getFullYear());
+      if (now > target) target = firstSundayOfJuly(now.getFullYear() + 1);
+      return target;
+    }
+
+    const targetDate = getTargetDate();
+    const targetDateLabel = document.getElementById('targetDateLabel');
+    targetDateLabel.textContent = targetDate.toLocaleDateString('id-ID', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+
+    function pad(n){ return String(n).padStart(2,'0'); }
+
+    function updateCountdown() {
+      const now = new Date();
+      let diff = targetDate - now;
+
+      if (diff < 0) diff = 0;
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      diff -= days * 1000 * 60 * 60 * 24;
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      diff -= hours * 1000 * 60 * 60;
+      const minutes = Math.floor(diff / (1000 * 60));
+      diff -= minutes * 1000 * 60;
+      const seconds = Math.floor(diff / 1000);
+
+      document.getElementById('days').textContent = pad(days);
+      document.getElementById('hours').textContent = pad(hours);
+      document.getElementById('minutes').textContent = pad(minutes);
+      document.getElementById('seconds').textContent = pad(seconds);
+
+      document.getElementById('miniCountdown').textContent = `${days}d ${hours}h`;
+      document.getElementById('countdownNote').textContent =
+        diff === 0
+          ? 'Waktunya sudah dekat. Semangat!'
+          : `Sisa waktu menuju ${targetDate.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}.`;
+    }
+
+    updateCountdown();
+    setInterval(updateCountdown, 1000);
+
+    // PDF viewer
+    const pdfModal = document.getElementById('pdfModal');
+    const viewerTitle = document.getElementById('viewerTitle');
+    const viewerSource = document.getElementById('viewerSource');
+    const pageInfo = document.getElementById('pageInfo');
+    const zoomInfo = document.getElementById('zoomInfo');
+    const viewerError = document.getElementById('viewerError');
+    const canvas = document.getElementById('pdfCanvas');
+    const ctx = canvas.getContext('2d');
+
+    const prevPageBtn = document.getElementById('prevPageBtn');
+    const nextPageBtn = document.getElementById('nextPageBtn');
+    const zoomOutBtn = document.getElementById('zoomOutBtn');
+    const zoomInBtn = document.getElementById('zoomInBtn');
+    const closePdfBtn = document.getElementById('closePdfBtn');
+
+    let pdfDoc = null;
+    let currentPage = 1;
+    let scale = 1.25;
+    let currentPdfPath = '';
+
+    async function renderPage(num){
+      if (!pdfDoc) return;
+      const page = await pdfDoc.getPage(num);
+      const viewport = page.getViewport({ scale });
+      const outputScale = window.devicePixelRatio || 1;
+
+      canvas.width = Math.floor(viewport.width * outputScale);
+      canvas.height = Math.floor(viewport.height * outputScale);
+      canvas.style.width = `${Math.floor(viewport.width)}px`;
+      canvas.style.height = `${Math.floor(viewport.height)}px`;
+
+      const transform = outputScale !== 1
+        ? [outputScale, 0, 0, outputScale, 0, 0]
+        : null;
+
+      await page.render({
+        canvasContext: ctx,
+        viewport,
+        transform
+      }).promise;
+
+      pageInfo.textContent = `Page ${num} / ${pdfDoc.numPages}`;
+      zoomInfo.textContent = `${Math.round(scale * 100)}%`;
+      prevPageBtn.disabled = num <= 1;
+      nextPageBtn.disabled = num >= pdfDoc.numPages;
+    }
+
+    async function openPdf(path, title){
+      currentPdfPath = path;
+      viewerTitle.textContent = title;
+      viewerSource.textContent = path;
+      viewerError.style.display = 'none';
+      viewerError.textContent = '';
+      pdfModal.classList.add('open');
+      pdfModal.setAttribute('aria-hidden', 'false');
+
+      currentPage = 1;
+      scale = 1.25;
+      pageInfo.textContent = 'Loading...';
+      zoomInfo.textContent = '100%';
+
+      try {
+        pdfDoc = await pdfjsLib.getDocument(path).promise;
+        await renderPage(currentPage);
+        showToast('PDF dibuka di viewer.');
+      } catch (err) {
+        pdfDoc = null;
+        pageInfo.textContent = 'Page — / —';
+        viewerError.style.display = 'block';
+        viewerError.innerHTML =
+          '<strong>PDF tidak bisa dibuka.</strong><br>' +
+          'Pastikan file ada di path yang benar dan bisa diakses dari server kamu.<br>' +
+          '<code style="word-break:break-all;opacity:.9">' + escapeHtml(path) + '</code><br><br>' +
+          'Kalau perlu, ganti isi array <em>resources</em> dengan lokasi PDF asli di project kamu.';
+        console.error(err);
+      }
+    }
+
+    async function changePage(step){
+      if (!pdfDoc) return;
+      const next = currentPage + step;
+      if (next < 1 || next > pdfDoc.numPages) return;
+      currentPage = next;
+      await renderPage(currentPage);
+      canvas.scrollIntoView({ behavior:'smooth', block:'nearest' });
+    }
+
+    prevPageBtn.addEventListener('click', () => changePage(-1));
+    nextPageBtn.addEventListener('click', () => changePage(1));
+    zoomOutBtn.addEventListener('click', async () => {
+      if (!pdfDoc) return;
+      scale = Math.max(0.65, +(scale - 0.1).toFixed(2));
+      await renderPage(currentPage);
+    });
+    zoomInBtn.addEventListener('click', async () => {
+      if (!pdfDoc) return;
+      scale = Math.min(2.5, +(scale + 0.1).toFixed(2));
+      await renderPage(currentPage);
+    });
+    closePdfBtn.addEventListener('click', () => {
+      pdfModal.classList.remove('open');
+      pdfModal.setAttribute('aria-hidden', 'true');
+    });
+    pdfModal.addEventListener('click', (e) => {
+      if (e.target === pdfModal) {
+        pdfModal.classList.remove('open');
+        pdfModal.setAttribute('aria-hidden', 'true');
+      }
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        hideSidebar();
+        pdfModal.classList.remove('open');
+        pdfModal.setAttribute('aria-hidden', 'true');
+      }
+      if (e.key === 'ArrowLeft' && pdfModal.classList.contains('open')) changePage(-1);
+      if (e.key === 'ArrowRight' && pdfModal.classList.contains('open')) changePage(1);
+    });
+
+    window.openPdf = openPdf;
+  </script>
+
+<script>
+(function(){
+  const RH_I18N = {
+    id: {
+      pageTitle: 'Japanese Resource Hub',
+      brandTitle: 'Japanese Resource Hub',
+      brandSub: 'JLPT, SSW, NAT, JFT, Marugoto, plus info resmi',
+      countdownPill: 'Countdown',
+      viewResources: 'Lihat Resource',
+      menuTitle: 'Menu',
+      dashboardTitle: 'Dashboard',
+      navCountdown: 'JLPT Countdown',
+      navCountdownSub: 'Countdown to the July exam',
+      navOfficialInfo: 'Official Info',
+      navOfficialInfoSub: 'JLPT & SSW official links',
+      dashboardTitle: 'Dashboard',
+      navCountdown: 'Countdown JLPT',
+      navCountdownSub: 'Menuju ujian bulan Juli',
+      navOfficialInfo: 'Info Resmi',
+      navOfficialInfoSub: 'JLPT & SSW official links',
+      sidebarJump: 'Lompat ke halaman',
+      sidebarResources: 'Resource PDF',
+      sidebarOfficial: 'Situs resmi',
+      navDashboard: 'Dashboard',
+      navDashboardSub: 'Menuju bagian atas',
+      navInfo: 'Info Resmi',
+      navInfoSub: 'JLPT & SSW official links',
+      navResourceHub: 'Resource Hub',
+      navResourceHubSub: 'JLPT, SSW, NAT, JFT, Marugoto',
+      jlptId: 'JLPT Indonesia',
+      jlptJp: 'JLPT Jepang',
+      sswId: 'SSW Indonesia',
+      heroHighlight: '📅 Countdown JLPT',
+      heroTitle: 'All You Need is Here!',
+      heroSubtitle: 'Semua resource belajar bahasa Jepang ada di satu tempat: JLPT, SSW, NAT, JFT Basic, Marugoto, dan link resmi.',
+      countdownTitle: 'Menuju JLPT Juli',
+      countdownNote: 'Countdown dihitung ke hari Minggu pertama bulan Juli.',
+      jlptTitle: '1. Resource JLPT',
+      jlptDesc: 'Buku, soal, dan latihan PDF dari N5 sampai N1.',
+      jlptBadge: '📚 PDF Viewer langsung',
+      sswTitle: '2. Resource SSW',
+      sswDesc: 'Materi, modul, dan latihan soal untuk TG1 / TG2 beserta semua manufaktur.',
+      sswBadge: '🛠 TG1 & TG2',
+      natTitle: '3. Resource NAT Test',
+      natDesc: 'Kumpulan PDF NAT Test level 5Q sampai 1Q, plus past paper exams.',
+      natBadge: '📝 Past Paper',
+      jftTitle: '4. Resource JFT Basic A2',
+      jftDesc: 'Satu tempat untuk materi JFT Basic A2.',
+      jftBadge: '🎯 A2 Level',
+      marugotoTitle: '5. Marugoto',
+      marugotoDesc: 'Koleksi Marugoto dari A1 sampai B1-2.',
+      marugotoBadge: '📖 Learning set',
+      infoTitle: '6. Info Resmi',
+      infoDesc: 'Situs resmi.',
+      infoBadge: '🌐 Official links',
+      infoJlptIdTitle: 'Info JLPT Indonesia',
+      infoJlptIdDesc: 'Halaman resmi JLPT Indonesia.',
+      infoJlptJpTitle: 'Info JLPT Jepang',
+      infoJlptJpDesc: 'Website resmi JLPT dari Jepang.',
+      infoSswTitle: 'Info SSW Indonesia',
+      infoSswDesc: 'Prometric / SSW official portal.',
+      openSite: 'Buka Situs →',
+      openPdf: 'Buka PDF →',
+      openMini: 'Buka',
+      pdfTitle: 'PDF Viewer',
+      prev: '← Prev',
+      next: 'Next →',
+      zoomOut: '− Zoom',
+      zoomIn: '+ Zoom',
+      close: 'Tutup',
+      days: 'Hari',
+      hours: 'Jam',
+      minutes: 'Menit',
+      seconds: 'Detik'
+    },
+    en: {
+      pageTitle: 'Japanese Resource Hub',
+      brandTitle: 'Japanese Resource Hub',
+      brandSub: 'JLPT, SSW, NAT, JFT, Marugoto, plus official info',
+      countdownPill: 'Countdown',
+      viewResources: 'View Resources',
+      menuTitle: 'Menu',
+      sidebarJump: 'Jump to page',
+      sidebarResources: 'PDF Resources',
+      sidebarOfficial: 'Official sites',
+      navDashboard: 'Dashboard',
+      navDashboardSub: 'Back to the top',
+      navInfo: 'Official Info',
+      navInfoSub: 'JLPT & SSW official links',
+      navResourceHub: 'Resource Hub',
+      navResourceHubSub: 'JLPT, SSW, NAT, JFT, Marugoto',
+      jlptId: 'JLPT Indonesia',
+      jlptJp: 'JLPT Japan',
+      sswId: 'SSW Indonesia',
+      heroHighlight: '📅 JLPT Countdown',
+      heroTitle: 'All You Need Is Here!',
+      heroSubtitle: 'Everything you need to study Japanese in one place: JLPT, SSW, NAT, JFT Basic, Marugoto, and official links.',
+      countdownTitle: 'Countdown to JLPT July',
+      countdownNote: 'The countdown is set to the first Sunday in July.',
+      jlptTitle: '1. JLPT Resources',
+      jlptDesc: 'Books, exams, and PDF practice from N5 to N1.',
+      jlptBadge: '📚 Direct PDF viewer',
+      sswTitle: '2. SSW Resources',
+      sswDesc: 'Materials, modules, and practice exams for TG1 / TG2 and all sectors.',
+      sswBadge: '🛠 TG1 & TG2',
+      natTitle: '3. NAT Test Resources',
+      natDesc: 'A collection of NAT Test PDFs from 5Q to 1Q, plus past paper exams.',
+      natBadge: '📝 Past papers',
+      jftTitle: '4. JFT Basic A2 Resources',
+      jftDesc: 'A single place for JFT Basic A2 study materials.',
+      jftBadge: '🎯 A2 Level',
+      marugotoTitle: '5. Marugoto',
+      marugotoDesc: 'Marugoto collection from A1 to B1-2.',
+      marugotoBadge: '📖 Learning set',
+      infoTitle: '6. Official Info',
+      infoDesc: 'Official websites.',
+      infoBadge: '🌐 Official links',
+      infoJlptIdTitle: 'JLPT Indonesia Info',
+      infoJlptIdDesc: 'Official JLPT Indonesia page.',
+      infoJlptJpTitle: 'JLPT Japan Info',
+      infoJlptJpDesc: 'Official JLPT website from Japan.',
+      infoSswTitle: 'SSW Indonesia Info',
+      infoSswDesc: 'Prometric / SSW official portal.',
+      openSite: 'Open Site →',
+      openPdf: 'Open PDF →',
+      openMini: 'Open',
+      pdfTitle: 'PDF Viewer',
+      prev: '← Prev',
+      next: 'Next →',
+      zoomOut: '− Zoom',
+      zoomIn: '+ Zoom',
+      close: 'Close',
+      days: 'Days',
+      hours: 'Hours',
+      minutes: 'Minutes',
+      seconds: 'Seconds'
+    },
+    ja: {
+      pageTitle: 'Japanese Resource Hub',
+      brandTitle: 'Japanese Resource Hub',
+      brandSub: 'JLPT、SSW、NAT、JFT、Marugoto、公式情報',
+      countdownPill: 'カウントダウン',
+      viewResources: 'リソースを見る',
+      menuTitle: 'メニュー',
+      dashboardTitle: 'ダッシュボード',
+      navCountdown: 'JLPT カウントダウン',
+      navCountdownSub: '7月試験までのカウントダウン',
+      navOfficialInfo: '公式情報',
+      navOfficialInfoSub: 'JLPT と SSW の公式リンク',
+      sidebarJump: 'ページ内移動',
+      sidebarResources: 'PDF リソース',
+      sidebarOfficial: '公式サイト',
+      navDashboard: 'ダッシュボード',
+      navDashboardSub: '先頭に戻る',
+      navInfo: '公式情報',
+      navInfoSub: 'JLPT と SSW の公式リンク',
+      navResourceHub: 'リソースハブ',
+      navResourceHubSub: 'JLPT、SSW、NAT、JFT、Marugoto',
+      jlptId: 'JLPTインドネシア',
+      jlptJp: 'JLPT日本',
+      sswId: 'SSWインドネシア',
+      heroHighlight: '📅 JLPT カウントダウン',
+      heroTitle: '必要なものはここに。',
+      heroSubtitle: 'JLPT、SSW、NAT、JFT Basic、Marugoto、そして公式リンクを一か所にまとめました。',
+      countdownTitle: 'JLPT 7月までのカウントダウン',
+      countdownNote: 'カウントダウンは7月最初の日曜日に設定されています。',
+      jlptTitle: '1. JLPT リソース',
+      jlptDesc: 'N5 から N1 までの本・問題・PDF 練習問題。',
+      jlptBadge: '📚 直接PDF表示',
+      sswTitle: '2. SSW リソース',
+      sswDesc: 'TG1 / TG2 と全業種の教材・モジュール・練習問題。',
+      sswBadge: '🛠 TG1 & TG2',
+      natTitle: '3. NAT Test リソース',
+      natDesc: '5Q から 1Q までの NAT Test PDF と過去問題集。',
+      natBadge: '📝 過去問',
+      jftTitle: '4. JFT Basic A2 リソース',
+      jftDesc: 'JFT Basic A2 の教材をまとめています。',
+      jftBadge: '🎯 A2 レベル',
+      marugotoTitle: '5. まるごと',
+      marugotoDesc: 'A1 から B1-2 までの Marugoto コレクション。',
+      marugotoBadge: '📖 学習セット',
+      infoTitle: '6. 公式情報',
+      infoDesc: '公式サイト。',
+      infoBadge: '🌐 公式リンク',
+      infoJlptIdTitle: 'JLPTインドネシア情報',
+      infoJlptIdDesc: 'JLPT インドネシアの公式ページ。',
+      infoJlptJpTitle: 'JLPT日本情報',
+      infoJlptJpDesc: '日本の公式 JLPT サイト。',
+      infoSswTitle: 'SSWインドネシア情報',
+      infoSswDesc: 'Prometric / SSW 公式ポータル。',
+      openSite: 'サイトを開く →',
+      openPdf: 'PDFを開く →',
+      openMini: '開く',
+      pdfTitle: 'PDFビューア',
+      prev: '← 前へ',
+      next: '次へ →',
+      zoomOut: '− ズーム',
+      zoomIn: '+ ズーム',
+      close: '閉じる',
+      days: '日',
+      hours: '時間',
+      minutes: '分',
+      seconds: '秒'
+    }
+  };
+
+  const langMeta = {
+    id: { flag: '🇮🇩', code: 'ID' },
+    en: { flag: '🇬🇧', code: 'EN' },
+    ja: { flag: '🇯🇵', code: 'JA' }
+  };
+
+  let rhLang = localStorage.getItem('rh_lang') || 'id';
+
+  function t(key){
+    return (RH_I18N[rhLang] || RH_I18N.id)[key] || RH_I18N.id[key] || key;
+  }
+
+  function setText(selector, value){
+    const el = document.querySelector(selector);
+    if (el) el.textContent = value;
+  }
+
+  function firstSundayOfJuly(year) {
+    const d = new Date(year, 6, 1, 0, 0, 0, 0);
+    const day = d.getDay();
+    const offset = (7 - day) % 7;
+    d.setDate(1 + offset);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }
+
+  function getTargetDate() {
+    const now = new Date();
+    let target = firstSundayOfJuly(now.getFullYear());
+    if (now > target) target = firstSundayOfJuly(now.getFullYear() + 1);
+    return target;
+  }
+
+  function syncCountdownText(){
+    const targetDate = getTargetDate();
+    const targetDateLabel = document.getElementById('targetDateLabel');
+    if (targetDateLabel) {
+      targetDateLabel.textContent = targetDate.toLocaleDateString(
+        rhLang === 'ja' ? 'ja-JP' : (rhLang === 'en' ? 'en-GB' : 'id-ID'),
+        { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }
+      );
+    }
+
+    const noteEl = document.getElementById('countdownNote');
+    if (noteEl) {
+      const now = new Date();
+      let diff = targetDate - now;
+      if (diff < 0) diff = 0;
+      noteEl.textContent = diff === 0
+        ? {
+            id: 'Waktunya sudah dekat. Semangat!',
+            en: 'It is almost time. Keep going!',
+            ja: 'もうすぐです。がんばって！'
+          }[rhLang]
+        : t('countdownNote');
+    }
+  }
+
+  function updateTimerLabels(){
+    const labels = document.querySelectorAll('.timer-label');
+    const keys = ['days', 'hours', 'minutes', 'seconds'];
+    labels.forEach((el, i) => { if (el) el.textContent = t(keys[i]); });
+  }
+
+  function updateCardButtons(){
+    document.querySelectorAll('.card .open-btn').forEach(btn => {
+      if (btn.closest('.link-card')) return;
+      btn.innerHTML = `${t('openPdf')}`;
+    });
+    document.querySelectorAll('.mini-item .open-btn').forEach(btn => {
+      btn.textContent = t('openMini');
+    });
+    document.querySelectorAll('.link-card .open-btn.external-btn').forEach(btn => {
+      btn.textContent = t('openSite');
+    });
+  }
+
+  function updateSidebarText(){
+    setText('.side-title', t('menuTitle'));
+
+    const summaries = document.querySelectorAll('.nav-group summary');
+    if (summaries[0]) summaries[0].innerHTML = `<span>${t('dashboardTitle')}</span> <span>⌁</span>`;
+    if (summaries[1]) summaries[1].innerHTML = `<span>${t('sidebarResources')}</span> <span>PDF</span>`;
+    if (summaries[2]) summaries[2].innerHTML = `<span>${t('sidebarOfficial')}</span> <span>↗</span>`;
+
+    const groups = document.querySelectorAll('.sidebar .nav-group .nav-links');
+
+    if (groups[0]) {
+      const btns = groups[0].querySelectorAll('.nav-link-btn');
+      if (btns[0]) btns[0].innerHTML = `<span>${t('navCountdown')}</span><small>${t('navCountdownSub')}</small>`;
+      if (btns[1]) btns[1].innerHTML = `<span>${t('navOfficialInfo')}</span><small>${t('navOfficialInfoSub')}</small>`;
+    }
+
+    if (groups[1]) {
+      const link = groups[1].querySelector('.nav-link');
+      if (link) link.innerHTML = `<span>${t('navResourceHub')}</span><small>${t('navResourceHubSub')}</small>`;
+    }
+
+    if (groups[2]) {
+      const links = groups[2].querySelectorAll('.nav-link');
+      if (links[0]) links[0].innerHTML = `<span>${t('jlptId')}</span><small>jlptonline.or.id</small>`;
+      if (links[1]) links[1].innerHTML = `<span>${t('jlptJp')}</span><small>jlpt.jp/e</small>`;
+      if (links[2]) links[2].innerHTML = `<span>${t('sswId')}</span><small>prometric-jp.com</small>`;
+    }
+  }
+
+  function updateSections(){
+    const titles = document.querySelectorAll('.section-title');
+    const descs = document.querySelectorAll('.section-desc');
+    const badges = document.querySelectorAll('.section-badge');
+
+    if (titles[0]) titles[0].textContent = t('jlptTitle');
+    if (descs[0]) descs[0].textContent = t('jlptDesc');
+    if (badges[0]) badges[0].textContent = t('jlptBadge');
+
+    if (titles[1]) titles[1].textContent = t('sswTitle');
+    if (descs[1]) descs[1].textContent = t('sswDesc');
+    if (badges[1]) badges[1].textContent = t('sswBadge');
+
+    if (titles[2]) titles[2].textContent = t('natTitle');
+    if (descs[2]) descs[2].textContent = t('natDesc');
+    if (badges[2]) badges[2].textContent = t('natBadge');
+
+    if (titles[3]) titles[3].textContent = t('jftTitle');
+    if (descs[3]) descs[3].textContent = t('jftDesc');
+    if (badges[3]) badges[3].textContent = t('jftBadge');
+
+    if (titles[4]) titles[4].textContent = t('marugotoTitle');
+    if (descs[4]) descs[4].textContent = t('marugotoDesc');
+    if (badges[4]) badges[4].textContent = t('marugotoBadge');
+
+    if (titles[5]) titles[5].textContent = t('infoTitle');
+    if (descs[5]) descs[5].textContent = t('infoDesc');
+    if (badges[5]) badges[5].textContent = t('infoBadge');
+
+    const linkCards = document.querySelectorAll('.link-card');
+    if (linkCards[0]) {
+      const h = linkCards[0].querySelector('h4');
+      const p = linkCards[0].querySelector('p');
+      if (h) h.textContent = t('infoJlptIdTitle');
+      if (p) p.textContent = t('infoJlptIdDesc');
+    }
+    if (linkCards[1]) {
+      const h = linkCards[1].querySelector('h4');
+      const p = linkCards[1].querySelector('p');
+      if (h) h.textContent = t('infoJlptJpTitle');
+      if (p) p.textContent = t('infoJlptJpDesc');
+    }
+    if (linkCards[2]) {
+      const h = linkCards[2].querySelector('h4');
+      const p = linkCards[2].querySelector('p');
+      if (h) h.textContent = t('infoSswTitle');
+      if (p) p.textContent = t('infoSswDesc');
+    }
+  }
+
+  function updateTopbar(){
+    document.documentElement.lang = rhLang;
+    document.title = t('pageTitle');
+    setText('.brand-title', t('brandTitle'));
+    setText('.brand-sub', t('brandSub'));
+    setText('.view-resource-label', t('viewResources'));
+
+    const flag = document.getElementById('rhLangFlag');
+    const code = document.getElementById('rhLangCode');
+    if (flag) flag.textContent = langMeta[rhLang].flag;
+    if (code) code.textContent = langMeta[rhLang].code;
+
+    const pill = document.querySelector('.top-actions .pill');
+    if (pill) {
+      const mini = document.getElementById('miniCountdown');
+      const countText = mini ? mini.textContent : '--';
+      pill.innerHTML = `${t('countdownPill')} <strong id="miniCountdown">${countText}</strong>`;
+    }
+  }
+
+
+  function updateHero(){
+    setText('.hero .highlight', t('heroHighlight'));
+    setText('.hero h1', t('heroTitle'));
+    setText('.hero .subtitle', t('heroSubtitle'));
+    const countdownTitle = document.querySelector('.countdown-title span:first-child');
+    if (countdownTitle) countdownTitle.textContent = t('countdownTitle');
+  }
+
+  function updatePdfViewer(){
+    setText('#viewerTitle', t('pdfTitle'));
+    setText('#prevPageBtn', t('prev'));
+    setText('#nextPageBtn', t('next'));
+    setText('#zoomOutBtn', t('zoomOut'));
+    setText('#zoomInBtn', t('zoomIn'));
+    setText('#closePdfBtn', t('close'));
+  }
+
+  function applyRhLang(){
+    updateTopbar();
+    updateHero();
+    updateSidebarText();
+    updateSections();
+    updateCardButtons();
+    updatePdfViewer();
+    updateTimerLabels();
+    syncCountdownText();
+
+    document.querySelectorAll('.lang-opt').forEach(opt => {
+      opt.classList.toggle('active', opt.dataset.lang === rhLang);
+    });
+  }
+
+  function showRhLangMenu(force){
+    const menu = document.getElementById('rhLangMenu');
+    if (!menu) return;
+    const next = typeof force === 'boolean' ? force : !menu.classList.contains('open');
+    menu.classList.toggle('open', next);
+  }
+
+  function setRhLang(lang){
+    if (!RH_I18N[lang]) return;
+    rhLang = lang;
+    localStorage.setItem('rh_lang', rhLang);
+    applyRhLang();
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const btn = document.getElementById('rhLangBtn');
+    const menu = document.getElementById('rhLangMenu');
+    if (btn) btn.addEventListener('click', (e) => { e.stopPropagation(); showRhLangMenu(); });
+    if (menu) {
+      menu.querySelectorAll('.lang-opt').forEach(opt => {
+        opt.addEventListener('click', (e) => {
+          e.stopPropagation();
+          setRhLang(opt.dataset.lang);
+          showRhLangMenu(false);
+        });
+      });
+    }
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('#rhLangBtn') && !e.target.closest('#rhLangMenu')) {
+        showRhLangMenu(false);
+      }
+    });
+    applyRhLang();
+    setInterval(syncCountdownText, 1000);
+  });
+})();
+</script>
+
+</body>
+</html>
