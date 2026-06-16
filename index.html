@@ -448,6 +448,83 @@ h1{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;letter-spacing:-
   .history-stats{grid-template-columns:repeat(3,1fr);}
 }
 
+/* =============================================
+   JLPT COUNTDOWN STRIP
+   ============================================= */
+.countdown-strip{
+  background:rgba(17,26,47,.72);
+  backdrop-filter:blur(8px);
+  border:1px solid var(--border);
+  border-radius:24px;
+  padding:20px 24px;
+  margin-bottom:22px;
+  display:grid;
+  grid-template-columns:1fr auto;
+  align-items:center;
+  gap:18px;
+  position:relative;
+  overflow:hidden;
+  transition:border-color .2s;
+}
+.countdown-strip:hover{border-color:#3d5a8a;}
+.countdown-strip::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(90,169,255,.06),rgba(124,77,255,.04),transparent 60%);
+  pointer-events:none;
+}
+.countdown-strip::after{
+  content:'試験';
+  position:absolute;right:20px;top:50%;transform:translateY(-50%);
+  font-family:'Noto Sans JP',sans-serif;font-size:80px;font-weight:700;
+  opacity:.04;line-height:1;pointer-events:none;user-select:none;
+}
+.countdown-left{min-width:0;}
+.countdown-label{
+  display:inline-flex;align-items:center;gap:7px;
+  font-size:11px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;
+  color:#7cc0ff;margin-bottom:6px;
+}
+.countdown-label-dot{
+  width:6px;height:6px;border-radius:50%;
+  background:#5aa9ff;
+  animation:cPulse 1.8s ease infinite;
+}
+@keyframes cPulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.4;transform:scale(.7);}}
+.countdown-title-text{
+  font-family:'Syne',sans-serif;font-size:17px;font-weight:800;
+  color:var(--text);margin:0 0 3px;
+}
+.countdown-date-text{
+  font-size:12px;color:var(--muted);font-weight:600;
+}
+.countdown-boxes{
+  display:flex;gap:8px;flex-shrink:0;
+}
+.cd-box{
+  background:rgba(10,18,33,.6);
+  border:1px solid rgba(90,169,255,.18);
+  border-radius:16px;
+  padding:12px 14px;
+  text-align:center;
+  min-width:58px;
+  transition:border-color .2s,transform .2s;
+}
+.cd-box:hover{border-color:rgba(90,169,255,.4);transform:translateY(-1px);}
+.cd-num{
+  font-family:'Syne',sans-serif;font-size:26px;font-weight:800;line-height:1;
+  background:linear-gradient(135deg,#fff,#7cc0ff);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.cd-label{
+  font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-top:4px;
+}
+@media(max-width:768px){
+  .countdown-strip{grid-template-columns:1fr;gap:14px;}
+  .countdown-boxes{justify-content:center;}
+  .cd-box{min-width:52px;padding:10px 12px;}
+  .cd-num{font-size:22px;}
+}
+
 /* SIDEBAR */
 .menu-fab{
   position:fixed;
@@ -744,6 +821,33 @@ body.sidebar-open .menu-fab{
   <div class="stat-box"><div class="stat-num">2026</div><div class="stat-label" data-i18n="updated">Updated</div></div>
   <div class="stat-box"><div class="stat-num" id="totalLevels">5</div><div class="stat-label" data-i18n="levelAvailable">Level Available</div></div>
   <div class="stat-box" id="completedStat"><div class="stat-num" id="completedCount">0</div><div class="stat-label" data-i18n="completed">Completed</div></div>
+</div>
+
+<!-- ======== JLPT COUNTDOWN ======== -->
+<div class="countdown-strip" id="countdownStrip">
+  <div class="countdown-left">
+    <div class="countdown-label"><span class="countdown-label-dot"></span> <span id="cdLabelText">JLPT Countdown</span></div>
+    <div class="countdown-title-text" id="cdTitleText">Menuju JLPT Juli</div>
+    <div class="countdown-date-text" id="cdDateText">—</div>
+  </div>
+  <div class="countdown-boxes">
+    <div class="cd-box">
+      <div class="cd-num" id="cd-days">--</div>
+      <div class="cd-label" id="cd-days-lbl">Hari</div>
+    </div>
+    <div class="cd-box">
+      <div class="cd-num" id="cd-hours">--</div>
+      <div class="cd-label" id="cd-hours-lbl">Jam</div>
+    </div>
+    <div class="cd-box">
+      <div class="cd-num" id="cd-minutes">--</div>
+      <div class="cd-label" id="cd-min-lbl">Menit</div>
+    </div>
+    <div class="cd-box">
+      <div class="cd-num" id="cd-seconds">--</div>
+      <div class="cd-label" id="cd-sec-lbl">Detik</div>
+    </div>
+  </div>
 </div>
 
 <!-- LEVEL PILLS -->
@@ -2108,6 +2212,92 @@ function setView(mode){
   else { grid.classList.remove('list-view'); gBtn.classList.add('active'); lBtn.classList.remove('active'); }
   showToast(mode==='list'?'☰ List View':'⊞ Grid View');
 }
+
+// =============================================
+// JLPT COUNTDOWN
+// =============================================
+(function(){
+  function firstSundayOfJuly(year){
+    const d = new Date(year, 6, 1, 0, 0, 0, 0);
+    const day = d.getDay();
+    d.setDate(1 + (7 - day) % 7);
+    d.setHours(0,0,0,0);
+    return d;
+  }
+  function getJlptTarget(){
+    const now = new Date();
+    let t = firstSundayOfJuly(now.getFullYear());
+    if(now > t) t = firstSundayOfJuly(now.getFullYear()+1);
+    return t;
+  }
+
+  const target = getJlptTarget();
+
+  function pad(n){ return String(n).padStart(2,'0'); }
+
+  // Set date label (will also be updated by applyLang if multilang needed)
+  function setDateLabel(){
+    const locale = currentLang==='ja'?'ja-JP':currentLang==='en'?'en-GB':'id-ID';
+    const label = target.toLocaleDateString(locale,{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+    const el = document.getElementById('cdDateText');
+    if(el) el.textContent = label;
+  }
+
+  function updateCountdown(){
+    const now = new Date();
+    let diff = target - now;
+    if(diff < 0) diff = 0;
+    const days    = Math.floor(diff / 86400000); diff -= days*86400000;
+    const hours   = Math.floor(diff / 3600000);  diff -= hours*3600000;
+    const minutes = Math.floor(diff / 60000);    diff -= minutes*60000;
+    const seconds = Math.floor(diff / 1000);
+
+    const dEl = document.getElementById('cd-days');
+    const hEl = document.getElementById('cd-hours');
+    const mEl = document.getElementById('cd-minutes');
+    const sEl = document.getElementById('cd-seconds');
+    if(dEl) dEl.textContent = pad(days);
+    if(hEl) hEl.textContent = pad(hours);
+    if(mEl) mEl.textContent = pad(minutes);
+    if(sEl) sEl.textContent = pad(seconds);
+  }
+
+  function updateCountdownLabels(){
+    const labels = {
+      id:{ label:'JLPT Countdown', title:'Menuju JLPT Juli', days:'Hari', hours:'Jam', min:'Menit', sec:'Detik' },
+      en:{ label:'JLPT Countdown', title:'Countdown to JLPT July', days:'Days', hours:'Hours', min:'Mins', sec:'Secs' },
+      ja:{ label:'JLPT カウントダウン', title:'JLPT 7月まで', days:'日', hours:'時間', min:'分', sec:'秒' }
+    };
+    const l = labels[currentLang] || labels.id;
+    const labelEl = document.getElementById('cdLabelText');
+    const titleEl = document.getElementById('cdTitleText');
+    const dLbl    = document.getElementById('cd-days-lbl');
+    const hLbl    = document.getElementById('cd-hours-lbl');
+    const mLbl    = document.getElementById('cd-min-lbl');
+    const sLbl    = document.getElementById('cd-sec-lbl');
+    if(labelEl) labelEl.textContent = l.label;
+    if(titleEl) titleEl.textContent = l.title;
+    if(dLbl) dLbl.textContent = l.days;
+    if(hLbl) hLbl.textContent = l.hours;
+    if(mLbl) mLbl.textContent = l.min;
+    if(sLbl) sLbl.textContent = l.sec;
+    setDateLabel();
+  }
+
+  // Hook into existing setLang
+  const _origSetLang = window.setLang;
+  window.setLang = function(el){
+    if(_origSetLang) _origSetLang(el);
+    updateCountdownLabels();
+  };
+
+  // Init
+  document.addEventListener('DOMContentLoaded', ()=>{
+    updateCountdownLabels();
+    updateCountdown();
+    setInterval(updateCountdown, 1000);
+  });
+})();
 
 // =============================================
 // CANVAS PARTICLES
