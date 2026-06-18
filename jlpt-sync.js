@@ -401,7 +401,6 @@
       percentage: snapshot.percentage,
       remaining_seconds: snapshot.timer_remaining,
       last_event: snapshot.last_event,
-      client_time: snapshot.updated_at,
       updated_at: snapshot.updated_at,
     };
   }
