@@ -326,12 +326,11 @@
   }
 
   function computeStats() {
-    const examState = window.__JLPT_EXAM_STATE__ || {};
-    const qs = Array.isArray(window.questions) ? window.questions : (Array.isArray(examState.questions) ? examState.questions : []);
-    const ans = (window.answers && typeof window.answers === 'object') ? window.answers : (examState.answers && typeof examState.answers === 'object' ? examState.answers : {});
+    const qs = Array.isArray(window.questions) ? window.questions : [];
+    const ans = window.answers && typeof window.answers === 'object' ? window.answers : {};
     const answered = Object.keys(ans).length;
     const correct = Object.values(ans).filter((a) => a && a.correct).length;
-    const total = qs.length || Number(window.totalQuestions || examState.totalQuestions || 0) || 0;
+    const total = qs.length || Number(window.totalQuestions || 0) || 0;
     const wrong = Math.max(answered - correct, 0);
     const percent = total ? Math.round((correct / total) * 10000) / 100 : 0;
 
@@ -352,9 +351,8 @@
   }
 
   function remainingSeconds() {
-    const examState = window.__JLPT_EXAM_STATE__ || {};
-    const startTime = Number(window.startTime || examState.startTime || 0);
-    const totalSeconds = Number(window.totalSeconds || examState.totalSeconds || 0);
+    const startTime = Number(window.startTime || 0);
+    const totalSeconds = Number(window.totalSeconds || 0);
     if (!startTime || !totalSeconds) return null;
     return Math.max(totalSeconds - Math.floor((Date.now() - startTime) / 1000), 0);
   }
@@ -364,12 +362,11 @@
     const stats = computeStats();
     const rem = remainingSeconds();
     const now = new Date().toISOString();
-    const examState = window.__JLPT_EXAM_STATE__ || {};
-    const currentQ = Number(window.currentQ ?? examState.currentQ ?? 0);
+    const currentQ = Number(window.currentQ ?? 0);
     const totalQuestions = Number(stats.total || 0);
 
-    const answers = (window.answers && typeof window.answers === 'object') ? window.answers : (examState.answers && typeof examState.answers === 'object' ? examState.answers : {});
-    const startedAt = window.__JLPT_SESSION_STARTED_AT__ || window.startTimeISO || examState.startTimeISO || null;
+    const answers = window.answers && typeof window.answers === 'object' ? window.answers : {};
+    const startedAt = window.__JLPT_SESSION_STARTED_AT__ || window.startTimeISO || null;
 
     return {
       exam_key: meta.key,
@@ -893,7 +890,8 @@
     return catalog.filter((x, idx, arr) => x.key && arr.findIndex((y) => y.key === x.key) === idx);
   }
 
-  async function refreshAdminLivePanel() {
+  
+async function refreshAdminLivePanel() {
     if (!state.isAdminPage) return;
     await loadUserMap();
     try {
@@ -902,39 +900,33 @@
         client.from('exam_sessions').select('*').order('updated_at', { ascending: false }).limit(100),
       ]);
 
-      if (progressRes.error && sessionRes.error) throw (progressRes.error || sessionRes.error);
-
       const progressRows = Array.isArray(progressRes.data) ? progressRes.data : [];
       const sessionRows = Array.isArray(sessionRes.data) ? sessionRes.data : [];
-      const map = new Map();
+      const merged = new Map();
 
-      const addRow = (row, source = 'progress') => {
-        const key = `${row.user_id || ''}::${row.exam_key || ''}`;
-        const existing = map.get(key) || {};
-        const merged = {
-          ...existing,
+      for (const row of sessionRows) {
+        const key = `${row.user_id || '—'}|${String(row.exam_key || '').toLowerCase()}`;
+        merged.set(key, { ...row, source: 'session' });
+      }
+      for (const row of progressRows) {
+        const key = `${row.user_id || '—'}|${String(row.exam_key || '').toLowerCase()}`;
+        const prev = merged.get(key) || {};
+        merged.set(key, {
+          ...prev,
           ...row,
-          source,
-          current_q: row.current_q ?? row.current_question ?? existing.current_q ?? existing.current_question ?? 0,
-          total_q: row.total_q ?? row.total_questions ?? existing.total_q ?? existing.total_questions ?? 0,
-          remaining_seconds: row.remaining_seconds ?? row.timer_remaining ?? existing.remaining_seconds ?? existing.timer_remaining ?? null,
-          correct_count: row.correct_count ?? existing.correct_count ?? 0,
-          wrong_count: row.wrong_count ?? existing.wrong_count ?? 0,
-          percentage: row.percentage ?? existing.percentage ?? 0,
-          status: row.status ?? existing.status ?? 'active',
-          updated_at: row.updated_at || existing.updated_at || row.last_seen_at || existing.last_seen_at || null,
-        };
-        map.set(key, merged);
-      };
+          source: prev.source ? `${prev.source}+progress` : 'progress',
+        });
+      }
 
-      progressRows.forEach((row) => addRow(row, 'progress'));
-      sessionRows.forEach((row) => {
-        const status = String(row.status || (row.completed ? 'done' : 'active')).toLowerCase();
-        if (status === 'done') return;
-        addRow(row, 'session');
+      const rows = Array.from(merged.values()).sort((a, b) => {
+        const ta = new Date(a.updated_at || a.last_seen_at || 0).getTime();
+        const tb = new Date(b.updated_at || b.last_seen_at || 0).getTime();
+        return tb - ta;
       });
 
-      const rows = Array.from(map.values()).sort((a, b) => String(b.updated_at || '').localeCompare(String(a.updated_at || '')));
+      const progressErrors = [progressRes.error, sessionRes.error].filter(Boolean);
+      if (progressErrors.length) console.warn('refreshAdminLivePanel warnings:', progressErrors.map((e) => e.message || e));
+
       const tbody = document.getElementById('jlpt-live-table');
       const count = document.getElementById('jlpt-live-count');
       const countBadge = document.getElementById('jlpt-live-count-badge');
@@ -943,46 +935,60 @@
 
       if (!tbody) return;
       if (!rows.length) {
-        tbody.innerHTML = '<tr><td colspan="5" style="padding:16px;color:var(--muted);">Belum ada sesi yang tersinkron.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" style="padding:18px;color:var(--muted);text-align:center;">Belum ada sesi yang tersinkron. Pastikan user membuka soal dan menekan jawaban / selesai.</td></tr>';
         return;
       }
 
       tbody.innerHTML = rows.map((row) => {
         const user = state.userMap.get(row.user_id) || {};
         const userLabel = user.display_name || user.full_name || user.email || row.user_id || '—';
-        const when = fmtTime(row.updated_at);
-        const rem = fmtSec(row.remaining_seconds);
-        const progress = `${Number(row.current_q || 0)}/${Number(row.total_q || 0) || '—'} • ${Number(row.correct_count || 0)} benar • ${Number(row.percentage || 0).toFixed ? Number(row.percentage || 0).toFixed(2) : row.percentage || 0}%`;
-        const status = String(row.status || 'active');
+        const when = fmtTime(row.updated_at || row.last_seen_at || row.started_at);
+        const rem = fmtSec(row.remaining_seconds ?? row.timer_remaining);
+        const total = Number(row.total_q || row.total_questions || 0);
+        const current = Number(row.current_q || row.current_question || 0);
+        const answered = Number(row.answered_count || (row.answers ? Object.keys(row.answers || {}).length : 0));
+        const correct = Number(row.correct_count || 0);
+        const pctNum = Number(row.percentage || 0);
+        const pct = Number.isFinite(pctNum) ? pctNum.toFixed(2) : '0.00';
+        const status = String(row.status || (row.completed ? 'done' : 'active'));
         const badgeColor = status === 'done' ? '#5ff0b0' : status === 'active' ? '#7cc0ff' : '#ffd18a';
+        const event = row.last_event || row.source || '—';
 
         return `
           <tr>
-            <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);">
-              <div style="font-weight:700;">${esc(userLabel)}</div>
+            <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);vertical-align:top;">
+              <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px;">
+                <div style="font-weight:800;font-size:14px;">${esc(userLabel)}</div>
+                <span style="padding:4px 10px;border-radius:999px;font-size:10px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;border:1px solid rgba(255,255,255,.12);color:${badgeColor};background:rgba(255,255,255,.04);">${esc(status)}</span>
+              </div>
               <div style="font-size:11px;color:var(--muted);">${esc(row.user_id || '')}</div>
+              <div style="font-size:11px;color:var(--muted);margin-top:4px;">${esc(`${row.level || ''} ${row.mode || ''}`.trim())}</div>
             </td>
-            <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);">
-              <div style="font-weight:700;">${esc(row.exam_title || row.exam_key || '—')}</div>
-              <div style="font-size:11px;color:var(--muted);">${esc(`${row.level || ''} ${row.mode || ''}`.trim())}</div>
+            <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);vertical-align:top;">
+              <div style="font-weight:800;">${esc(row.exam_title || row.exam_key || '—')}</div>
+              <div style="font-size:11px;color:var(--muted);margin-top:4px;">${esc(row.exam_key || '')}</div>
+              <div style="margin-top:8px;height:8px;border-radius:999px;background:rgba(255,255,255,.06);overflow:hidden;">
+                <div style="height:100%;width:${total ? Math.max(0, Math.min(100, (current / total) * 100)) : 0}%;background:linear-gradient(90deg,#5aa9ff,#7c4dff);border-radius:999px;"></div>
+              </div>
+              <div style="font-size:11px;color:var(--muted);margin-top:6px;">${current}/${total || '—'} • ${answered} dijawab • ${correct} benar • ${pct}%</div>
             </td>
-            <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);">
-              <span style="padding:4px 10px;border-radius:999px;font-size:11px;font-weight:800;border:1px solid rgba(255,255,255,.12);color:${badgeColor};background:rgba(255,255,255,.04);text-transform:uppercase;">${esc(status)}</span>
-              <div style="font-size:12px;color:var(--muted);margin-top:6px;">${esc(progress)}</div>
+            <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);vertical-align:top;">
+              <div style="font-weight:800;font-family:'JetBrains Mono',monospace;">${esc(rem)}</div>
+              <div style="font-size:11px;color:var(--muted);margin-top:6px;">${esc(event)}</div>
             </td>
-            <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);font-weight:700;">${esc(rem)}</td>
-            <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);font-size:12px;color:var(--muted);">${esc(when)}</td>
+            <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);font-size:12px;color:var(--muted);vertical-align:top;">${esc(when)}</td>
           </tr>
         `;
       }).join('');
     } catch (err) {
       console.warn('refreshAdminLivePanel failed:', err?.message || err);
       const tbody = document.getElementById('jlpt-live-table');
-      if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="padding:16px;color:#ff9aaa;">Gagal memuat live view.</td></tr>';
+      if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="padding:16px;color:#ff9aaa;">Gagal memuat sesi live.</td></tr>';
     }
   }
 
   async function refreshAdminResultsPanel() {
+
     if (!state.isAdminPage) return;
     await loadUserMap();
     try {
@@ -1474,10 +1480,7 @@
         if (state.isAdminPage) await refreshAdminLivePanel();
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'exam_sessions' }, async () => {
-        if (state.isAdminPage) {
-          await refreshAdminResultsPanel();
-          await refreshAdminLivePanel();
-        }
+        if (state.isAdminPage) await refreshAdminResultsPanel();
       })
       .subscribe();
   }
@@ -1517,6 +1520,9 @@
       state.heartbeatTimer = setInterval(() => {
         if (state.examRunning) syncSession('heartbeat', false, false);
       }, 10000);
+      // create an immediate server-side row so admin sees the user as soon
+      // as the exam page is opened, even before the first answer is clicked.
+      syncSession('page_open', false, true);
       // Re-check access if admin changes lock state while user is on the exam page.
       setInterval(async () => {
         await loadSystemSettings();
