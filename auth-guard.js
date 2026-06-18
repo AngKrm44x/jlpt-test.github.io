@@ -59,6 +59,17 @@ function detectExamKey() {
 
 async function readSettingsMap(table) {
   try {
+    const rpcName = table === 'system_settings'
+      ? 'jlpt_get_system_settings'
+      : table === 'exam_settings'
+        ? 'jlpt_get_exam_settings'
+        : null;
+
+    if (rpcName) {
+      const { data, error } = await supabase.rpc(rpcName);
+      if (!error && Array.isArray(data) && data.length) return data;
+    }
+
     const { data, error } = await supabase.from(table).select('*');
     if (error) throw error;
     return Array.isArray(data) ? data : [];
@@ -70,16 +81,16 @@ async function readSettingsMap(table) {
 async function readCurrentLockState(examKey) {
   const [systemRows, examRows] = await Promise.all([
     readSettingsMap('system_settings'),
-    readSettingsMap('exam_settings')
+    examKey ? readSettingsMap('exam_settings') : Promise.resolve([])
   ]);
 
   const system = Object.fromEntries(systemRows.map((r) => [String(r.key || '').toLowerCase(), String(r.value ?? '')]));
-  const examRow = examKey ? examRows.find((r) => String(r.exam_key || '').toLowerCase() === examKey) : null;
+  const examRow = examRows.find((r) => String(r.exam_key || '').toLowerCase() === examKey);
 
   return {
     globalLocked: ['1', 'true', 'yes', 'on'].includes(String(system.exam_locked || '').toLowerCase()),
     lockReason: String(system.exam_lock_reason || system.lock_reason || ''),
-    liveEnabled: !['0', 'false', 'no', 'off'].includes(String(system.exam_live_enabled || '').toLowerCase()),
+    liveEnabled: String(system.exam_live_enabled ?? 'true').trim().toLowerCase() !== 'false',
     examLocked: !!examRow?.locked,
     examLockReason: String(examRow?.lock_reason || ''),
     examRow: examRow || null
