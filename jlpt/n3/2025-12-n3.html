@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<script type="module" src="../../auth-guard.js"></script>
+<script type="module" src="../../auth-guard.js?v=3"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>JLPT N3 — Desember 2025</title>
@@ -395,19 +395,6 @@ const Q = [
 
 let currentQ=0,questions=[],answers={},startTime=null,timerInterval=null,totalSeconds=0,mode='all';
 
-function mirrorExamState(){
-  window.questions = questions;
-  window.answers = answers;
-  window.currentQ = currentQ;
-  window.startTime = startTime;
-  window.timerInterval = timerInterval;
-  window.totalSeconds = totalSeconds;
-  window.mode = mode;
-  window.currentMode = mode;
-  window.totalQuestions = questions.length;
-}
-mirrorExamState();
-
 function secBadgeClass(sec){
   if(sec==="文字・語彙")return"badge badge-moji";
   if(sec==="文法")return"badge badge-bunpou";
@@ -425,8 +412,8 @@ function getTimeLimit(m){return {all:6300,moji:2100,bunpou:1500,dokkai:3000}[m]|
 function startMode(m){
   mode=m;questions=getQuestions(m);answers={};currentQ=0;
   startTime=Date.now();totalSeconds=getTimeLimit(m);
-  mirrorExamState();
   showScreen('quiz');buildProgressGrid();renderQuestion();startTimer();
+  window.JLPT_SYNC?.syncSession?.('start', false, true);
 }
 function startTimer(){
   if(timerInterval)clearInterval(timerInterval);
@@ -451,7 +438,7 @@ function buildProgressGrid(){
     g.appendChild(d);
   });
 }
-function goToQ(i){currentQ=i;mirrorExamState();renderQuestion();}
+function goToQ(i){currentQ=i;renderQuestion();}
 function renderQuestion(){
   const q=questions[currentQ];
   const secBadge=document.getElementById('q-sec-badge');
@@ -502,7 +489,7 @@ function selectAnswer(idx){
   const dot=document.getElementById('pd-'+currentQ);
   if(dot){dot.className='prog-dot current '+(correct?'correct':'wrong');}
   document.getElementById('q-score-live').textContent = T('correct_live') + ' ' + Object.values(answers).filter(a=>a.correct).length;
-  mirrorExamState();
+  window.JLPT_SYNC?.syncSession?.('answer', false, true);
 }
 function restoreAnswer(q){
   const a=answers[q.id];
@@ -516,11 +503,10 @@ function restoreAnswer(q){
   exp.style.display='';exp.textContent=q.exp;
   document.getElementById('next-btn').disabled=false;
 }
-function nextQ(){if(currentQ<questions.length-1){currentQ++;mirrorExamState();renderQuestion();}}
-function prevQ(){if(currentQ>0){currentQ--;mirrorExamState();renderQuestion();}}
+function nextQ(){if(currentQ<questions.length-1){currentQ++;renderQuestion();}}
+function prevQ(){if(currentQ>0){currentQ--;renderQuestion();}}
 function finishQuiz(){
   clearInterval(timerInterval);
-  mirrorExamState();
   const elapsed=Math.floor((Date.now()-startTime)/1000);
   showScreen('result');
   const total=questions.length;
@@ -556,16 +542,16 @@ function finishQuiz(){
   pd.innerHTML='<p>📊 正答率 <strong>'+pct+'%</strong> ('+correct+'/'+total+'問)</p>'
     +'<p>JLPT N3の合格基準: 総合得点 90/180点以上 + 各セクション最低ライン通過</p>'
     +'<p>'+(pct>=70?'✅ 合格の可能性が高いです。':pct>=60?'⚠️ 合格ラインギリギリです。引き続き練習を。':'❌ 合格には更なる学習が必要です。')+'</p>';
-  document.getElementById('print-pdf-btn').classList.add('show');
+  document.getElementById('print-pdf-btn').classList.add('show');  window.JLPT_SYNC?.syncSession?.('done', true, true);
+}
 }
 function reviewAnswers(){
   answers={};showScreen('quiz');buildProgressGrid();
-  currentQ=0;mirrorExamState();renderQuestion();
+  currentQ=0;renderQuestion();
 }
 function goHome(){
   clearInterval(timerInterval);
   document.getElementById('print-pdf-btn').classList.remove('show');
-  mirrorExamState();
   showScreen('home');
 }
 function showScreen(id){
@@ -573,9 +559,9 @@ function showScreen(id){
   document.getElementById(id).classList.add('active');
 }
 function saveSessionManual(){
-  mirrorExamState();
   const data={answers,currentQ,mode,elapsed:Math.floor((Date.now()-startTime)/1000)};
   localStorage.setItem('jlpt_n3_2025_12',JSON.stringify(data));
+  window.JLPT_SYNC?.syncSession?.('save', false, true);
   alert(T('save_msg'));
 }
 function loadSessionManual(){
@@ -588,8 +574,8 @@ function loadSessionManual(){
   currentQ=data.currentQ||0;
   startTime=Date.now()-(data.elapsed||0)*1000;
   totalSeconds=getTimeLimit(mode);
-  mirrorExamState();
   showScreen('quiz');buildProgressGrid();renderQuestion();startTimer();
+  window.JLPT_SYNC?.syncSession?.('load', false, true);
   alert(T('load_msg'));
 }
 
@@ -858,6 +844,6 @@ document.addEventListener('DOMContentLoaded', function() {
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:22px;height:22px;"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
   <span>Cetak / PDF</span>
 </button>
-  <script type="module" src="../../jlpt-sync.js?v=2"></script>
+  <script type="module" src="../../jlpt-sync.js?v=3"></script>
 </body>
 </html>
