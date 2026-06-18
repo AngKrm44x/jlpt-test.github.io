@@ -78,29 +78,6 @@
     return ['1', 'true', 'yes', 'on', 'locked'].includes(s);
   }
 
-  async function rpcSelectRows(name, fallback = []) {
-    try {
-      const { data, error } = await client.rpc(name);
-      if (error) throw error;
-      if (Array.isArray(data)) return data;
-      if (data == null) return [];
-      return Array.isArray(data.rows) ? data.rows : fallback;
-    } catch (err) {
-      return fallback;
-    }
-  }
-
-  async function rpcExec(name, params = {}) {
-    try {
-      const { error } = await client.rpc(name, params);
-      if (error) throw error;
-      return true;
-    } catch (err) {
-      console.warn(`${name} failed:`, err?.message || err);
-      return false;
-    }
-  }
-
   function fmtTime(ts) {
     if (!ts) return '—';
     try { return new Date(ts).toLocaleString(); } catch { return String(ts); }
@@ -139,19 +116,10 @@
         month = m2[3];
         key = `n${m2[1]}-${m2[2]}-${m2[3]}`;
       } else {
-        const m3 = p.match(/(\d{4})-(\d{2})-jlpt/i);
-        const lvl = p.match(/\/jlpt\/n([1-5])\//i) || p.match(/\/n([1-5])\//i);
-        if (m3 && lvl) {
-          year = m3[1];
-          month = m3[2];
-          level = `N${lvl[1]}`;
-          key = `n${lvl[1]}-${m3[1]}-${m3[2]}`;
-        } else {
-          const fallback = (location.pathname.split('/').pop() || document.title || 'exam').replace(/\.[^.]+$/, '');
-          key = fallback.toLowerCase();
-          const lev = fallback.match(/n([1-5])/i);
-          level = lev ? `N${lev[1]}` : 'N?';
-        }
+        const fallback = (location.pathname.split('/').pop() || document.title || 'exam').replace(/\.[^.]+$/, '');
+        key = fallback.toLowerCase();
+        const lev = fallback.match(/n([1-5])/i);
+        level = lev ? `N${lev[1]}` : 'N?';
       }
     }
     state.examMeta = {
@@ -207,22 +175,15 @@
 
   async function loadSystemSettings() {
     try {
-      let rows = await rpcSelectRows('jlpt_get_system_settings', []);
-      if (!Array.isArray(rows) || !rows.length) {
-        const { data, error } = await client.from('system_settings').select('*');
-        if (error) throw error;
-        rows = Array.isArray(data) ? data : [];
-      }
+      const { data, error } = await client.from('system_settings').select('*');
+      if (error) throw error;
+      const rows = Array.isArray(data) ? data : [];
       const map = Object.fromEntries(rows.map((r) => [String(r.key || '').toLowerCase(), String(r.value ?? '')]));
       state.settings.exam_locked = toBool(map.exam_locked);
       state.settings.exam_lock_reason = map.exam_lock_reason || '';
-      state.settings.exam_live_enabled = String(map.exam_live_enabled ?? 'true').trim().toLowerCase() !== 'false';
-      state.settings.updated_at = rows.find((r) => String(r.key || '').toLowerCase() === 'exam_locked')?.updated_at
-        || rows[0]?.updated_at
-        || state.settings.updated_at;
-      state.settings.updated_by = rows.find((r) => String(r.key || '').toLowerCase() === 'exam_locked')?.updated_by
-        || rows[0]?.updated_by
-        || state.settings.updated_by;
+      state.settings.exam_live_enabled = !toBool(map.exam_live_enabled) || String(map.exam_live_enabled).trim().toLowerCase() === 'true';
+      state.settings.updated_at = rows[0]?.updated_at || state.settings.updated_at;
+      state.settings.updated_by = rows[0]?.updated_by || state.settings.updated_by;
       return state.settings;
     } catch (err) {
       console.warn('system_settings load failed:', err?.message || err);
@@ -233,16 +194,12 @@
   async function loadExamLocks(force = false) {
     if (!force && state.examLocks.size) return state.examLocks;
     try {
-      let rows = await rpcSelectRows('jlpt_get_exam_settings', []);
-      if (!Array.isArray(rows) || !rows.length) {
-        const { data, error } = await client
-          .from('exam_settings')
-          .select('exam_key,title,level,locked,lock_reason,updated_at,updated_by');
-        if (error) throw error;
-        rows = Array.isArray(data) ? data : [];
-      }
+      const { data, error } = await client
+        .from('exam_settings')
+        .select('exam_key,title,level,locked,lock_reason,updated_at,updated_by');
+      if (error) throw error;
       const map = new Map();
-      (rows || []).forEach((row) => map.set(String(row.exam_key || '').toLowerCase(), row));
+      (data || []).forEach((row) => map.set(String(row.exam_key || '').toLowerCase(), row));
       state.examLocks = map;
       return map;
     } catch (err) {
@@ -265,20 +222,14 @@
       return false;
     }
     try {
-      const ok = await rpcExec('jlpt_set_system_setting', {
-        p_key: key,
-        p_value: String(value ?? ''),
-        p_updated_by: ctx.session.user.id,
-      });
-      if (!ok) {
-        const { error } = await client.from('system_settings').upsert({
-          key,
-          value: String(value ?? ''),
-          updated_at: new Date().toISOString(),
-          updated_by: ctx.session.user.id,
-        }, { onConflict: 'key' });
-        if (error) throw error;
-      }
+      const payload = {
+        key,
+        value: String(value ?? ''),
+        updated_at: new Date().toISOString(),
+        updated_by: ctx.session.user.id,
+      };
+      const { error } = await client.from('system_settings').upsert(payload, { onConflict: 'key' });
+      if (error) throw error;
       await loadSystemSettings();
       renderIndexLockUI();
       renderAdminControlUI();
@@ -294,20 +245,10 @@
   async function setGlobalLock(locked, reason = '') {
     const ctx = await getContext();
     if (!ctx?.isAdmin) return false;
-    const ok1 = await setSystemSetting('exam_locked', locked ? 'true' : 'false');
-    const ok2 = await setSystemSetting('exam_lock_reason', reason || '');
-    const ok = ok1 && ok2;
-    if (ok) {
-      state.settings.exam_locked = !!locked;
-      state.settings.exam_lock_reason = reason || '';
-      renderIndexLockUI();
-      renderAdminControlUI();
-      await refreshAdminPanels();
-      toast(locked ? '🔒 Semua exam dikunci' : '🔓 Semua exam dibuka');
-      return true;
-    }
-    toast('⚠️ Gagal menyimpan lock global');
-    return false;
+    await setSystemSetting('exam_locked', locked ? 'true' : 'false');
+    await setSystemSetting('exam_lock_reason', reason || '');
+    toast(locked ? '🔒 Semua exam dikunci' : '🔓 Semua exam dibuka');
+    return true;
   }
 
   async function setExamLock(examKey, locked, reason = '') {
@@ -320,27 +261,17 @@
     if (!key) return false;
     try {
       const row = state.examLocks.get(key) || {};
-      const catalogEntry = !row.title ? getExamCatalog().find((e) => e.key === key) : null;
-      const ok = await rpcExec('jlpt_set_exam_lock', {
-        p_exam_key: key,
-        p_locked: !!locked,
-        p_title: row.title || catalogEntry?.title || '',
-        p_level: row.level || catalogEntry?.level || '',
-        p_lock_reason: reason ?? row.lock_reason ?? '',
-        p_updated_by: ctx.session.user.id,
-      });
-      if (!ok) {
-        const { error } = await client.from('exam_settings').upsert({
-          exam_key: key,
-          title: row.title || catalogEntry?.title || '',
-          level: row.level || catalogEntry?.level || '',
-          locked: !!locked,
-          lock_reason: reason ?? row.lock_reason ?? '',
-          updated_at: new Date().toISOString(),
-          updated_by: ctx.session.user.id,
-        }, { onConflict: 'exam_key' });
-        if (error) throw error;
-      }
+      const payload = {
+        exam_key: key,
+        title: row.title || '',
+        level: row.level || '',
+        locked: !!locked,
+        lock_reason: reason ?? row.lock_reason ?? '',
+        updated_at: new Date().toISOString(),
+        updated_by: ctx.session.user.id,
+      };
+      const { error } = await client.from('exam_settings').upsert(payload, { onConflict: 'exam_key' });
+      if (error) throw error;
       await loadExamLocks(true);
       renderIndexLockUI();
       renderAdminControlUI();
@@ -475,150 +406,6 @@
     };
   }
 
-  function buildCombinedPayload(snapshot, extra = {}) {
-    const live = buildLivePayload(snapshot);
-    return {
-      user_id: snapshot.user_id,
-      exam_key: snapshot.exam_key,
-      exam_title: snapshot.exam_title,
-      level: snapshot.level,
-      year: snapshot.year,
-      month: snapshot.month,
-      mode: snapshot.mode,
-      started_at: snapshot.started_at,
-      updated_at: snapshot.updated_at,
-      last_seen_at: snapshot.last_seen_at,
-      answers: snapshot.answers,
-      current_question: snapshot.current_question,
-      total_questions: snapshot.total_questions,
-      timer_remaining: snapshot.timer_remaining,
-      score: snapshot.score,
-      correct_count: snapshot.correct_count,
-      wrong_count: snapshot.wrong_count,
-      percentage: snapshot.percentage,
-      section_scores: snapshot.section_scores,
-      completed: snapshot.completed,
-      completed_at: snapshot.completed_at,
-      status: snapshot.status,
-      last_event: snapshot.last_event,
-
-      // Fields for exam_progress mirror
-      current_q: live.current_q,
-      total_q: live.total_q,
-      answered_count: live.answered_count,
-      remaining_seconds: live.remaining_seconds,
-      client_time: live.client_time,
-
-      ...extra,
-    };
-  }
-
-  function extractProgressRow(payload) {
-    return {
-      user_id: payload.user_id,
-      exam_key: payload.exam_key,
-      exam_title: payload.exam_title,
-      level: payload.level,
-      year: payload.year,
-      month: payload.month,
-      mode: payload.mode,
-      status: payload.status,
-      current_q: payload.current_q ?? payload.current_question ?? 0,
-      total_q: payload.total_q ?? payload.total_questions ?? 0,
-      answered_count: payload.answered_count ?? Object.keys(payload.answers || {}).length,
-      correct_count: payload.correct_count ?? 0,
-      wrong_count: payload.wrong_count ?? 0,
-      percentage: payload.percentage ?? 0,
-      remaining_seconds: payload.remaining_seconds ?? payload.timer_remaining ?? null,
-      last_event: payload.last_event ?? '',
-      client_time: payload.client_time ?? payload.updated_at ?? new Date().toISOString(),
-      updated_at: payload.updated_at ?? new Date().toISOString(),
-    };
-  }
-
-  async function persistActivity(payload) {
-    const clean = { ...payload };
-    clean.user_id = clean.user_id || '';
-    clean.exam_key = String(clean.exam_key || '').toLowerCase();
-    if (!clean.user_id || !clean.exam_key) throw new Error('Missing user_id or exam_key');
-
-    try {
-      const { error } = await client.rpc('sync_exam_activity', { payload: clean });
-      if (!error) return true;
-      console.warn('sync_exam_activity rpc failed:', error?.message || error);
-    } catch (err) {
-      console.warn('sync_exam_activity rpc exception:', err?.message || err);
-    }
-
-    const progressRow = extractProgressRow(clean);
-    const sessionRow = {
-      user_id: clean.user_id,
-      exam_key: clean.exam_key,
-      exam_title: clean.exam_title || '',
-      level: clean.level || '',
-      year: clean.year ?? null,
-      month: clean.month ?? null,
-      mode: clean.mode || 'all',
-      started_at: clean.started_at || clean.updated_at || new Date().toISOString(),
-      updated_at: clean.updated_at || new Date().toISOString(),
-      last_seen_at: clean.last_seen_at || clean.updated_at || new Date().toISOString(),
-      answers: clean.answers || {},
-      current_question: clean.current_question ?? 0,
-      total_questions: clean.total_questions ?? 0,
-      timer_remaining: clean.timer_remaining ?? null,
-      score: clean.score ?? 0,
-      correct_count: clean.correct_count ?? 0,
-      wrong_count: clean.wrong_count ?? 0,
-      percentage: clean.percentage ?? 0,
-      section_scores: clean.section_scores || {},
-      completed: !!clean.completed,
-      completed_at: clean.completed_at || null,
-      status: clean.status || 'active',
-      last_event: clean.last_event || '',
-    };
-
-    const [progressRes, sessionRes] = await Promise.all([
-      client.from('exam_progress').upsert(progressRow, { onConflict: 'user_id,exam_key' }),
-      client.from('exam_sessions').upsert(sessionRow, { onConflict: 'user_id,exam_key' }),
-    ]);
-    if (progressRes.error) throw progressRes.error;
-    if (sessionRes.error) throw sessionRes.error;
-    return true;
-  }
-
-  async function noteExamOpen(examData = {}) {
-    const ctx = await getContext();
-    if (!ctx || ctx.isAdmin) return false;
-    const meta = examMetaFromPath();
-    const now = new Date().toISOString();
-    const payload = {
-      user_id: ctx.session.user.id,
-      exam_key: String(examData.exam_key || meta.key || '').toLowerCase(),
-      exam_title: examData.exam_title || meta.title || document.title || '',
-      level: examData.level || meta.level || '',
-      year: examData.year ? Number(examData.year) : (meta.year ? Number(meta.year) : null),
-      month: examData.month || meta.month || null,
-      mode: examData.mode || 'all',
-      started_at: examData.started_at || now,
-      updated_at: now,
-      last_seen_at: now,
-      answers: {},
-      current_question: 0,
-      total_questions: 0,
-      timer_remaining: null,
-      score: 0,
-      correct_count: 0,
-      wrong_count: 0,
-      percentage: 0,
-      section_scores: {},
-      completed: false,
-      completed_at: null,
-      status: 'opened',
-      last_event: 'open_exam',
-    };
-    return await persistActivity(payload);
-  }
-
   async function ensureServerSession() {
     const ctx = await getContext();
     if (!ctx || ctx.isAdmin || !state.isExamPage) return null;
@@ -663,8 +450,43 @@
     state.lastProgressSentAt = now;
 
     try {
-      const payload = buildCombinedPayload({ ...snapshot, user_id: ctx.session.user.id });
-      await persistActivity(payload);
+      const progressPayload = buildLivePayload(snapshot);
+      const sessionPayload = {
+        user_id: ctx.session.user.id,
+        exam_key: snapshot.exam_key,
+        exam_title: snapshot.exam_title,
+        level: snapshot.level,
+        year: snapshot.year,
+        month: snapshot.month,
+        mode: snapshot.mode,
+        started_at: snapshot.started_at,
+        updated_at: snapshot.updated_at,
+        last_seen_at: snapshot.last_seen_at,
+        answers: snapshot.answers,
+        current_question: snapshot.current_question,
+        total_questions: snapshot.total_questions,
+        timer_remaining: snapshot.timer_remaining,
+        score: snapshot.score,
+        correct_count: snapshot.correct_count,
+        wrong_count: snapshot.wrong_count,
+        percentage: snapshot.percentage,
+        section_scores: snapshot.section_scores,
+        completed: snapshot.completed,
+        completed_at: snapshot.completed_at,
+        status: snapshot.status,
+        last_event: snapshot.last_event,
+      };
+
+      const [progressRes, sessionRes] = await Promise.all([
+        client.from('exam_progress').upsert({
+          user_id: ctx.session.user.id,
+          ...progressPayload,
+        }, { onConflict: 'user_id,exam_key' }),
+        client.from('exam_sessions').upsert(sessionPayload, { onConflict: 'user_id,exam_key' }),
+      ]);
+
+      if (progressRes.error) throw progressRes.error;
+      if (sessionRes.error) throw sessionRes.error;
       return true;
     } catch (err) {
       console.warn('syncSession failed:', err?.message || err);
@@ -674,12 +496,11 @@
 
   function blockExamShortcuts(e) {
     if (!state.isExamPage || !state.examRunning) return;
-    const blocked = new Set(['F5', 'F6', 'F7', 'F11', 'F12', 'PrintScreen']);
-    const ctrlBlocked = new Set(['l', 'n', 't', 'w', 'r', 'u', 's', 'p', 'f', 'j', 'k', 'h', 'd', 'g']);
+    const blocked = new Set(['F5', 'F6', 'F12', 'Escape', 'PrintScreen']);
+    const ctrlBlocked = new Set(['l', 'n', 't', 'w', 'r', 'u', 's', 'p', 'f', 'j']);
     if (
       blocked.has(e.key) ||
       ((e.ctrlKey || e.metaKey) && ctrlBlocked.has((e.key || '').toLowerCase())) ||
-      ((e.ctrlKey || e.metaKey) && e.shiftKey) ||
       (e.altKey && ['ArrowLeft', 'ArrowRight'].includes(e.key))
     ) {
       e.preventDefault();
@@ -728,80 +549,6 @@
     }
   }
 
-  // ---- Fullscreen enforcement ----
-  // The address bar itself is browser chrome and cannot be hidden or
-  // disabled by page JavaScript (no website can do this — it would be a
-  // serious security hole if it could). The closest practical equivalent
-  // is forcing fullscreen mode during an active exam, which visually hides
-  // the address bar/tab strip on most desktop and mobile browsers, plus
-  // nudging the user back into fullscreen if they exit it.
-
-  async function requestExamFullscreen() {
-    try {
-      const el = document.documentElement;
-      if (document.fullscreenElement) return true;
-      if (el.requestFullscreen) await el.requestFullscreen();
-      else if (el.webkitRequestFullscreen) await el.webkitRequestFullscreen();
-      else if (el.msRequestFullscreen) await el.msRequestFullscreen();
-      return true;
-    } catch (err) {
-      console.warn('Fullscreen request failed (often requires a user gesture):', err?.message || err);
-      return false;
-    }
-  }
-
-  async function exitExamFullscreen() {
-    try {
-      if (!document.fullscreenElement) return;
-      if (document.exitFullscreen) await document.exitFullscreen();
-      else if (document.webkitExitFullscreen) await document.webkitExitFullscreen();
-      else if (document.msExitFullscreen) await document.msExitFullscreen();
-    } catch (err) {
-      console.warn('Fullscreen exit failed:', err?.message || err);
-    }
-  }
-
-  function showFullscreenPrompt() {
-    if (!state.isExamPage || state.isAdmin) return;
-    let prompt = document.getElementById('jlpt-fullscreen-prompt');
-    if (!prompt) {
-      prompt = document.createElement('div');
-      prompt.id = 'jlpt-fullscreen-prompt';
-      prompt.style.cssText = 'position:fixed;inset:0;z-index:999998;background:rgba(5,9,16,.92);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:18px;text-align:center;';
-      prompt.innerHTML = `
-        <div style="max-width:480px;background:#111a2f;border:1px solid rgba(255,181,71,.3);border-radius:24px;padding:28px 24px;box-shadow:0 25px 80px rgba(0,0,0,.6);">
-          <div style="font-size:42px;margin-bottom:10px;">🖥️</div>
-          <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;margin-bottom:8px;color:#ffd18a;">Mode layar penuh diperlukan</div>
-          <div style="font-size:14px;color:#aab8d8;line-height:1.8;margin-bottom:18px;">Ujian harus dikerjakan dalam mode layar penuh. Klik tombol di bawah untuk melanjutkan.</div>
-          <button id="jlpt-fullscreen-resume-btn" style="padding:12px 22px;border-radius:14px;border:none;background:linear-gradient(135deg,#4a9eff,#6c3fff);color:#fff;font-weight:800;font-size:14px;cursor:pointer;font-family:inherit;">Lanjutkan Layar Penuh</button>
-        </div>
-      `;
-      document.body.appendChild(prompt);
-      prompt.querySelector('#jlpt-fullscreen-resume-btn')?.addEventListener('click', async () => {
-        const ok = await requestExamFullscreen();
-        if (ok) hideFullscreenPrompt();
-      });
-    }
-    prompt.style.display = 'flex';
-  }
-
-  function hideFullscreenPrompt() {
-    const prompt = document.getElementById('jlpt-fullscreen-prompt');
-    if (prompt) prompt.style.display = 'none';
-  }
-
-  function installFullscreenGuard() {
-    if (!state.isExamPage) return;
-    document.addEventListener('fullscreenchange', () => {
-      if (!document.fullscreenElement && state.examRunning && !state.isAdmin) {
-        showFullscreenPrompt();
-        syncSession('fullscreen_exit', false, true);
-      } else if (document.fullscreenElement) {
-        hideFullscreenPrompt();
-      }
-    });
-  }
-
   function installExamGuards() {
     if (!state.isExamPage) return;
 
@@ -826,8 +573,6 @@
       e.returnValue = '';
       return '';
     });
-
-    installFullscreenGuard();
   }
 
   function wrapFunction(name, afterHook) {
@@ -860,9 +605,6 @@
           state.examRunning = true;
           window.__JLPT_EXAM_FINISHED__ = false;
           window.__JLPT_SESSION_STARTED_AT__ = window.__JLPT_SESSION_STARTED_AT__ || new Date().toISOString();
-          // Fired from a real click handler, so this counts as a user
-          // gesture and the browser will actually grant fullscreen here.
-          requestExamFullscreen();
           const result = original.apply(this, args);
           setTimeout(() => syncSession('start', false, true), 150);
           return result;
@@ -884,8 +626,6 @@
           const result = original.apply(this, args);
           window.__JLPT_EXAM_FINISHED__ = true;
           state.examRunning = false;
-          hideFullscreenPrompt();
-          exitExamFullscreen();
           setTimeout(() => syncSession('done', true, true), 180);
           return result;
         };
@@ -896,8 +636,6 @@
 
       wrapFunction('goHome', () => {
         state.examRunning = false;
-        hideFullscreenPrompt();
-        exitExamFullscreen();
         setTimeout(() => syncSession('home', false, true), 80);
       });
       wrapFunction('openReport', () => setTimeout(() => syncSession('report_open', false, true), 80));
@@ -912,18 +650,11 @@
   }
 
   function examKeyFromHref(href = '') {
-    const s = String(href || '').toLowerCase().replace(/\\/g, '/');
+    const s = String(href || '').replace(/\\/g, '/');
     const m = s.match(/(\d{4})-(\d{2})-n([1-5])/i);
     if (m) return `n${m[3]}-${m[1]}-${m[2]}`;
     const m2 = s.match(/n([1-5])-(\d{4})-(\d{2})/i);
     if (m2) return `n${m2[1]}-${m2[2]}-${m2[3]}`;
-    // Legacy filenames like jlpt/n2/2025-12-jlpt.html: year/month come from
-    // the filename, level comes from the /jlpt/nX/ or /nX/ folder segment.
-    const m3 = s.match(/(\d{4})-(\d{2})-jlpt/i);
-    if (m3) {
-      const lvl = s.match(/\/jlpt\/n([1-5])\//i) || s.match(/\/n([1-5])\//i);
-      if (lvl) return `n${lvl[1]}-${m3[1]}-${m3[2]}`;
-    }
     return '';
   }
 
@@ -1062,22 +793,17 @@
     if (!state.isAdminPage) return;
     await loadUserMap();
     try {
-      let rows = await rpcSelectRows('jlpt_get_exam_progress', []);
-      if (!Array.isArray(rows) || !rows.length) {
-        const res = await client
-          .from('exam_progress')
-          .select('*')
-          .order('updated_at', { ascending: false })
-          .limit(100);
-        if (res.error) throw res.error;
-        rows = Array.isArray(res.data) ? res.data : [];
-      }
+      const { data, error } = await client
+        .from('exam_progress')
+        .select('*')
+        .order('updated_at', { ascending: false })
+        .limit(100);
+      if (error) throw error;
 
+      const rows = Array.isArray(data) ? data : [];
       const tbody = document.getElementById('jlpt-live-table');
       const count = document.getElementById('jlpt-live-count');
-      const countBadge = document.getElementById('jlpt-live-count-badge');
       if (count) count.textContent = `${rows.length} session`;
-      if (countBadge) countBadge.textContent = `${rows.length} session`;
 
       if (!tbody) return;
       if (!rows.length) {
@@ -1105,10 +831,8 @@
               <div style="font-size:11px;color:var(--muted);">${esc(`${row.level || ''} ${row.mode || ''}`.trim())}</div>
             </td>
             <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);">
-              <div style="font-weight:700;">${esc(progress)}</div>
-              <div style="margin-top:6px;height:8px;background:rgba(255,255,255,.06);border-radius:999px;overflow:hidden;">
-                <div style="height:100%;width:${Math.max(0, Math.min(100, Number(row.percentage || 0)))}%;background:${badgeColor};"></div>
-              </div>
+              <span style="padding:4px 10px;border-radius:999px;font-size:11px;font-weight:800;border:1px solid rgba(255,255,255,.12);color:${badgeColor};background:rgba(255,255,255,.04);text-transform:uppercase;">${esc(status)}</span>
+              <div style="font-size:12px;color:var(--muted);margin-top:6px;">${esc(progress)}</div>
             </td>
             <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);font-weight:700;">${esc(rem)}</td>
             <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);font-size:12px;color:var(--muted);">${esc(when)}</td>
@@ -1118,7 +842,7 @@
     } catch (err) {
       console.warn('refreshAdminLivePanel failed:', err?.message || err);
       const tbody = document.getElementById('jlpt-live-table');
-      if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="padding:16px;color:#ff9aaa;">Gagal memuat sesi live.</td></tr>';
+      if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="padding:16px;color:#ff9aaa;">Gagal memuat live view.</td></tr>';
     }
   }
 
@@ -1126,23 +850,18 @@
     if (!state.isAdminPage) return;
     await loadUserMap();
     try {
-      let rows = await rpcSelectRows('jlpt_get_exam_sessions', []);
-      if (!Array.isArray(rows) || !rows.length) {
-        const res = await client
-          .from('exam_sessions')
-          .select('*')
-          .order('updated_at', { ascending: false })
-          .limit(100);
-        if (res.error) throw res.error;
-        rows = Array.isArray(res.data) ? res.data : [];
-      }
+      const { data, error } = await client
+        .from('exam_sessions')
+        .select('*')
+        .order('updated_at', { ascending: false })
+        .limit(100);
+      if (error) throw error;
+      const rows = Array.isArray(data) ? data : [];
       state.resultsCache = rows;
 
       const tbody = document.getElementById('jlpt-results-table');
       const count = document.getElementById('jlpt-results-count');
-      const countBadge = document.getElementById('jlpt-results-count-badge');
       if (count) count.textContent = `${rows.length} session`;
-      if (countBadge) countBadge.textContent = `${rows.length} session`;
 
       if (!tbody) return;
       if (!rows.length) {
@@ -1189,86 +908,70 @@
   function ensureAdminPanel() {
     const existing = document.getElementById('jlpt-sync-admin-wrap');
     if (existing) return existing;
-
-    const lockMount = document.getElementById('jlpt-examlock-mount');
-    const liveMount = document.getElementById('jlpt-livemonitor-mount');
-    const resultsMount = document.getElementById('jlpt-examresults-mount');
-
-    // Fallback for older admin.html versions that don't have the dedicated
-    // menu panes yet: mount everything into the dashboard like before so
-    // nothing silently disappears.
-    const fallbackMount = document.getElementById('pane-dashboard') || document.querySelector('.content') || document.body;
-    const usingFallback = !lockMount && !liveMount && !resultsMount;
-
+    const mount = document.getElementById('pane-dashboard') || document.querySelector('.content') || document.body;
     const wrap = document.createElement('div');
     wrap.id = 'jlpt-sync-admin-wrap';
-    wrap.style.cssText = 'display:none;';
-
-    const lockHtml = `
-      <div style="display:grid;gap:16px;">
-        <div id="jlpt-admin-global-card" style="background:var(--card);border:1px solid var(--border);border-radius:20px;padding:20px;box-shadow:0 8px 25px rgba(0,0,0,.18);">
-          <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:14px;">
-            <div>
-              <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;margin-bottom:4px;">🔐 Kontrol Ujian Global</div>
-              <div style="font-size:13px;color:var(--muted);line-height:1.6;">Lock / unlock semua exam dari sini. Status akan sinkron ke halaman user dan exam page secara realtime.</div>
-            </div>
-            <div id="jlpt-lock-pill" style="padding:8px 12px;border-radius:999px;font-size:12px;font-weight:800;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);">Memuat...</div>
+    wrap.style.cssText = 'margin:18px 0 28px;display:grid;gap:16px;';
+    wrap.innerHTML = `
+      <div id="jlpt-admin-global-card" style="background:var(--card);border:1px solid var(--border);border-radius:20px;padding:20px;box-shadow:0 8px 25px rgba(0,0,0,.18);">
+        <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:14px;">
+          <div>
+            <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;margin-bottom:4px;">🔐 Kontrol Ujian Global</div>
+            <div style="font-size:13px;color:var(--muted);line-height:1.6;">Lock / unlock semua exam dari sini. Status akan sinkron ke halaman user dan exam page secara realtime.</div>
           </div>
-          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
-            <button id="jlpt-lock-btn" class="topbar-btn" style="border-color:rgba(255,95,115,.35);color:#ff9aaa;background:rgba(255,95,115,.08);">🔒 Lock All Exam</button>
-            <button id="jlpt-unlock-btn" class="topbar-btn primary">🔓 Unlock All Exam</button>
-            <button id="jlpt-refresh-btn" class="topbar-btn">🔄 Refresh</button>
-          </div>
-          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;">
-            <div style="padding:12px 14px;border:1px solid var(--border);border-radius:14px;background:rgba(255,255,255,.03);">
-              <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Status Global</div>
-              <div id="jlpt-lock-state" style="font-size:15px;font-weight:800;">—</div>
-            </div>
-            <div style="padding:12px 14px;border:1px solid var(--border);border-radius:14px;background:rgba(255,255,255,.03);">
-              <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Di-update</div>
-              <div id="jlpt-lock-updated" style="font-size:15px;font-weight:800;">—</div>
-            </div>
-            <div style="padding:12px 14px;border:1px solid var(--border);border-radius:14px;background:rgba(255,255,255,.03);">
-              <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Active Sessions</div>
-              <div id="jlpt-live-count" style="font-size:15px;font-weight:800;">—</div>
-            </div>
-            <div style="padding:12px 14px;border:1px solid var(--border);border-radius:14px;background:rgba(255,255,255,.03);">
-              <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Finished Results</div>
-              <div id="jlpt-results-count" style="font-size:15px;font-weight:800;">—</div>
-            </div>
-          </div>
+          <div id="jlpt-lock-pill" style="padding:8px 12px;border-radius:999px;font-size:12px;font-weight:800;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);">Memuat...</div>
         </div>
-
-        <div id="jlpt-exam-lock-card" style="background:var(--card);border:1px solid var(--border);border-radius:20px;padding:20px;box-shadow:0 8px 25px rgba(0,0,0,.18);">
-          <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:14px;">
-            <div>
-              <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;margin-bottom:4px;">🧩 Lock / Unlock Per Exam</div>
-              <div style="font-size:13px;color:var(--muted);line-height:1.6;">Centang satu, beberapa, atau semua ujian lalu pilih Lock/Unlock.</div>
-            </div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap;">
-              <button id="jlpt-select-all-exams" class="topbar-btn">☑️ Pilih Semua</button>
-              <button id="jlpt-lock-selected" class="topbar-btn" style="border-color:rgba(255,95,115,.35);color:#ff9aaa;background:rgba(255,95,115,.08);">🔒 Lock Selected</button>
-              <button id="jlpt-unlock-selected" class="topbar-btn primary">🔓 Unlock Selected</button>
-              <button id="jlpt-refresh-locks" class="topbar-btn">🔄 Reload List</button>
-            </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+          <button id="jlpt-lock-btn" class="topbar-btn" style="border-color:rgba(255,95,115,.35);color:#ff9aaa;background:rgba(255,95,115,.08);">🔒 Lock All Exam</button>
+          <button id="jlpt-unlock-btn" class="topbar-btn primary">🔓 Unlock All Exam</button>
+          <button id="jlpt-refresh-btn" class="topbar-btn">🔄 Refresh</button>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;">
+          <div style="padding:12px 14px;border:1px solid var(--border);border-radius:14px;background:rgba(255,255,255,.03);">
+            <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Status Global</div>
+            <div id="jlpt-lock-state" style="font-size:15px;font-weight:800;">—</div>
           </div>
-          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
-            <input id="jlpt-exam-search" placeholder="Cari exam..." style="flex:1;min-width:220px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;padding:11px 14px;color:var(--text);font-family:inherit;font-size:14px;outline:none;">
-            <select id="jlpt-exam-level" style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;padding:11px 14px;color:var(--text);font-family:inherit;font-size:14px;outline:none;">
-              <option value="">All Levels</option>
-              <option value="N1">N1</option>
-              <option value="N2">N2</option>
-              <option value="N3">N3</option>
-              <option value="N4">N4</option>
-              <option value="N5">N5</option>
-            </select>
+          <div style="padding:12px 14px;border:1px solid var(--border);border-radius:14px;background:rgba(255,255,255,.03);">
+            <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Di-update</div>
+            <div id="jlpt-lock-updated" style="font-size:15px;font-weight:800;">—</div>
           </div>
-          <div id="jlpt-exam-lock-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;"></div>
+          <div style="padding:12px 14px;border:1px solid var(--border);border-radius:14px;background:rgba(255,255,255,.03);">
+            <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Active Sessions</div>
+            <div id="jlpt-live-count" style="font-size:15px;font-weight:800;">—</div>
+          </div>
+          <div style="padding:12px 14px;border:1px solid var(--border);border-radius:14px;background:rgba(255,255,255,.03);">
+            <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Finished Results</div>
+            <div id="jlpt-results-count" style="font-size:15px;font-weight:800;">—</div>
+          </div>
         </div>
       </div>
-    `;
 
-    const liveHtml = `
+      <div id="jlpt-exam-lock-card" style="background:var(--card);border:1px solid var(--border);border-radius:20px;padding:20px;box-shadow:0 8px 25px rgba(0,0,0,.18);">
+        <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:14px;">
+          <div>
+            <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;margin-bottom:4px;">🧩 Lock / Unlock Per Exam</div>
+            <div style="font-size:13px;color:var(--muted);line-height:1.6;">Centang satu atau beberapa ujian lalu pilih Lock/Unlock. Bisa custom satu, dua, atau semuanya.</div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button id="jlpt-lock-selected" class="topbar-btn" style="border-color:rgba(255,95,115,.35);color:#ff9aaa;background:rgba(255,95,115,.08);">🔒 Lock Selected</button>
+            <button id="jlpt-unlock-selected" class="topbar-btn primary">🔓 Unlock Selected</button>
+            <button id="jlpt-refresh-locks" class="topbar-btn">🔄 Reload List</button>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+          <input id="jlpt-exam-search" placeholder="Cari exam..." style="flex:1;min-width:220px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;padding:11px 14px;color:var(--text);font-family:inherit;font-size:14px;outline:none;">
+          <select id="jlpt-exam-level" style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;padding:11px 14px;color:var(--text);font-family:inherit;font-size:14px;outline:none;">
+            <option value="">All Levels</option>
+            <option value="N1">N1</option>
+            <option value="N2">N2</option>
+            <option value="N3">N3</option>
+            <option value="N4">N4</option>
+            <option value="N5">N5</option>
+          </select>
+        </div>
+        <div id="jlpt-exam-lock-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;"></div>
+      </div>
+
       <div id="jlpt-admin-live-card" style="background:var(--card);border:1px solid var(--border);border-radius:20px;overflow:hidden;box-shadow:0 8px 25px rgba(0,0,0,.18);">
         <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;padding:18px 20px;border-bottom:1px solid var(--border);">
           <div>
@@ -1276,7 +979,6 @@
             <div style="font-size:13px;color:var(--muted);line-height:1.6;">Lihat user yang sedang ujian, progress, dan sisa waktu secara realtime.</div>
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <span id="jlpt-live-count-badge" style="padding:8px 12px;border-radius:999px;font-size:12px;font-weight:800;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);">— session</span>
             <button id="jlpt-refresh-live" class="topbar-btn">🔄 Refresh Live</button>
           </div>
         </div>
@@ -1297,9 +999,7 @@
           </table>
         </div>
       </div>
-    `;
 
-    const resultsHtml = `
       <div id="jlpt-admin-results-card" style="background:var(--card);border:1px solid var(--border);border-radius:20px;overflow:hidden;box-shadow:0 8px 25px rgba(0,0,0,.18);">
         <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;padding:18px 20px;border-bottom:1px solid var(--border);">
           <div>
@@ -1307,7 +1007,6 @@
             <div style="font-size:13px;color:var(--muted);line-height:1.6;">Hasil akhir user tampil di sini dan bisa diekspor ke Excel dengan detail persentase per section.</div>
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <span id="jlpt-results-count-badge" style="padding:8px 12px;border-radius:999px;font-size:12px;font-weight:800;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);">— session</span>
             <button id="jlpt-export-xlsx" class="topbar-btn primary">📥 Export Excel</button>
             <button id="jlpt-refresh-results" class="topbar-btn">🔄 Refresh Results</button>
           </div>
@@ -1333,51 +1032,35 @@
       </div>
     `;
 
-    if (usingFallback) {
-      wrap.style.cssText = 'margin:18px 0 28px;display:grid;gap:16px;';
-      wrap.innerHTML = lockHtml + liveHtml + resultsHtml;
-      fallbackMount.prepend(wrap);
-    } else {
-      document.body.appendChild(wrap); // kept empty/hidden, just used as a "ready" marker
-      if (lockMount) lockMount.innerHTML = lockHtml;
-      if (liveMount) liveMount.innerHTML = liveHtml;
-      if (resultsMount) resultsMount.innerHTML = resultsHtml;
-    }
+    mount.prepend(wrap);
 
-    const root = usingFallback ? wrap : document;
-
-    root.querySelector('#jlpt-lock-btn')?.addEventListener('click', async () => {
+    wrap.querySelector('#jlpt-lock-btn')?.addEventListener('click', async () => {
       const reasonInput = prompt('Alasan lock semua ujian (opsional):', state.settings.exam_lock_reason || '');
       const reason = (reasonInput ?? state.settings.exam_lock_reason) || '';
       await setGlobalLock(true, reason);
     });
-    root.querySelector('#jlpt-unlock-btn')?.addEventListener('click', async () => {
+    wrap.querySelector('#jlpt-unlock-btn')?.addEventListener('click', async () => {
       const reasonInput = prompt('Catatan unlock semua ujian (opsional):', state.settings.exam_lock_reason || '');
       const reason = (reasonInput ?? '');
       await setGlobalLock(false, reason);
     });
-    root.querySelector('#jlpt-refresh-btn')?.addEventListener('click', () => refreshAdminPanels());
-    root.querySelector('#jlpt-refresh-live')?.addEventListener('click', () => refreshAdminLivePanel());
-    root.querySelector('#jlpt-refresh-results')?.addEventListener('click', () => refreshAdminResultsPanel());
-    root.querySelector('#jlpt-refresh-locks')?.addEventListener('click', () => renderAdminControlUI());
-    root.querySelector('#jlpt-select-all-exams')?.addEventListener('click', () => {
-      const boxes = root.querySelectorAll('.jlpt-lock-check');
-      const allChecked = Array.from(boxes).every((b) => b.checked);
-      boxes.forEach((b) => { b.checked = !allChecked; });
-    });
-    root.querySelector('#jlpt-lock-selected')?.addEventListener('click', async () => {
-      const keys = Array.from(root.querySelectorAll('.jlpt-lock-check:checked')).map((el) => el.dataset.examKey);
+    wrap.querySelector('#jlpt-refresh-btn')?.addEventListener('click', () => refreshAdminPanels());
+    wrap.querySelector('#jlpt-refresh-live')?.addEventListener('click', () => refreshAdminLivePanel());
+    wrap.querySelector('#jlpt-refresh-results')?.addEventListener('click', () => refreshAdminResultsPanel());
+    wrap.querySelector('#jlpt-refresh-locks')?.addEventListener('click', () => renderAdminControlUI());
+    wrap.querySelector('#jlpt-lock-selected')?.addEventListener('click', async () => {
+      const keys = Array.from(wrap.querySelectorAll('.jlpt-lock-check:checked')).map((el) => el.dataset.examKey);
       const reason = prompt('Alasan lock selected (opsional):', '') ?? '';
       await setMultipleExamLocks(keys, true, reason);
     });
-    root.querySelector('#jlpt-unlock-selected')?.addEventListener('click', async () => {
-      const keys = Array.from(root.querySelectorAll('.jlpt-lock-check:checked')).map((el) => el.dataset.examKey);
+    wrap.querySelector('#jlpt-unlock-selected')?.addEventListener('click', async () => {
+      const keys = Array.from(wrap.querySelectorAll('.jlpt-lock-check:checked')).map((el) => el.dataset.examKey);
       const reason = prompt('Catatan unlock selected (opsional):', '') ?? '';
       await setMultipleExamLocks(keys, false, reason);
     });
-    root.querySelector('#jlpt-exam-search')?.addEventListener('input', () => renderAdminControlUI());
-    root.querySelector('#jlpt-exam-level')?.addEventListener('change', () => renderAdminControlUI());
-    root.querySelector('#jlpt-export-xlsx')?.addEventListener('click', () => exportResultsExcel());
+    wrap.querySelector('#jlpt-exam-search')?.addEventListener('input', () => renderAdminControlUI());
+    wrap.querySelector('#jlpt-exam-level')?.addEventListener('change', () => renderAdminControlUI());
+    wrap.querySelector('#jlpt-export-xlsx')?.addEventListener('click', () => exportResultsExcel());
 
     state.adminPanelReady = true;
     return wrap;
@@ -1385,8 +1068,7 @@
 
   function renderAdminControlUI() {
     if (!state.isAdminPage) return;
-    ensureAdminPanel();
-    const panel = document; // elements may live in separate mount points; IDs are unique so query from document
+    const panel = ensureAdminPanel();
     const locked = !!state.settings.exam_locked;
 
     const pill = panel.querySelector('#jlpt-lock-pill');
@@ -1400,11 +1082,6 @@
     }
     if (stateText) stateText.textContent = locked ? 'Semua ujian terkunci' : 'Semua ujian terbuka';
     if (updatedText) updatedText.textContent = state.settings.updated_at ? fmtTime(state.settings.updated_at) : '—';
-
-    const liveCountBadge = panel.querySelector('#jlpt-live-count-badge');
-    const resultsCountBadge = panel.querySelector('#jlpt-results-count-badge');
-    if (liveCountBadge) liveCountBadge.textContent = panel.querySelector('#jlpt-live-count')?.textContent || '— session';
-    if (resultsCountBadge) resultsCountBadge.textContent = panel.querySelector('#jlpt-results-count')?.textContent || '— session';
 
     const search = String(panel.querySelector('#jlpt-exam-search')?.value || '').trim().toLowerCase();
     const level = String(panel.querySelector('#jlpt-exam-level')?.value || '').trim().toUpperCase();
@@ -1446,6 +1123,9 @@
         }).join('');
       }
     }
+
+    const globalCards = panel.querySelectorAll('#jlpt-admin-global-card, #jlpt-exam-lock-card, #jlpt-admin-live-card, #jlpt-admin-results-card');
+    globalCards.forEach((card) => { if (card) card.style.display = ''; });
   }
 
   async function loadXLSX() {
@@ -1652,12 +1332,10 @@
     if (state.isExamPage) {
       installExamGuards();
       await ensureServerSession();
-      await syncSession('open_exam', false, true);
       observeExamFunctions();
       enforceLockState();
       state.heartbeatTimer = setInterval(() => {
         if (state.examRunning) syncSession('heartbeat', false, false);
-        else syncSession('idle_poll', false, false);
       }, 10000);
       // Re-check access if admin changes lock state while user is on the exam page.
       setInterval(async () => {
@@ -1665,27 +1343,10 @@
         await loadCurrentExamLock();
         enforceLockState();
       }, 8000);
-      setTimeout(() => syncSession('page_ready_retry', false, true), 2500);
     }
   }
 
-  // IMPORTANT: this script is loaded as type="module", which defers
-  // execution until after HTML parsing, and the IIFE above awaits a dynamic
-  // import() before reaching this point. By the time that await resolves,
-  // DOMContentLoaded may have ALREADY fired — attaching a listener for it
-  // here would then never run, silently skipping initPage() forever (this
-  // is what caused the Lock Manager / Live Monitor / Exam Results panes to
-  // render their title but stay empty). Check readyState directly instead
-  // of blindly trusting the event will still come.
-  if (document.readyState === 'loading') {
-    if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initPage);
-  } else {
-    initPage();
-  }
-  } else {
-    initPage();
-  }
+  document.addEventListener('DOMContentLoaded', initPage);
 
   window.JLPT_SYNC = {
     setGlobalLock,
@@ -1700,7 +1361,6 @@
     refreshAdminPanels,
     syncSession,
     exportResultsExcel,
-    noteExamOpen,
     examMeta: examMetaFromPath,
   };
 })();
