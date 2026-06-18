@@ -1,44 +1,57 @@
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
-
 // jlpt-sync.js
-// Shared sync layer for:
-// - global lock/unlock of all exams
-// - live progress sync between exam pages and admin
-// - browser restrictions during exams
-// - admin dashboard live panel injection
+// Shared sync layer for JLPT:
+// - global lock/unlock (system_settings)
+// - per-exam lock/unlock (exam_settings)
+// - live session mirror (exam_progress)
+// - final result/session storage (exam_sessions)
+// - admin live monitor + results export (Excel)
+// - browser restrictions during active exams
 
-(function () {
+(async function () {
+  const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm');
+
   const SUPABASE_URL = 'https://uincqpdexdenjcmwdfsv.supabase.co';
   const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpbmNxcGRleGRlbmpjbXdkZnN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5MjM4ODEsImV4cCI6MjA5NTQ5OTg4MX0.Lf1N_P_iiNQ2hnRJhd-Quy9MLKlZFSzbnXtXCnmRCS0';
 
   const client = window._supabase || createClient(SUPABASE_URL, SUPABASE_ANON);
-  const state = window.__JLPT_SYNC__ = {
-    client,
-    settings: { id: 'global', exam_locked: false, exam_live_enabled: true, lock_reason: '', updated_at: null },
-    isAdmin: false,
-    isExamPage: false,
-    isIndexPage: false,
-    isAdminPage: false,
-    session: null,
-    userDb: null,
-    currentExam: null,
-    examRunning: false,
-    heartbeatTimer: null,
-    progressChannel: null,
-    settingsChannel: null,
-    lastSentAt: 0,
-    lastPayloadHash: '',
-    adminPanelReady: false,
-    indexBannerReady: false
-  };
+  if (!window._supabase) window._supabase = client;
 
   const ADMIN_EMAILS = new Set(['sidiqangga44@gmail.com', 'admin@example.com']);
 
+  const state = window.__JLPT_SYNC__ = window.__JLPT_SYNC__ || {
+    settings: {
+      exam_locked: false,
+      exam_lock_reason: '',
+      exam_live_enabled: true,
+      updated_at: null,
+      updated_by: null,
+    },
+    examLocks: new Map(),
+    session: null,
+    userDb: null,
+    isAdmin: false,
+    isIndexPage: false,
+    isAdminPage: false,
+    isExamPage: false,
+    examMeta: null,
+    examRunning: false,
+    lastProgressHash: '',
+    lastProgressSentAt: 0,
+    syncTimer: null,
+    heartbeatTimer: null,
+    settingsChannel: null,
+    progressChannel: null,
+    lockChannel: null,
+    adminPanelReady: false,
+    userMap: new Map(),
+    resultsCache: [],
+  };
+
   function pageKind() {
-    const p = location.pathname.toLowerCase();
-    if (p.includes('admin.html')) return 'admin';
-    if (p.includes('index.html')) return 'index';
-    if (p.match(/n[1-5]\.html$/) || p.includes('/jlpt/')) return 'exam';
+    const p = location.pathname.replace(/\\/g, '/').toLowerCase();
+    if (p.endsWith('/admin.html') || p.endsWith('admin.html')) return 'admin';
+    if (p.endsWith('/index.html') || p.endsWith('index.html')) return 'index';
+    if (/\/jlpt\/n[1-5]\/.*\.html$/i.test(p) || /n[1-5]\.html$/i.test(p)) return 'exam';
     return 'other';
   }
 
@@ -50,8 +63,8 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
     console.log('[JLPT]', msg);
   }
 
-  function esc(str) {
-    return String(str ?? '')
+  function esc(v) {
+    return String(v ?? '')
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
@@ -59,166 +72,432 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
       .replace(/'/g, '&#39;');
   }
 
+  function toBool(v) {
+    if (typeof v === 'boolean') return v;
+    const s = String(v ?? '').trim().toLowerCase();
+    return ['1', 'true', 'yes', 'on', 'locked'].includes(s);
+  }
+
+  function fmtTime(ts) {
+    if (!ts) return '—';
+    try { return new Date(ts).toLocaleString(); } catch { return String(ts); }
+  }
+
+  function fmtSec(sec) {
+    if (sec == null || Number.isNaN(Number(sec))) return '—';
+    const s = Math.max(0, Math.floor(Number(sec)));
+    const mm = Math.floor(s / 60);
+    const ss = s % 60;
+    return `${mm}:${String(ss).padStart(2, '0')}`;
+  }
+
+  function currentPath() {
+    return location.pathname.replace(/\\/g, '/');
+  }
+
+  function examMetaFromPath() {
+    if (state.examMeta) return state.examMeta;
+    const p = currentPath();
+    let key = '';
+    let level = '';
+    let year = '';
+    let month = '';
+    const m = p.match(/(\d{4})-(\d{2})-n([1-5])/i);
+    if (m) {
+      year = m[1];
+      month = m[2];
+      level = `N${m[3]}`;
+      key = `n${m[3]}-${m[1]}-${m[2]}`;
+    } else {
+      const m2 = p.match(/n([1-5])-(\d{4})-(\d{2})/i);
+      if (m2) {
+        level = `N${m2[1]}`;
+        year = m2[2];
+        month = m2[3];
+        key = `n${m2[1]}-${m2[2]}-${m2[3]}`;
+      } else {
+        const fallback = (location.pathname.split('/').pop() || document.title || 'exam').replace(/\.[^.]+$/, '');
+        key = fallback.toLowerCase();
+        const lev = fallback.match(/n([1-5])/i);
+        level = lev ? `N${lev[1]}` : 'N?';
+      }
+    }
+    state.examMeta = {
+      key,
+      level,
+      year,
+      month,
+      title: (document.title || `${level} Exam`).trim(),
+      path: p,
+    };
+    window.__JLPT_EXAM_KEY__ = key;
+    return state.examMeta;
+  }
+
+  function isAdminEmail(email = '') {
+    return ADMIN_EMAILS.has(String(email).trim().toLowerCase());
+  }
+
   async function getContext() {
     try {
       const session = window._session || (await client.auth.getSession()).data.session;
       if (!session) return null;
       const email = (session.user.email || '').trim().toLowerCase();
-      const isAdmin = ADMIN_EMAILS.has(email);
       let userDb = window._userDb || null;
       if (!userDb) {
         const res = await client.from('users').select('*').eq('id', session.user.id).maybeSingle();
         userDb = res.data || null;
       }
-      return { session, userDb, isAdmin };
+      const dbRole = String(userDb?.role || '').trim().toLowerCase();
+      const roleFromDb = ['admin', 'super admin', 'super_admin'].includes(dbRole);
+      return { session, userDb, isAdmin: isAdminEmail(email) || roleFromDb };
     } catch (err) {
-      console.warn('JLPT context error:', err?.message || err);
+      console.warn('getContext failed:', err?.message || err);
       return null;
     }
   }
 
-  async function fetchSettings() {
+  async function loadUserMap() {
+    if (!state.isAdminPage) return state.userMap;
+    if (state.userMap.size) return state.userMap;
+    try {
+      const { data, error } = await client.from('users').select('id, full_name, display_name, email, role');
+      if (error) throw error;
+      const map = new Map();
+      (data || []).forEach((u) => map.set(u.id, u));
+      state.userMap = map;
+      return map;
+    } catch (err) {
+      console.warn('loadUserMap failed:', err?.message || err);
+      return state.userMap;
+    }
+  }
+
+  async function loadSystemSettings() {
+    try {
+      const { data, error } = await client.from('system_settings').select('*');
+      if (error) throw error;
+      const rows = Array.isArray(data) ? data : [];
+      const map = Object.fromEntries(rows.map((r) => [String(r.key || '').toLowerCase(), String(r.value ?? '')]));
+      state.settings.exam_locked = toBool(map.exam_locked);
+      state.settings.exam_lock_reason = map.exam_lock_reason || '';
+      state.settings.exam_live_enabled = !toBool(map.exam_live_enabled) || String(map.exam_live_enabled).trim().toLowerCase() === 'true';
+      state.settings.updated_at = rows[0]?.updated_at || state.settings.updated_at;
+      state.settings.updated_by = rows[0]?.updated_by || state.settings.updated_by;
+      return state.settings;
+    } catch (err) {
+      console.warn('system_settings load failed:', err?.message || err);
+      return state.settings;
+    }
+  }
+
+  async function loadExamLocks(force = false) {
+    if (!force && state.examLocks.size) return state.examLocks;
     try {
       const { data, error } = await client
         .from('exam_settings')
-        .select('*')
-        .eq('id', 'global')
-        .maybeSingle();
+        .select('exam_key,title,level,locked,lock_reason,updated_at,updated_by');
       if (error) throw error;
-      if (data) {
-        state.settings = {
-          id: 'global',
-          exam_locked: !!data.exam_locked,
-          exam_live_enabled: data.exam_live_enabled !== false,
-          lock_reason: data.lock_reason || '',
-          updated_at: data.updated_at || null,
-          updated_by: data.updated_by || null
-        };
-      }
+      const map = new Map();
+      (data || []).forEach((row) => map.set(String(row.exam_key || '').toLowerCase(), row));
+      state.examLocks = map;
+      return map;
     } catch (err) {
-      // If the table isn't created yet, keep safe defaults.
-      console.warn('exam_settings not ready:', err?.message || err);
+      console.warn('exam_settings load failed:', err?.message || err);
+      return state.examLocks;
     }
-    return state.settings;
   }
 
-  async function saveSettings(patch) {
+  async function loadCurrentExamLock() {
+    const meta = examMetaFromPath();
+    if (!meta.key) return null;
+    const map = await loadExamLocks(true);
+    return map.get(meta.key) || null;
+  }
+
+  async function setSystemSetting(key, value) {
     const ctx = await getContext();
-    if (!ctx || !ctx.isAdmin) {
+    if (!ctx?.isAdmin) {
       toast('⛔ Admin only');
       return false;
     }
-
-    const payload = {
-      id: 'global',
-      exam_locked: !!patch.exam_locked,
-      exam_live_enabled: patch.exam_live_enabled !== false,
-      lock_reason: patch.lock_reason ?? state.settings.lock_reason ?? '',
-      updated_at: new Date().toISOString(),
-      updated_by: ctx.session.user.id
-    };
-
     try {
-      const { error } = await client.from('exam_settings').upsert(payload, { onConflict: 'id' });
+      const payload = {
+        key,
+        value: String(value ?? ''),
+        updated_at: new Date().toISOString(),
+        updated_by: ctx.session.user.id,
+      };
+      const { error } = await client.from('system_settings').upsert(payload, { onConflict: 'key' });
       if (error) throw error;
-      state.settings = { ...state.settings, ...payload };
+      await loadSystemSettings();
       renderIndexLockUI();
       renderAdminControlUI();
-      await refreshAdminLivePanel();
-      toast(payload.exam_locked ? '🔒 Semua exam dikunci' : '🔓 Semua exam dibuka');
+      await refreshAdminPanels();
       return true;
     } catch (err) {
-      console.error('saveSettings failed:', err);
-      toast('⚠️ Gagal menyimpan status global');
+      console.error('setSystemSetting failed:', err);
+      toast('⚠️ Gagal menyimpan setting global');
       return false;
     }
   }
 
-  function examMeta() {
-    if (state.currentExam) return state.currentExam;
-
-    const path = location.pathname.replace(/\\/g, '/').toLowerCase();
-    const match = path.match(/(?:\/|^)(\d{4}-\d{2})-n([1-5])\.html$/i);
-    const levelMatch = path.match(/n([1-5])\.html$/i);
-    const level = levelMatch ? `N${levelMatch[1]}` : 'N?';
-    const examKey = match ? `n${match[2]}-${match[1]}` : (window.location.pathname.split('/').pop() || 'exam');
-    const title = (document.title || `JLPT ${level}`).trim();
-
-    state.currentExam = {
-      key: examKey,
-      name: title,
-      level,
-      year: match ? match[1].split('-')[0] : (title.match(/20\d{2}/)?.[0] || ''),
-      month: match ? match[1].split('-')[1] : '',
-      path: location.pathname,
-      title
-    };
-    return state.currentExam;
-  }
-
-  function getExamStateSnapshot(eventName) {
-    const q = Number(window.currentQ ?? 0);
-    const qs = Array.isArray(window.questions) ? window.questions : [];
-    const ans = window.answers && typeof window.answers === 'object' ? window.answers : {};
-    const total = qs.length || Number(window.totalQuestions || 0) || 0;
-    const answered = Object.keys(ans).length;
-    const correct = Object.values(ans).filter(v => v && v.correct).length;
-    const startTime = Number(window.startTime || 0);
-    const totalSeconds = Number(window.totalSeconds || 0);
-    const remaining = startTime && totalSeconds ? Math.max(totalSeconds - Math.floor((Date.now() - startTime) / 1000), 0) : null;
-
-    return {
-      exam_key: examMeta().key,
-      exam_name: examMeta().name,
-      level: examMeta().level,
-      year: Number(examMeta().year) || null,
-      month: examMeta().month || null,
-      mode: window.mode || window.currentMode || 'all',
-      status: window.__JLPT_EXAM_FINISHED__ ? 'done' : (state.examRunning ? 'active' : 'idle'),
-      current_q: q + 1,
-      total_q: total,
-      answered_count: answered,
-      correct_count: correct,
-      remaining_seconds: remaining,
-      client_time: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      last_event: eventName || (state.examRunning ? 'heartbeat' : 'idle')
-    };
-  }
-
-  function payloadHash(payload) {
-    try { return JSON.stringify(payload); } catch { return String(Date.now()); }
-  }
-
-  async function pushProgress(eventName, force = false) {
+  async function setGlobalLock(locked, reason = '') {
     const ctx = await getContext();
-    if (!ctx || ctx.isAdmin) return false;
+    if (!ctx?.isAdmin) return false;
+    await setSystemSetting('exam_locked', locked ? 'true' : 'false');
+    await setSystemSetting('exam_lock_reason', reason || '');
+    toast(locked ? '🔒 Semua exam dikunci' : '🔓 Semua exam dibuka');
+    return true;
+  }
 
-    const payload = getExamStateSnapshot(eventName);
-    const hash = payloadHash(payload);
-    const now = Date.now();
-    if (!force && state.lastPayloadHash === hash && now - state.lastSentAt < 4000) return true;
-    state.lastPayloadHash = hash;
-    state.lastSentAt = now;
-
+  async function setExamLock(examKey, locked, reason = '') {
+    const ctx = await getContext();
+    if (!ctx?.isAdmin) {
+      toast('⛔ Admin only');
+      return false;
+    }
+    const key = String(examKey || '').toLowerCase();
+    if (!key) return false;
     try {
-      const { error } = await client.from('exam_progress').upsert({
-        user_id: ctx.session.user.id,
-        ...payload
-      }, { onConflict: 'user_id,exam_key' });
+      const row = state.examLocks.get(key) || {};
+      const payload = {
+        exam_key: key,
+        title: row.title || '',
+        level: row.level || '',
+        locked: !!locked,
+        lock_reason: reason ?? row.lock_reason ?? '',
+        updated_at: new Date().toISOString(),
+        updated_by: ctx.session.user.id,
+      };
+      const { error } = await client.from('exam_settings').upsert(payload, { onConflict: 'exam_key' });
       if (error) throw error;
+      await loadExamLocks(true);
+      renderIndexLockUI();
+      renderAdminControlUI();
+      await refreshAdminPanels();
       return true;
     } catch (err) {
-      console.warn('pushProgress failed:', err?.message || err);
+      console.error('setExamLock failed:', err);
+      toast('⚠️ Gagal menyimpan lock ujian');
+      return false;
+    }
+  }
+
+  async function setMultipleExamLocks(examKeys, locked, reason = '') {
+    const keys = Array.from(new Set((examKeys || []).map((k) => String(k || '').toLowerCase()).filter(Boolean)));
+    if (!keys.length) {
+      toast('Pilih minimal satu ujian');
+      return false;
+    }
+    let ok = 0;
+    for (const key of keys) {
+      if (await setExamLock(key, locked, reason)) ok += 1;
+    }
+    toast(ok ? `${locked ? '🔒' : '🔓'} ${ok} ujian diperbarui` : '⚠️ Tidak ada ujian yang berubah');
+    return ok > 0;
+  }
+
+  function questionGroups() {
+    const groups = [
+      { label: '文字・語彙', key: 'moji', aliases: ['文字・語彙', '文字', '語彙'] },
+      { label: '文法', key: 'bunpou', aliases: ['文法'] },
+      { label: '読解', key: 'dokkai', aliases: ['読解'] },
+    ];
+    return groups;
+  }
+
+  function sectionKeyFromLabel(sec = '') {
+    const s = String(sec || '');
+    if (s.includes('文字') || s.includes('語彙')) return 'moji';
+    if (s.includes('文法')) return 'bunpou';
+    if (s.includes('読解')) return 'dokkai';
+    return 'other';
+  }
+
+  function computeStats() {
+    const qs = Array.isArray(window.questions) ? window.questions : [];
+    const ans = window.answers && typeof window.answers === 'object' ? window.answers : {};
+    const answered = Object.keys(ans).length;
+    const correct = Object.values(ans).filter((a) => a && a.correct).length;
+    const total = qs.length || Number(window.totalQuestions || 0) || 0;
+    const wrong = Math.max(answered - correct, 0);
+    const percent = total ? Math.round((correct / total) * 10000) / 100 : 0;
+
+    const sectionScores = {};
+    for (const g of questionGroups()) {
+      const items = qs.filter((q) => sectionKeyFromLabel(q.sec) === g.key);
+      const correctCount = items.filter((q) => ans[q.id] && ans[q.id].correct).length;
+      const totalCount = items.length;
+      sectionScores[g.key] = {
+        label: g.label,
+        correct: correctCount,
+        total: totalCount,
+        percentage: totalCount ? Math.round((correctCount / totalCount) * 10000) / 100 : 0,
+      };
+    }
+
+    return { answered, correct, wrong, total, percent, sectionScores };
+  }
+
+  function remainingSeconds() {
+    const startTime = Number(window.startTime || 0);
+    const totalSeconds = Number(window.totalSeconds || 0);
+    if (!startTime || !totalSeconds) return null;
+    return Math.max(totalSeconds - Math.floor((Date.now() - startTime) / 1000), 0);
+  }
+
+  function buildSnapshot(eventName = 'heartbeat', done = false) {
+    const meta = examMetaFromPath();
+    const stats = computeStats();
+    const rem = remainingSeconds();
+    const now = new Date().toISOString();
+    const currentQ = Number(window.currentQ ?? 0);
+    const totalQuestions = Number(stats.total || 0);
+
+    const answers = window.answers && typeof window.answers === 'object' ? window.answers : {};
+    const startedAt = window.__JLPT_SESSION_STARTED_AT__ || window.startTimeISO || null;
+
+    return {
+      exam_key: meta.key,
+      exam_title: meta.title,
+      level: meta.level,
+      year: meta.year ? Number(meta.year) : null,
+      month: meta.month || null,
+      mode: window.mode || window.currentMode || 'all',
+      started_at: startedAt || now,
+      updated_at: now,
+      last_seen_at: now,
+      current_question: currentQ + 1,
+      total_questions: totalQuestions,
+      timer_remaining: rem,
+      answers,
+      score: stats.correct,
+      correct_count: stats.correct,
+      wrong_count: done ? Math.max(totalQuestions - stats.correct, 0) : stats.wrong,
+      percentage: stats.percent,
+      section_scores: stats.sectionScores,
+      completed: !!done,
+      completed_at: done ? now : null,
+      status: done ? 'done' : (state.examRunning ? 'active' : 'idle'),
+      last_event: eventName,
+    };
+  }
+
+  function buildLivePayload(snapshot) {
+    return {
+      exam_key: snapshot.exam_key,
+      exam_title: snapshot.exam_title,
+      level: snapshot.level,
+      year: snapshot.year,
+      month: snapshot.month,
+      mode: snapshot.mode,
+      status: snapshot.status,
+      current_q: snapshot.current_question,
+      total_q: snapshot.total_questions,
+      answered_count: Object.keys(snapshot.answers || {}).length,
+      correct_count: snapshot.correct_count,
+      wrong_count: snapshot.wrong_count,
+      percentage: snapshot.percentage,
+      remaining_seconds: snapshot.timer_remaining,
+      last_event: snapshot.last_event,
+      client_time: snapshot.updated_at,
+      updated_at: snapshot.updated_at,
+    };
+  }
+
+  async function ensureServerSession() {
+    const ctx = await getContext();
+    if (!ctx || ctx.isAdmin || !state.isExamPage) return null;
+    const snapshot = buildSnapshot('prime', false);
+    try {
+      const { data, error } = await client
+        .from('exam_sessions')
+        .select('*')
+        .eq('user_id', ctx.session.user.id)
+        .eq('exam_key', snapshot.exam_key)
+        .maybeSingle();
+      if (error && String(error.message || '').toLowerCase().includes('row-level security')) return null;
+      if (!error && data) {
+        window.__JLPT_SESSION_STARTED_AT__ = data.started_at || snapshot.started_at;
+        return data;
+      }
+    } catch (err) {
+      console.warn('ensureServerSession failed:', err?.message || err);
+    }
+    return null;
+  }
+
+  async function syncSession(eventName = 'heartbeat', done = false, force = false) {
+    const ctx = await getContext();
+    if (!ctx || ctx.isAdmin || !state.settings.exam_live_enabled) return false;
+    const snapshot = buildSnapshot(eventName, done);
+    const hash = JSON.stringify({
+      k: snapshot.exam_key,
+      q: snapshot.current_question,
+      a: snapshot.answers,
+      c: snapshot.correct_count,
+      w: snapshot.wrong_count,
+      p: snapshot.percentage,
+      s: snapshot.status,
+      r: snapshot.timer_remaining,
+      d: snapshot.completed,
+      e: snapshot.last_event,
+    });
+    const now = Date.now();
+    if (!force && state.lastProgressHash === hash && now - state.lastProgressSentAt < 4000) return true;
+    state.lastProgressHash = hash;
+    state.lastProgressSentAt = now;
+
+    try {
+      const progressPayload = buildLivePayload(snapshot);
+      const sessionPayload = {
+        user_id: ctx.session.user.id,
+        exam_key: snapshot.exam_key,
+        exam_title: snapshot.exam_title,
+        level: snapshot.level,
+        year: snapshot.year,
+        month: snapshot.month,
+        mode: snapshot.mode,
+        started_at: snapshot.started_at,
+        updated_at: snapshot.updated_at,
+        last_seen_at: snapshot.last_seen_at,
+        answers: snapshot.answers,
+        current_question: snapshot.current_question,
+        total_questions: snapshot.total_questions,
+        timer_remaining: snapshot.timer_remaining,
+        score: snapshot.score,
+        correct_count: snapshot.correct_count,
+        wrong_count: snapshot.wrong_count,
+        percentage: snapshot.percentage,
+        section_scores: snapshot.section_scores,
+        completed: snapshot.completed,
+        completed_at: snapshot.completed_at,
+        status: snapshot.status,
+        last_event: snapshot.last_event,
+      };
+
+      const [progressRes, sessionRes] = await Promise.all([
+        client.from('exam_progress').upsert({
+          user_id: ctx.session.user.id,
+          ...progressPayload,
+        }, { onConflict: 'user_id,exam_key' }),
+        client.from('exam_sessions').upsert(sessionPayload, { onConflict: 'user_id,exam_key' }),
+      ]);
+
+      if (progressRes.error) throw progressRes.error;
+      if (sessionRes.error) throw sessionRes.error;
+      return true;
+    } catch (err) {
+      console.warn('syncSession failed:', err?.message || err);
       return false;
     }
   }
 
   function blockExamShortcuts(e) {
     if (!state.isExamPage || !state.examRunning) return;
-
     const blocked = new Set(['F5', 'F6', 'F12', 'Escape', 'PrintScreen']);
-    const ctrlBlocked = new Set(['l', 'n', 't', 'w', 'r', 'u', 's', 'p', 'f']);
+    const ctrlBlocked = new Set(['l', 'n', 't', 'w', 'r', 'u', 's', 'p', 'f', 'j']);
     if (
       blocked.has(e.key) ||
       ((e.ctrlKey || e.metaKey) && ctrlBlocked.has((e.key || '').toLowerCase())) ||
@@ -231,6 +510,45 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
     }
   }
 
+  function showExamLockShield(reason = '') {
+    if (!state.isExamPage) return;
+    let shield = document.getElementById('jlpt-exam-lock-shield');
+    if (!shield) {
+      shield = document.createElement('div');
+      shield.id = 'jlpt-exam-lock-shield';
+      shield.style.cssText = 'position:fixed;inset:0;z-index:999999;background:rgba(5,9,16,.95);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:18px;text-align:center;';
+      shield.innerHTML = `
+        <div style="max-width:560px;background:#111a2f;border:1px solid rgba(255,95,115,.3);border-radius:24px;padding:28px 24px;box-shadow:0 25px 80px rgba(0,0,0,.6);">
+          <div style="font-size:46px;margin-bottom:10px;">🔒</div>
+          <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;margin-bottom:8px;color:#ff9aaa;">Ujian sedang dikunci</div>
+          <div id="jlpt-lock-shield-text" style="font-size:14px;color:#aab8d8;line-height:1.8;">Admin belum membuka akses ujian ini.</div>
+        </div>
+      `;
+      document.body.appendChild(shield);
+    }
+    const text = shield.querySelector('#jlpt-lock-shield-text');
+    if (text) text.textContent = reason || 'Admin belum membuka akses ujian ini.';
+    shield.style.display = 'flex';
+  }
+
+  function hideExamLockShield() {
+    const shield = document.getElementById('jlpt-exam-lock-shield');
+    if (shield) shield.remove();
+  }
+
+  function enforceLockState() {
+    if (!state.isExamPage) return;
+    const locked = !!state.settings.exam_locked;
+    const rowLocked = !!state.examLocks.get(examMetaFromPath().key)?.locked;
+    const isLocked = (locked || rowLocked) && !state.isAdmin;
+    if (isLocked) {
+      state.examRunning = false;
+      showExamLockShield(state.settings.exam_lock_reason || state.examLocks.get(examMetaFromPath().key)?.lock_reason || '');
+    } else {
+      hideExamLockShield();
+    }
+  }
+
   function installExamGuards() {
     if (!state.isExamPage) return;
 
@@ -240,29 +558,31 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
     }, true);
 
     window.addEventListener('blur', () => {
-      if (state.examRunning) pushProgress('blur');
+      if (state.examRunning) syncSession('blur', false, true);
     });
 
     document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'hidden' && state.examRunning) pushProgress('hidden', true);
-      if (document.visibilityState === 'visible' && state.examRunning) pushProgress('visible', true);
+      if (document.visibilityState === 'hidden' && state.examRunning) syncSession('hidden', false, true);
+      if (document.visibilityState === 'visible' && state.examRunning) syncSession('visible', false, true);
     });
 
     window.addEventListener('beforeunload', (e) => {
       if (!state.examRunning) return;
-      try { pushProgress('beforeunload', true); } catch {}
+      try { syncSession('beforeunload', false, true); } catch {}
       e.preventDefault();
       e.returnValue = '';
       return '';
     });
   }
 
-  function wrap(name, handler) {
+  function wrapFunction(name, afterHook) {
     const original = window[name];
     if (typeof original !== 'function' || original.__jlptWrapped) return false;
 
     const wrapped = function (...args) {
-      return handler.call(this, original, args);
+      const result = original.apply(this, args);
+      afterHook?.(result, args);
+      return result;
     };
     wrapped.__jlptWrapped = true;
     wrapped.__jlptOriginal = original;
@@ -272,128 +592,79 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 
   function observeExamFunctions() {
     if (!state.isExamPage) return;
-
     const timer = setInterval(() => {
       if (typeof window.startMode === 'function' && !window.startMode.__jlptWrapped) {
-        wrap('startMode', async (original, args) => {
-          if (state.settings.exam_locked && !state.isAdmin) {
-            toast('🔒 Semua exam sedang dikunci admin');
+        const original = window.startMode;
+        const wrapped = function (...args) {
+          const currentLock = !!state.settings.exam_locked || !!state.examLocks.get(examMetaFromPath().key)?.locked;
+          if (currentLock && !state.isAdmin) {
+            showExamLockShield(state.settings.exam_lock_reason || state.examLocks.get(examMetaFromPath().key)?.lock_reason || '');
+            toast('🔒 Ujian sedang dikunci admin');
             return;
           }
           state.examRunning = true;
           window.__JLPT_EXAM_FINISHED__ = false;
+          window.__JLPT_SESSION_STARTED_AT__ = window.__JLPT_SESSION_STARTED_AT__ || new Date().toISOString();
           const result = original.apply(this, args);
-          setTimeout(() => pushProgress('start', true), 120);
+          setTimeout(() => syncSession('start', false, true), 150);
           return result;
-        });
+        };
+        wrapped.__jlptWrapped = true;
+        wrapped.__jlptOriginal = original;
+        window.startMode = wrapped;
       }
 
-      if (typeof window.selectAnswer === 'function' && !window.selectAnswer.__jlptWrapped) {
-        wrap('selectAnswer', (original, args) => {
-          const result = original.apply(this, args);
-          setTimeout(() => pushProgress('answer'), 180);
-          return result;
-        });
-      }
-
-      if (typeof window.nextQ === 'function' && !window.nextQ.__jlptWrapped) {
-        wrap('nextQ', (original, args) => {
-          const result = original.apply(this, args);
-          setTimeout(() => pushProgress('next'), 120);
-          return result;
-        });
-      }
-
-      if (typeof window.prevQ === 'function' && !window.prevQ.__jlptWrapped) {
-        wrap('prevQ', (original, args) => {
-          const result = original.apply(this, args);
-          setTimeout(() => pushProgress('prev'), 120);
-          return result;
-        });
-      }
-
-      if (typeof window.saveSessionManual === 'function' && !window.saveSessionManual.__jlptWrapped) {
-        wrap('saveSessionManual', (original, args) => {
-          const result = original.apply(this, args);
-          setTimeout(() => pushProgress('save', true), 80);
-          return result;
-        });
-      }
-
-      if (typeof window.loadSessionManual === 'function' && !window.loadSessionManual.__jlptWrapped) {
-        wrap('loadSessionManual', (original, args) => {
-          const result = original.apply(this, args);
-          setTimeout(() => pushProgress('load', true), 80);
-          return result;
-        });
-      }
+      wrapFunction('selectAnswer', () => setTimeout(() => syncSession('answer'), 160));
+      wrapFunction('nextQ', () => setTimeout(() => syncSession('next'), 120));
+      wrapFunction('prevQ', () => setTimeout(() => syncSession('prev'), 120));
+      wrapFunction('saveSessionManual', () => setTimeout(() => syncSession('save', false, true), 80));
+      wrapFunction('loadSessionManual', () => setTimeout(() => syncSession('load', false, true), 80));
 
       if (typeof window.finishQuiz === 'function' && !window.finishQuiz.__jlptWrapped) {
-        wrap('finishQuiz', async (original, args) => {
+        const original = window.finishQuiz;
+        const wrapped = function (...args) {
           const result = original.apply(this, args);
           window.__JLPT_EXAM_FINISHED__ = true;
           state.examRunning = false;
-          setTimeout(() => pushProgress('done', true), 120);
+          setTimeout(() => syncSession('done', true, true), 180);
           return result;
-        });
+        };
+        wrapped.__jlptWrapped = true;
+        wrapped.__jlptOriginal = original;
+        window.finishQuiz = wrapped;
       }
 
-      if (typeof window.goHome === 'function' && !window.goHome.__jlptWrapped) {
-        wrap('goHome', (original, args) => {
-          state.examRunning = false;
-          const result = original.apply(this, args);
-          setTimeout(() => pushProgress('home'), 80);
-          return result;
-        });
-      }
+      wrapFunction('goHome', () => {
+        state.examRunning = false;
+        setTimeout(() => syncSession('home', false, true), 80);
+      });
+      wrapFunction('openReport', () => setTimeout(() => syncSession('report_open', false, true), 80));
+      wrapFunction('closeReport', () => setTimeout(() => syncSession('report_close', false, true), 80));
 
-      if (typeof window.openReport === 'function' && !window.openReport.__jlptWrapped) {
-        wrap('openReport', (original, args) => {
-          const result = original.apply(this, args);
-          setTimeout(() => pushProgress('report_open'), 80);
-          return result;
-        });
-      }
-
-      if (typeof window.closeReport === 'function' && !window.closeReport.__jlptWrapped) {
-        wrap('closeReport', (original, args) => {
-          const result = original.apply(this, args);
-          setTimeout(() => pushProgress('report_close'), 80);
-          return result;
-        });
-      }
-
-      if (
-        window.startMode?.__jlptWrapped &&
-        window.selectAnswer?.__jlptWrapped &&
-        window.finishQuiz?.__jlptWrapped &&
-        window.goHome?.__jlptWrapped
-      ) {
+      if (window.startMode?.__jlptWrapped && window.selectAnswer?.__jlptWrapped && window.finishQuiz?.__jlptWrapped) {
         clearInterval(timer);
       }
-    }, 200);
+    }, 220);
 
     setTimeout(() => clearInterval(timer), 15000);
   }
 
-  function ensureIndexBanner() {
-    const existing = document.getElementById('jlpt-global-banner');
-    if (existing) return existing;
-    const banner = document.createElement('div');
-    banner.id = 'jlpt-global-banner';
-    banner.style.cssText = [
-      'display:none',
-      'margin:0 0 16px 0',
-      'padding:14px 16px',
-      'border-radius:18px',
-      'border:1px solid rgba(255,181,71,.28)',
-      'background:rgba(255,181,71,.10)',
-      'color:#ffd18a',
-      'font-size:13px',
-      'line-height:1.6'
-    ].join(';');
-    banner.innerHTML = '<strong>🔒 Semua ujian sedang dikunci admin.</strong><br><span id="jlpt-global-banner-text">Tunggu persetujuan admin untuk membuka kembali semua ujian.</span>';
+  function examKeyFromHref(href = '') {
+    const s = String(href || '').replace(/\\/g, '/');
+    const m = s.match(/(\d{4})-(\d{2})-n([1-5])/i);
+    if (m) return `n${m[3]}-${m[1]}-${m[2]}`;
+    const m2 = s.match(/n([1-5])-(\d{4})-(\d{2})/i);
+    if (m2) return `n${m2[1]}-${m2[2]}-${m2[3]}`;
+    return '';
+  }
 
+  function ensureIndexBanner() {
+    let banner = document.getElementById('jlpt-global-banner');
+    if (banner) return banner;
+    banner = document.createElement('div');
+    banner.id = 'jlpt-global-banner';
+    banner.style.cssText = 'display:none;margin:0 0 16px 0;padding:14px 16px;border-radius:18px;border:1px solid rgba(255,181,71,.28);background:rgba(255,181,71,.10);color:#ffd18a;font-size:13px;line-height:1.6;';
+    banner.innerHTML = '<strong>🔒 Ujian sedang dikunci admin.</strong><br><span id="jlpt-global-banner-text">Tunggu persetujuan admin untuk membuka kembali ujian.</span>';
     const hero = document.querySelector('.hero');
     const content = document.querySelector('.content') || document.body;
     if (hero?.parentNode) hero.insertAdjacentElement('afterend', banner);
@@ -401,142 +672,132 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
     return banner;
   }
 
-  function disableIndexExamLinks(locked) {
-    const links = document.querySelectorAll('.open-btn');
-    links.forEach((link) => {
+  function badgeForCard(card, text, color, background, borderColor) {
+    let badge = card.querySelector('.jlpt-lock-badge');
+    if (!badge) {
+      badge = document.createElement('div');
+      badge.className = 'jlpt-lock-badge';
+      badge.style.cssText = 'position:absolute;top:16px;right:16px;padding:4px 10px;border-radius:999px;font-size:10px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;z-index:5;';
+      card.appendChild(badge);
+    }
+    badge.textContent = text;
+    badge.style.color = color;
+    badge.style.background = background;
+    badge.style.border = `1px solid ${borderColor || color}`;
+  }
+
+  function setCardLockedState(card, locked) {
+    if (!card) return;
+    card.dataset.jlptLocked = locked ? '1' : '';
+    card.style.opacity = locked ? '0.72' : '';
+    card.style.filter = locked ? 'saturate(0.8)' : '';
+    const btn = card.querySelector('.open-btn');
+    if (btn) {
       if (locked) {
-        link.dataset.jlptLocked = '1';
-        link.setAttribute('aria-disabled', 'true');
-        link.style.pointerEvents = 'none';
-        link.style.opacity = '0.5';
-        link.style.filter = 'grayscale(0.35)';
-        link.title = 'Semua ujian sedang dikunci admin';
-        link.onclick = (e) => {
+        btn.setAttribute('aria-disabled', 'true');
+        btn.style.pointerEvents = 'none';
+        btn.style.opacity = '0.5';
+        btn.style.filter = 'grayscale(0.25)';
+        btn.title = 'Ujian sedang dikunci admin';
+        btn.onclick = (e) => {
           e.preventDefault();
           e.stopPropagation();
-          toast('🔒 Semua exam sedang dikunci admin');
+          toast('🔒 Ujian ini sedang dikunci admin');
           return false;
         };
       } else {
-        if (link.dataset.jlptLocked === '1') {
-          link.style.pointerEvents = '';
-          link.style.opacity = '';
-          link.style.filter = '';
-          link.removeAttribute('aria-disabled');
-          link.title = '';
-          link.dataset.jlptLocked = '';
-          link.onclick = function () {
-            if (typeof window.recordExamOpen === 'function') {
-              window.recordExamOpen(this);
-            }
-          };
-        }
+        btn.removeAttribute('aria-disabled');
+        btn.style.pointerEvents = '';
+        btn.style.opacity = '';
+        btn.style.filter = '';
+        btn.title = '';
+        btn.onclick = function () {
+          if (typeof window.recordExamOpen === 'function') window.recordExamOpen(this);
+        };
       }
+    }
+    badgeForCard(card, locked ? 'Locked' : 'Open', locked ? '#ff9aaa' : '#5ff0b0', locked ? 'rgba(255,95,115,.12)' : 'rgba(25,195,125,.12)', locked ? 'rgba(255,95,115,.30)' : 'rgba(25,195,125,.30)');
+  }
+
+  async function renderIndexLockUI() {
+    if (!state.isIndexPage) return;
+    await loadSystemSettings();
+    await loadExamLocks(true);
+
+    const banner = ensureIndexBanner();
+    const globalLocked = !!state.settings.exam_locked && !state.isAdmin;
+    const lockValues = Array.from(state.examLocks.values());
+    const lockedExamCount = lockValues.filter((r) => !!r.locked).length;
+
+    banner.style.display = (globalLocked || lockedExamCount > 0) ? 'block' : 'none';
+    const text = banner.querySelector('#jlpt-global-banner-text');
+    if (text) {
+      if (globalLocked) {
+        text.textContent = state.settings.exam_lock_reason || 'Semua ujian sedang dikunci admin.';
+      } else if (lockedExamCount > 0) {
+        text.textContent = `${lockedExamCount} ujian sedang dikunci admin. Ujian lain tetap dapat dibuka.`;
+      } else {
+        text.textContent = 'Tunggu persetujuan admin untuk membuka kembali ujian.';
+      }
+    }
+
+    const cards = document.querySelectorAll('.card[data-examkey], .card[data-name]');
+    cards.forEach((card) => {
+      const key = String(card.dataset.examkey || card.dataset.name || '').toLowerCase();
+      const row = state.examLocks.get(key);
+      const locked = (!!state.settings.exam_locked || !!row?.locked) && !state.isAdmin;
+      setCardLockedState(card, locked);
+    });
+
+    const links = document.querySelectorAll('.open-btn');
+    links.forEach((link) => {
+      const href = link.getAttribute('href') || '';
+      const key = examKeyFromHref(href);
+      const row = state.examLocks.get(key);
+      const locked = (!!state.settings.exam_locked || !!row?.locked) && !state.isAdmin;
+      const card = link.closest('.card');
+      setCardLockedState(card, locked);
     });
   }
 
-  function renderIndexLockUI() {
-    if (!state.isIndexPage) return;
-    const banner = ensureIndexBanner();
-    const locked = !!state.settings.exam_locked && !state.isAdmin;
-    banner.style.display = locked ? 'block' : 'none';
-    const text = banner.querySelector('#jlpt-global-banner-text');
-    if (text) {
-      text.textContent = state.settings.lock_reason
-        ? state.settings.lock_reason
-        : 'Tunggu persetujuan admin untuk membuka kembali semua ujian.';
+  function getExamCatalog() {
+    const catalog = [];
+    if (Array.isArray(window._examList) && window._examList.length) {
+      window._examList.forEach((e) => {
+        catalog.push({
+          key: String(e.key || '').toLowerCase(),
+          level: String(e.level || '').toUpperCase(),
+          year: e.year || '',
+          title: e.title || '',
+          href: e.href || '',
+          isNew: !!e.isNew,
+        });
+      });
     }
-    disableIndexExamLinks(locked);
-  }
 
-  function ensureAdminPanel() {
-    const existing = document.getElementById('jlpt-admin-control-card');
-    if (existing) return existing;
-
-    const mount = document.getElementById('pane-dashboard') || document.querySelector('.content') || document.body;
-    const wrap = document.createElement('div');
-    wrap.id = 'jlpt-admin-control-card';
-    wrap.style.cssText = 'margin:18px 0 28px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:20px;box-shadow:0 8px 25px rgba(0,0,0,.18);';
-    wrap.innerHTML = `
-      <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:14px;">
-        <div>
-          <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;margin-bottom:4px;">🔐 Kontrol Ujian Global</div>
-          <div style="font-size:13px;color:var(--muted);line-height:1.6;">Lock / unlock semua exam dari sini. Status akan disinkronkan ke halaman user secara realtime.</div>
-        </div>
-        <div id="jlpt-lock-pill" style="padding:8px 12px;border-radius:999px;font-size:12px;font-weight:800;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);">Memuat...</div>
-      </div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
-        <button id="jlpt-lock-btn" class="topbar-btn" style="border-color:rgba(255,95,115,.35);color:#ff9aaa;background:rgba(255,95,115,.08);">🔒 Lock All Exam</button>
-        <button id="jlpt-unlock-btn" class="topbar-btn primary">🔓 Unlock All Exam</button>
-        <button id="jlpt-refresh-btn" class="topbar-btn">🔄 Refresh Live View</button>
-      </div>
-      <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:14px;">
-        <div style="padding:12px 14px;border:1px solid var(--border);border-radius:14px;background:rgba(255,255,255,.03);min-width:180px;">
-          <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Status Global</div>
-          <div id="jlpt-lock-state" style="font-size:15px;font-weight:800;">—</div>
-        </div>
-        <div style="padding:12px 14px;border:1px solid var(--border);border-radius:14px;background:rgba(255,255,255,.03);min-width:180px;">
-          <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Di-update</div>
-          <div id="jlpt-lock-updated" style="font-size:15px;font-weight:800;">—</div>
-        </div>
-        <div style="padding:12px 14px;border:1px solid var(--border);border-radius:14px;background:rgba(255,255,255,.03);min-width:180px;">
-          <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Active Sessions</div>
-          <div id="jlpt-live-count" style="font-size:15px;font-weight:800;">—</div>
-        </div>
-      </div>
-      <div style="overflow:auto;border:1px solid var(--border);border-radius:16px;">
-        <table style="width:100%;border-collapse:collapse;">
-          <thead style="background:rgba(255,255,255,.02);">
-            <tr>
-              <th style="text-align:left;padding:12px 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">User</th>
-              <th style="text-align:left;padding:12px 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Exam</th>
-              <th style="text-align:left;padding:12px 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Progress</th>
-              <th style="text-align:left;padding:12px 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Remaining</th>
-              <th style="text-align:left;padding:12px 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Updated</th>
-            </tr>
-          </thead>
-          <tbody id="jlpt-live-table">
-            <tr><td colspan="5" style="padding:16px;color:var(--muted);">Memuat...</td></tr>
-          </tbody>
-        </table>
-      </div>
-    `;
-    mount.prepend(wrap);
-
-    wrap.querySelector('#jlpt-lock-btn')?.addEventListener('click', () => saveSettings({ exam_locked: true }));
-    wrap.querySelector('#jlpt-unlock-btn')?.addEventListener('click', () => saveSettings({ exam_locked: false }));
-    wrap.querySelector('#jlpt-refresh-btn')?.addEventListener('click', () => refreshAdminLivePanel());
-    state.adminPanelReady = true;
-    return wrap;
-  }
-
-  function renderAdminControlUI() {
-    if (!state.isAdminPage) return;
-    const panel = ensureAdminPanel();
-    const locked = !!state.settings.exam_locked;
-
-    const pill = panel.querySelector('#jlpt-lock-pill');
-    const stateText = panel.querySelector('#jlpt-lock-state');
-    const updatedText = panel.querySelector('#jlpt-lock-updated');
-
-    if (pill) {
-      pill.textContent = locked ? 'LOCKED' : 'UNLOCKED';
-      pill.style.color = locked ? '#ff9aaa' : '#5ff0b0';
-      pill.style.borderColor = locked ? 'rgba(255,95,115,.35)' : 'rgba(25,195,125,.35)';
-      pill.style.background = locked ? 'rgba(255,95,115,.1)' : 'rgba(25,195,125,.08)';
+    if (!catalog.length) {
+      document.querySelectorAll('.exam-card-admin').forEach((card) => {
+        const title = card.querySelector('.eca-title')?.textContent?.trim() || '';
+        const level = card.querySelector('.eca-level')?.textContent?.trim() || '';
+        const year = card.querySelector('.eca-year')?.textContent?.trim() || '';
+        const href = card.querySelector('.eca-path')?.textContent?.trim() || '';
+        const key = card.dataset.examkey || card.getAttribute('data-examkey') || examKeyFromHref(href) || '';
+        catalog.push({ key: String(key).toLowerCase(), level, year, title, href, isNew: false });
+      });
     }
-    if (stateText) stateText.textContent = locked ? 'Semua ujian terkunci' : 'Semua ujian terbuka';
-    if (updatedText) updatedText.textContent = state.settings.updated_at ? new Date(state.settings.updated_at).toLocaleString() : '—';
+
+    return catalog.filter((x, idx, arr) => x.key && arr.findIndex((y) => y.key === x.key) === idx);
   }
 
   async function refreshAdminLivePanel() {
     if (!state.isAdminPage) return;
+    await loadUserMap();
     try {
       const { data, error } = await client
         .from('exam_progress')
         .select('*')
         .order('updated_at', { ascending: false })
-        .limit(30);
+        .limit(100);
       if (error) throw error;
 
       const rows = Array.isArray(data) ? data : [];
@@ -551,21 +812,23 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
       }
 
       tbody.innerHTML = rows.map((row) => {
-        const when = row.updated_at ? new Date(row.updated_at).toLocaleString() : '—';
-        const rem = row.remaining_seconds == null ? '—' : `${Math.max(Number(row.remaining_seconds), 0)}s`;
-        const progress = `${Number(row.current_q || 0)}/${Number(row.total_q || 0) || '—'} • ${Number(row.correct_count || 0)} benar`;
-        const status = row.status || 'active';
+        const user = state.userMap.get(row.user_id) || {};
+        const userLabel = user.display_name || user.full_name || user.email || row.user_id || '—';
+        const when = fmtTime(row.updated_at);
+        const rem = fmtSec(row.remaining_seconds);
+        const progress = `${Number(row.current_q || 0)}/${Number(row.total_q || 0) || '—'} • ${Number(row.correct_count || 0)} benar • ${Number(row.percentage || 0).toFixed ? Number(row.percentage || 0).toFixed(2) : row.percentage || 0}%`;
+        const status = String(row.status || 'active');
         const badgeColor = status === 'done' ? '#5ff0b0' : status === 'active' ? '#7cc0ff' : '#ffd18a';
 
         return `
           <tr>
             <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);">
-              <div style="font-weight:700;">${esc(row.user_id || '—')}</div>
-              <div style="font-size:11px;color:var(--muted);">${esc(row.level || '')} ${esc(row.mode || '')}</div>
+              <div style="font-weight:700;">${esc(userLabel)}</div>
+              <div style="font-size:11px;color:var(--muted);">${esc(row.user_id || '')}</div>
             </td>
             <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);">
-              <div style="font-weight:700;">${esc(row.exam_name || row.exam_key || '—')}</div>
-              <div style="font-size:11px;color:var(--muted);">${esc(row.exam_key || '')}</div>
+              <div style="font-weight:700;">${esc(row.exam_title || row.exam_key || '—')}</div>
+              <div style="font-size:11px;color:var(--muted);">${esc(`${row.level || ''} ${row.mode || ''}`.trim())}</div>
             </td>
             <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);">
               <span style="padding:4px 10px;border-radius:999px;font-size:11px;font-weight:800;border:1px solid rgba(255,255,255,.12);color:${badgeColor};background:rgba(255,255,255,.04);text-transform:uppercase;">${esc(status)}</span>
@@ -583,18 +846,448 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
     }
   }
 
-  function subscribeRealtimes() {
+  async function refreshAdminResultsPanel() {
+    if (!state.isAdminPage) return;
+    await loadUserMap();
+    try {
+      const { data, error } = await client
+        .from('exam_sessions')
+        .select('*')
+        .order('updated_at', { ascending: false })
+        .limit(100);
+      if (error) throw error;
+      const rows = Array.isArray(data) ? data : [];
+      state.resultsCache = rows;
+
+      const tbody = document.getElementById('jlpt-results-table');
+      const count = document.getElementById('jlpt-results-count');
+      if (count) count.textContent = `${rows.length} session`;
+
+      if (!tbody) return;
+      if (!rows.length) {
+        tbody.innerHTML = '<tr><td colspan="7" style="padding:16px;color:var(--muted);">Belum ada hasil ujian.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = rows.map((row) => {
+        const user = state.userMap.get(row.user_id) || {};
+        const userLabel = user.display_name || user.full_name || user.email || row.user_id || '—';
+        const pct = Number(row.percentage || 0);
+        const sec = row.section_scores || {};
+        const moji = sec.moji?.percentage ?? '—';
+        const bun = sec.bunpou?.percentage ?? '—';
+        const dok = sec.dokkai?.percentage ?? '—';
+        return `
+          <tr>
+            <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);font-weight:700;">${esc(userLabel)}</td>
+            <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);">${esc(row.exam_title || row.exam_key || '—')}</td>
+            <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);font-family:'JetBrains Mono',monospace;">${esc(row.score ?? 0)}</td>
+            <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);font-weight:700;">${esc(String(pct.toFixed ? pct.toFixed(2) : pct))}%</td>
+            <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);">${esc(`${moji}% / ${bun}% / ${dok}%`)}</td>
+            <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);font-size:12px;color:var(--muted);">${esc(fmtTime(row.started_at))}</td>
+            <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);font-size:12px;color:var(--muted);">${esc(fmtTime(row.completed_at || row.updated_at))}</td>
+          </tr>
+        `;
+      }).join('');
+    } catch (err) {
+      console.warn('refreshAdminResultsPanel failed:', err?.message || err);
+      const tbody = document.getElementById('jlpt-results-table');
+      if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="padding:16px;color:#ff9aaa;">Gagal memuat hasil ujian.</td></tr>';
+    }
+  }
+
+  async function refreshAdminPanels() {
+    if (!state.isAdminPage) return;
+    await loadSystemSettings();
+    await loadExamLocks(true);
+    await refreshAdminLivePanel();
+    await refreshAdminResultsPanel();
+    renderAdminControlUI();
+  }
+
+  function ensureAdminPanel() {
+    const existing = document.getElementById('jlpt-sync-admin-wrap');
+    if (existing) return existing;
+    const mount = document.getElementById('pane-dashboard') || document.querySelector('.content') || document.body;
+    const wrap = document.createElement('div');
+    wrap.id = 'jlpt-sync-admin-wrap';
+    wrap.style.cssText = 'margin:18px 0 28px;display:grid;gap:16px;';
+    wrap.innerHTML = `
+      <div id="jlpt-admin-global-card" style="background:var(--card);border:1px solid var(--border);border-radius:20px;padding:20px;box-shadow:0 8px 25px rgba(0,0,0,.18);">
+        <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:14px;">
+          <div>
+            <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;margin-bottom:4px;">🔐 Kontrol Ujian Global</div>
+            <div style="font-size:13px;color:var(--muted);line-height:1.6;">Lock / unlock semua exam dari sini. Status akan sinkron ke halaman user dan exam page secara realtime.</div>
+          </div>
+          <div id="jlpt-lock-pill" style="padding:8px 12px;border-radius:999px;font-size:12px;font-weight:800;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);">Memuat...</div>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+          <button id="jlpt-lock-btn" class="topbar-btn" style="border-color:rgba(255,95,115,.35);color:#ff9aaa;background:rgba(255,95,115,.08);">🔒 Lock All Exam</button>
+          <button id="jlpt-unlock-btn" class="topbar-btn primary">🔓 Unlock All Exam</button>
+          <button id="jlpt-refresh-btn" class="topbar-btn">🔄 Refresh</button>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;">
+          <div style="padding:12px 14px;border:1px solid var(--border);border-radius:14px;background:rgba(255,255,255,.03);">
+            <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Status Global</div>
+            <div id="jlpt-lock-state" style="font-size:15px;font-weight:800;">—</div>
+          </div>
+          <div style="padding:12px 14px;border:1px solid var(--border);border-radius:14px;background:rgba(255,255,255,.03);">
+            <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Di-update</div>
+            <div id="jlpt-lock-updated" style="font-size:15px;font-weight:800;">—</div>
+          </div>
+          <div style="padding:12px 14px;border:1px solid var(--border);border-radius:14px;background:rgba(255,255,255,.03);">
+            <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Active Sessions</div>
+            <div id="jlpt-live-count" style="font-size:15px;font-weight:800;">—</div>
+          </div>
+          <div style="padding:12px 14px;border:1px solid var(--border);border-radius:14px;background:rgba(255,255,255,.03);">
+            <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Finished Results</div>
+            <div id="jlpt-results-count" style="font-size:15px;font-weight:800;">—</div>
+          </div>
+        </div>
+      </div>
+
+      <div id="jlpt-exam-lock-card" style="background:var(--card);border:1px solid var(--border);border-radius:20px;padding:20px;box-shadow:0 8px 25px rgba(0,0,0,.18);">
+        <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:14px;">
+          <div>
+            <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;margin-bottom:4px;">🧩 Lock / Unlock Per Exam</div>
+            <div style="font-size:13px;color:var(--muted);line-height:1.6;">Centang satu atau beberapa ujian lalu pilih Lock/Unlock. Bisa custom satu, dua, atau semuanya.</div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button id="jlpt-lock-selected" class="topbar-btn" style="border-color:rgba(255,95,115,.35);color:#ff9aaa;background:rgba(255,95,115,.08);">🔒 Lock Selected</button>
+            <button id="jlpt-unlock-selected" class="topbar-btn primary">🔓 Unlock Selected</button>
+            <button id="jlpt-refresh-locks" class="topbar-btn">🔄 Reload List</button>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+          <input id="jlpt-exam-search" placeholder="Cari exam..." style="flex:1;min-width:220px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;padding:11px 14px;color:var(--text);font-family:inherit;font-size:14px;outline:none;">
+          <select id="jlpt-exam-level" style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;padding:11px 14px;color:var(--text);font-family:inherit;font-size:14px;outline:none;">
+            <option value="">All Levels</option>
+            <option value="N1">N1</option>
+            <option value="N2">N2</option>
+            <option value="N3">N3</option>
+            <option value="N4">N4</option>
+            <option value="N5">N5</option>
+          </select>
+        </div>
+        <div id="jlpt-exam-lock-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;"></div>
+      </div>
+
+      <div id="jlpt-admin-live-card" style="background:var(--card);border:1px solid var(--border);border-radius:20px;overflow:hidden;box-shadow:0 8px 25px rgba(0,0,0,.18);">
+        <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;padding:18px 20px;border-bottom:1px solid var(--border);">
+          <div>
+            <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;margin-bottom:4px;">🟢 Live Exam Monitor</div>
+            <div style="font-size:13px;color:var(--muted);line-height:1.6;">Lihat user yang sedang ujian, progress, dan sisa waktu secara realtime.</div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button id="jlpt-refresh-live" class="topbar-btn">🔄 Refresh Live</button>
+          </div>
+        </div>
+        <div style="overflow:auto;">
+          <table style="width:100%;border-collapse:collapse;">
+            <thead style="background:rgba(255,255,255,.02);">
+              <tr>
+                <th style="text-align:left;padding:12px 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">User</th>
+                <th style="text-align:left;padding:12px 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Exam</th>
+                <th style="text-align:left;padding:12px 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Progress</th>
+                <th style="text-align:left;padding:12px 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Remaining</th>
+                <th style="text-align:left;padding:12px 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Updated</th>
+              </tr>
+            </thead>
+            <tbody id="jlpt-live-table">
+              <tr><td colspan="5" style="padding:16px;color:var(--muted);">Memuat...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="jlpt-admin-results-card" style="background:var(--card);border:1px solid var(--border);border-radius:20px;overflow:hidden;box-shadow:0 8px 25px rgba(0,0,0,.18);">
+        <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;padding:18px 20px;border-bottom:1px solid var(--border);">
+          <div>
+            <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;margin-bottom:4px;">📈 Exam Results</div>
+            <div style="font-size:13px;color:var(--muted);line-height:1.6;">Hasil akhir user tampil di sini dan bisa diekspor ke Excel dengan detail persentase per section.</div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button id="jlpt-export-xlsx" class="topbar-btn primary">📥 Export Excel</button>
+            <button id="jlpt-refresh-results" class="topbar-btn">🔄 Refresh Results</button>
+          </div>
+        </div>
+        <div style="overflow:auto;">
+          <table style="width:100%;border-collapse:collapse;">
+            <thead style="background:rgba(255,255,255,.02);">
+              <tr>
+                <th style="text-align:left;padding:12px 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">User</th>
+                <th style="text-align:left;padding:12px 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Exam</th>
+                <th style="text-align:left;padding:12px 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Score</th>
+                <th style="text-align:left;padding:12px 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Percent</th>
+                <th style="text-align:left;padding:12px 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Sections</th>
+                <th style="text-align:left;padding:12px 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Started</th>
+                <th style="text-align:left;padding:12px 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Completed</th>
+              </tr>
+            </thead>
+            <tbody id="jlpt-results-table">
+              <tr><td colspan="7" style="padding:16px;color:var(--muted);">Memuat...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+
+    mount.prepend(wrap);
+
+    wrap.querySelector('#jlpt-lock-btn')?.addEventListener('click', async () => {
+      const reasonInput = prompt('Alasan lock semua ujian (opsional):', state.settings.exam_lock_reason || '');
+      const reason = (reasonInput ?? state.settings.exam_lock_reason) || '';
+      await setGlobalLock(true, reason);
+    });
+    wrap.querySelector('#jlpt-unlock-btn')?.addEventListener('click', async () => {
+      const reasonInput = prompt('Catatan unlock semua ujian (opsional):', state.settings.exam_lock_reason || '');
+      const reason = (reasonInput ?? '');
+      await setGlobalLock(false, reason);
+    });
+    wrap.querySelector('#jlpt-refresh-btn')?.addEventListener('click', () => refreshAdminPanels());
+    wrap.querySelector('#jlpt-refresh-live')?.addEventListener('click', () => refreshAdminLivePanel());
+    wrap.querySelector('#jlpt-refresh-results')?.addEventListener('click', () => refreshAdminResultsPanel());
+    wrap.querySelector('#jlpt-refresh-locks')?.addEventListener('click', () => renderAdminControlUI());
+    wrap.querySelector('#jlpt-lock-selected')?.addEventListener('click', async () => {
+      const keys = Array.from(wrap.querySelectorAll('.jlpt-lock-check:checked')).map((el) => el.dataset.examKey);
+      const reason = prompt('Alasan lock selected (opsional):', '') ?? '';
+      await setMultipleExamLocks(keys, true, reason);
+    });
+    wrap.querySelector('#jlpt-unlock-selected')?.addEventListener('click', async () => {
+      const keys = Array.from(wrap.querySelectorAll('.jlpt-lock-check:checked')).map((el) => el.dataset.examKey);
+      const reason = prompt('Catatan unlock selected (opsional):', '') ?? '';
+      await setMultipleExamLocks(keys, false, reason);
+    });
+    wrap.querySelector('#jlpt-exam-search')?.addEventListener('input', () => renderAdminControlUI());
+    wrap.querySelector('#jlpt-exam-level')?.addEventListener('change', () => renderAdminControlUI());
+    wrap.querySelector('#jlpt-export-xlsx')?.addEventListener('click', () => exportResultsExcel());
+
+    state.adminPanelReady = true;
+    return wrap;
+  }
+
+  function renderAdminControlUI() {
+    if (!state.isAdminPage) return;
+    const panel = ensureAdminPanel();
+    const locked = !!state.settings.exam_locked;
+
+    const pill = panel.querySelector('#jlpt-lock-pill');
+    const stateText = panel.querySelector('#jlpt-lock-state');
+    const updatedText = panel.querySelector('#jlpt-lock-updated');
+    if (pill) {
+      pill.textContent = locked ? 'LOCKED' : 'UNLOCKED';
+      pill.style.color = locked ? '#ff9aaa' : '#5ff0b0';
+      pill.style.borderColor = locked ? 'rgba(255,95,115,.35)' : 'rgba(25,195,125,.35)';
+      pill.style.background = locked ? 'rgba(255,95,115,.1)' : 'rgba(25,195,125,.08)';
+    }
+    if (stateText) stateText.textContent = locked ? 'Semua ujian terkunci' : 'Semua ujian terbuka';
+    if (updatedText) updatedText.textContent = state.settings.updated_at ? fmtTime(state.settings.updated_at) : '—';
+
+    const search = String(panel.querySelector('#jlpt-exam-search')?.value || '').trim().toLowerCase();
+    const level = String(panel.querySelector('#jlpt-exam-level')?.value || '').trim().toUpperCase();
+    const catalog = getExamCatalog();
+    const filtered = catalog.filter((e) => {
+      const matchSearch = !search || `${e.key} ${e.title} ${e.level} ${e.year} ${e.href}`.toLowerCase().includes(search);
+      const matchLevel = !level || String(e.level || '').toUpperCase() === level;
+      return matchSearch && matchLevel;
+    });
+
+    const list = panel.querySelector('#jlpt-exam-lock-list');
+    if (list) {
+      if (!filtered.length) {
+        list.innerHTML = '<div style="grid-column:1/-1;padding:18px;color:var(--muted);border:1px dashed var(--border);border-radius:16px;">Tidak ada exam yang cocok.</div>';
+      } else {
+        list.innerHTML = filtered.map((e) => {
+          const row = state.examLocks.get(String(e.key).toLowerCase());
+          const rowLocked = !!row?.locked;
+          const updated = row?.updated_at ? fmtTime(row.updated_at) : '—';
+          return `
+            <div style="background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:16px;padding:14px 14px 12px;position:relative;">
+              <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px;">
+                <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer;">
+                  <input type="checkbox" class="jlpt-lock-check" data-exam-key="${esc(e.key)}" style="margin-top:3px;">
+                  <div>
+                    <div style="font-weight:800;font-size:14px;margin-bottom:4px;">${esc(e.title || e.key)}</div>
+                    <div style="font-size:12px;color:var(--muted);">${esc(e.level || '')} · ${esc(e.year || '')} · ${esc(e.key)}</div>
+                  </div>
+                </label>
+                <span style="padding:4px 10px;border-radius:999px;font-size:10px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;border:1px solid ${rowLocked ? 'rgba(255,95,115,.3)' : 'rgba(25,195,125,.3)'};color:${rowLocked ? '#ff9aaa' : '#5ff0b0'};background:${rowLocked ? 'rgba(255,95,115,.12)' : 'rgba(25,195,125,.08)'};">${rowLocked ? 'LOCKED' : 'OPEN'}</span>
+              </div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <button class="act-btn ban" onclick="window.JLPT_SYNC?.setExamLock('${esc(e.key)}', true)">Lock</button>
+                <button class="act-btn approve" onclick="window.JLPT_SYNC?.setExamLock('${esc(e.key)}', false)">Unlock</button>
+              </div>
+              <div style="font-size:11px;color:var(--muted);margin-top:10px;">Updated: ${esc(updated)}</div>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+
+    const globalCards = panel.querySelectorAll('#jlpt-admin-global-card, #jlpt-exam-lock-card, #jlpt-admin-live-card, #jlpt-admin-results-card');
+    globalCards.forEach((card) => { if (card) card.style.display = ''; });
+  }
+
+  async function loadXLSX() {
+    if (window.XLSX) return window.XLSX;
+    await new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js';
+      s.onload = () => resolve();
+      s.onerror = () => reject(new Error('Failed to load XLSX library'));
+      document.head.appendChild(s);
+    });
+    return window.XLSX;
+  }
+
+  function sectionSummaryFromRow(row) {
+    const sec = row.section_scores || {};
+    const get = (k) => (sec[k] && typeof sec[k].percentage !== 'undefined') ? sec[k].percentage : null;
+    return {
+      moji_pct: get('moji'),
+      bunpou_pct: get('bunpou'),
+      dokkai_pct: get('dokkai'),
+      moji_correct: sec.moji?.correct ?? null,
+      bunpou_correct: sec.bunpou?.correct ?? null,
+      dokkai_correct: sec.dokkai?.correct ?? null,
+      moji_total: sec.moji?.total ?? null,
+      bunpou_total: sec.bunpou?.total ?? null,
+      dokkai_total: sec.dokkai?.total ?? null,
+    };
+  }
+
+  async function exportResultsExcel() {
+    try {
+      await loadUserMap();
+      const rows = Array.isArray(state.resultsCache) && state.resultsCache.length
+        ? state.resultsCache
+        : (await client.from('exam_sessions').select('*').order('updated_at', { ascending: false }).limit(1000)).data || [];
+
+      if (!rows.length) {
+        toast('Belum ada data untuk diekspor');
+        return;
+      }
+
+      const XLSX = await loadXLSX();
+      const wb = XLSX.utils.book_new();
+
+      const summary = rows.map((row) => {
+        const user = state.userMap.get(row.user_id) || {};
+        const sec = sectionSummaryFromRow(row);
+        const start = row.started_at ? new Date(row.started_at) : null;
+        const end = row.completed_at ? new Date(row.completed_at) : (row.updated_at ? new Date(row.updated_at) : null);
+        const durationMin = start && end ? Math.max((end - start) / 60000, 0) : null;
+
+        return {
+          user_name: user.display_name || user.full_name || user.email || row.user_id,
+          user_email: user.email || '',
+          user_id: row.user_id,
+          exam_key: row.exam_key,
+          exam_title: row.exam_title,
+          level: row.level,
+          mode: row.mode,
+          score: row.score,
+          percentage: Number(row.percentage || 0),
+          correct_count: row.correct_count,
+          wrong_count: row.wrong_count,
+          total_questions: row.total_questions,
+          completed: row.completed ? 'yes' : 'no',
+          started_at: row.started_at,
+          completed_at: row.completed_at,
+          duration_minutes: durationMin == null ? null : Number(durationMin.toFixed(2)),
+          moji_pct: sec.moji_pct,
+          bunpou_pct: sec.bunpou_pct,
+          dokkai_pct: sec.dokkai_pct,
+          moji_correct: sec.moji_correct,
+          bunpou_correct: sec.bunpou_correct,
+          dokkai_correct: sec.dokkai_correct,
+          moji_total: sec.moji_total,
+          bunpou_total: sec.bunpou_total,
+          dokkai_total: sec.dokkai_total,
+          last_event: row.last_event,
+          status: row.status,
+        };
+      });
+
+      const detail = [];
+      rows.forEach((row) => {
+        const user = state.userMap.get(row.user_id) || {};
+        const sec = row.section_scores || {};
+        for (const [k, v] of Object.entries(sec)) {
+          detail.push({
+            user_name: user.display_name || user.full_name || user.email || row.user_id,
+            user_email: user.email || '',
+            exam_key: row.exam_key,
+            exam_title: row.exam_title,
+            section: k,
+            correct: v?.correct ?? 0,
+            total: v?.total ?? 0,
+            percentage: v?.percentage ?? 0,
+          });
+        }
+      });
+
+      const live = (await client.from('exam_progress').select('*').order('updated_at', { ascending: false }).limit(1000)).data || [];
+      const liveSheet = live.map((row) => {
+        const user = state.userMap.get(row.user_id) || {};
+        return {
+          user_name: user.display_name || user.full_name || user.email || row.user_id,
+          user_email: user.email || '',
+          user_id: row.user_id,
+          exam_key: row.exam_key,
+          exam_title: row.exam_title,
+          level: row.level,
+          mode: row.mode,
+          status: row.status,
+          current_q: row.current_q,
+          total_q: row.total_q,
+          answered_count: row.answered_count,
+          correct_count: row.correct_count,
+          wrong_count: row.wrong_count,
+          percentage: row.percentage,
+          remaining_seconds: row.remaining_seconds,
+          last_event: row.last_event,
+          updated_at: row.updated_at,
+        };
+      });
+
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summary), 'Summary');
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(detail), 'Section Detail');
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(liveSheet), 'Live Progress');
+
+      const fileName = `jlpt_results_${new Date().toISOString().slice(0, 10)}.xlsx`;
+      XLSX.writeFile(wb, fileName);
+      toast('✅ Excel berhasil diekspor');
+    } catch (err) {
+      console.error('exportResultsExcel failed:', err);
+      toast('❌ Gagal export Excel');
+    }
+  }
+
+  function subscribeRealtime() {
     try {
       if (state.settingsChannel) client.removeChannel(state.settingsChannel);
       if (state.progressChannel) client.removeChannel(state.progressChannel);
+      if (state.lockChannel) client.removeChannel(state.lockChannel);
     } catch {}
 
     state.settingsChannel = client
-      .channel('jlpt-settings-live')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'exam_settings', filter: 'id=eq.global' }, async () => {
-        await fetchSettings();
+      .channel('jlpt-system-settings-live')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'system_settings' }, async () => {
+        await loadSystemSettings();
         renderIndexLockUI();
         renderAdminControlUI();
+        enforceLockState();
+      })
+      .subscribe();
+
+    state.lockChannel = client
+      .channel('jlpt-exam-settings-live')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'exam_settings' }, async (payload) => {
+        await loadExamLocks(true);
+        renderIndexLockUI();
+        renderAdminControlUI();
+        enforceLockState();
       })
       .subscribe();
 
@@ -603,192 +1296,10 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
       .on('postgres_changes', { event: '*', schema: 'public', table: 'exam_progress' }, async () => {
         if (state.isAdminPage) await refreshAdminLivePanel();
       })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'exam_sessions' }, async () => {
+        if (state.isAdminPage) await refreshAdminResultsPanel();
+      })
       .subscribe();
-  }
-
-  function renderIndexLockUI() {
-    if (!state.isIndexPage) return;
-    const banner = ensureIndexBanner();
-    const locked = !!state.settings.exam_locked && !state.isAdmin;
-    banner.style.display = locked ? 'block' : 'none';
-    const text = banner.querySelector('#jlpt-global-banner-text');
-    if (text) {
-      text.textContent = state.settings.lock_reason
-        ? state.settings.lock_reason
-        : 'Tunggu persetujuan admin untuk membuka kembali semua ujian.';
-    }
-    disableIndexExamLinks(locked);
-  }
-
-  function ensureIndexBanner() {
-    const existing = document.getElementById('jlpt-global-banner');
-    if (existing) return existing;
-    const banner = document.createElement('div');
-    banner.id = 'jlpt-global-banner';
-    banner.style.cssText = [
-      'display:none',
-      'margin:0 0 16px 0',
-      'padding:14px 16px',
-      'border-radius:18px',
-      'border:1px solid rgba(255,181,71,.28)',
-      'background:rgba(255,181,71,.10)',
-      'color:#ffd18a',
-      'font-size:13px',
-      'line-height:1.6'
-    ].join(';');
-    banner.innerHTML = '<strong>🔒 Semua ujian sedang dikunci admin.</strong><br><span id="jlpt-global-banner-text">Tunggu persetujuan admin untuk membuka kembali semua ujian.</span>';
-    const hero = document.querySelector('.hero');
-    const content = document.querySelector('.content') || document.body;
-    if (hero?.parentNode) hero.insertAdjacentElement('afterend', banner);
-    else content.prepend(banner);
-    return banner;
-  }
-
-  function disableIndexExamLinks(locked) {
-    const links = document.querySelectorAll('.open-btn');
-    links.forEach((link) => {
-      if (locked) {
-        link.dataset.jlptLocked = '1';
-        link.setAttribute('aria-disabled', 'true');
-        link.style.pointerEvents = 'none';
-        link.style.opacity = '0.5';
-        link.style.filter = 'grayscale(0.35)';
-        link.title = 'Semua ujian sedang dikunci admin';
-        link.onclick = (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          toast('🔒 Semua exam sedang dikunci admin');
-          return false;
-        };
-      } else if (link.dataset.jlptLocked === '1') {
-        link.style.pointerEvents = '';
-        link.style.opacity = '';
-        link.style.filter = '';
-        link.removeAttribute('aria-disabled');
-        link.title = '';
-        link.dataset.jlptLocked = '';
-        link.onclick = function () {
-          if (typeof window.recordExamOpen === 'function') {
-            window.recordExamOpen(this);
-          }
-        };
-      }
-    });
-  }
-
-  function installExamGuards() {
-    if (!state.isExamPage) return;
-
-    document.addEventListener('keydown', (e) => {
-      if (!state.examRunning) return;
-      const blocked = new Set(['F5', 'F6', 'F12', 'Escape', 'PrintScreen']);
-      const ctrlBlocked = new Set(['l', 'n', 't', 'w', 'r', 'u', 's', 'p', 'f']);
-      if (
-        blocked.has(e.key) ||
-        ((e.ctrlKey || e.metaKey) && ctrlBlocked.has((e.key || '').toLowerCase())) ||
-        (e.altKey && ['ArrowLeft', 'ArrowRight'].includes(e.key))
-      ) {
-        e.preventDefault();
-        e.stopPropagation();
-        toast('⛔ Navigasi diblokir saat ujian');
-      }
-    }, true);
-
-    document.addEventListener('contextmenu', (e) => {
-      if (state.examRunning) e.preventDefault();
-    }, true);
-
-    window.addEventListener('blur', () => {
-      if (state.examRunning) pushProgress('blur');
-    });
-
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'hidden' && state.examRunning) pushProgress('hidden', true);
-      if (document.visibilityState === 'visible' && state.examRunning) pushProgress('visible', true);
-    });
-
-    window.addEventListener('beforeunload', (e) => {
-      if (!state.examRunning) return;
-      try { pushProgress('beforeunload', true); } catch {}
-      e.preventDefault();
-      e.returnValue = '';
-      return '';
-    });
-  }
-
-  function observeExamFunctions() {
-    if (!state.isExamPage) return;
-
-    const timer = setInterval(() => {
-      if (typeof window.startMode === 'function' && !window.startMode.__jlptWrapped) {
-        const original = window.startMode;
-        const wrapped = function (...args) {
-          if (state.settings.exam_locked && !state.isAdmin) {
-            toast('🔒 Semua exam sedang dikunci admin');
-            return;
-          }
-          state.examRunning = true;
-          window.__JLPT_EXAM_FINISHED__ = false;
-          const result = original.apply(this, args);
-          setTimeout(() => pushProgress('start', true), 120);
-          return result;
-        };
-        wrapped.__jlptWrapped = true;
-        wrapped.__jlptOriginal = original;
-        window.startMode = wrapped;
-      }
-
-      const patch = (name, after) => {
-        if (typeof window[name] !== 'function' || window[name].__jlptWrapped) return;
-        const original = window[name];
-        const wrapped = function (...args) {
-          const result = original.apply(this, args);
-          after?.();
-          return result;
-        };
-        wrapped.__jlptWrapped = true;
-        wrapped.__jlptOriginal = original;
-        window[name] = wrapped;
-      };
-
-      patch('selectAnswer', () => setTimeout(() => pushProgress('answer'), 180));
-      patch('nextQ', () => setTimeout(() => pushProgress('next'), 120));
-      patch('prevQ', () => setTimeout(() => pushProgress('prev'), 120));
-      patch('saveSessionManual', () => setTimeout(() => pushProgress('save', true), 80));
-      patch('loadSessionManual', () => setTimeout(() => pushProgress('load', true), 80));
-
-      if (typeof window.finishQuiz === 'function' && !window.finishQuiz.__jlptWrapped) {
-        const original = window.finishQuiz;
-        const wrapped = function (...args) {
-          const result = original.apply(this, args);
-          window.__JLPT_EXAM_FINISHED__ = true;
-          state.examRunning = false;
-          setTimeout(() => pushProgress('done', true), 120);
-          return result;
-        };
-        wrapped.__jlptWrapped = true;
-        wrapped.__jlptOriginal = original;
-        window.finishQuiz = wrapped;
-      }
-
-      patch('goHome', () => {
-        state.examRunning = false;
-        pushProgress('home');
-      });
-      patch('openReport', () => pushProgress('report_open'));
-      patch('closeReport', () => pushProgress('report_close'));
-
-      if (
-        window.startMode?.__jlptWrapped &&
-        window.selectAnswer?.__jlptWrapped &&
-        window.finishQuiz?.__jlptWrapped &&
-        window.goHome?.__jlptWrapped
-      ) {
-        clearInterval(timer);
-      }
-    }, 200);
-
-    setTimeout(() => clearInterval(timer), 15000);
   }
 
   async function initPage() {
@@ -804,49 +1315,52 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
       state.isAdmin = ctx.isAdmin;
     }
 
-    await fetchSettings();
-    subscribeRealtimes();
+    await loadSystemSettings();
+    await loadExamLocks(true);
+    subscribeRealtime();
 
-    if (state.isIndexPage) renderIndexLockUI();
+    if (state.isIndexPage) {
+      renderIndexLockUI();
+      if (location.search.includes('locked=1')) toast('Ujian masih dikunci admin');
+    }
 
     if (state.isAdminPage) {
       renderAdminControlUI();
-      await refreshAdminLivePanel();
+      await refreshAdminPanels();
     }
 
     if (state.isExamPage) {
       installExamGuards();
+      await ensureServerSession();
       observeExamFunctions();
-
-      if (state.settings.exam_locked && !state.isAdmin) {
-        const shield = document.createElement('div');
-        shield.id = 'jlpt-exam-lock-shield';
-        shield.style.cssText = 'position:fixed;inset:0;z-index:999999;background:rgba(5,9,16,.92);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:18px;text-align:center;';
-        shield.innerHTML = `
-          <div style="max-width:520px;background:#111a2f;border:1px solid rgba(255,95,115,.3);border-radius:24px;padding:28px 24px;box-shadow:0 25px 80px rgba(0,0,0,.6);">
-            <div style="font-size:46px;margin-bottom:10px;">🔒</div>
-            <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;margin-bottom:8px;color:#ff9aaa;">Semua exam sedang dikunci</div>
-            <div style="font-size:14px;color:#aab8d8;line-height:1.8;">Admin belum membuka akses ujian. Silakan kembali ke halaman utama dan tunggu status <strong>Unlock All Exam</strong>.</div>
-          </div>
-        `;
-        document.body.appendChild(shield);
-      }
-
+      enforceLockState();
       state.heartbeatTimer = setInterval(() => {
-        if (state.examRunning) pushProgress('heartbeat');
+        if (state.examRunning) syncSession('heartbeat', false, false);
       }, 10000);
+      // Re-check access if admin changes lock state while user is on the exam page.
+      setInterval(async () => {
+        await loadSystemSettings();
+        await loadCurrentExamLock();
+        enforceLockState();
+      }, 8000);
     }
   }
 
   document.addEventListener('DOMContentLoaded', initPage);
 
   window.JLPT_SYNC = {
-    fetchSettings,
-    saveSettings,
-    refreshAdminLivePanel,
-    renderAdminControlUI,
+    setGlobalLock,
+    setExamLock,
+    setMultipleExamLocks,
+    loadSystemSettings,
+    loadExamLocks,
     renderIndexLockUI,
-    pushProgress,
-    examMeta
+    renderAdminControlUI,
+    refreshAdminLivePanel,
+    refreshAdminResultsPanel,
+    refreshAdminPanels,
+    syncSession,
+    exportResultsExcel,
+    examMeta: examMetaFromPath,
   };
 })();
