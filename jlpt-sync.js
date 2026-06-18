@@ -1490,7 +1490,19 @@
     }
   }
 
-  document.addEventListener('DOMContentLoaded', initPage);
+  // IMPORTANT: this script is loaded as type="module", which defers
+  // execution until after HTML parsing, and the IIFE above awaits a dynamic
+  // import() before reaching this point. By the time that await resolves,
+  // DOMContentLoaded may have ALREADY fired — attaching a listener for it
+  // here would then never run, silently skipping initPage() forever (this
+  // is what caused the Lock Manager / Live Monitor / Exam Results panes to
+  // render their title but stay empty). Check readyState directly instead
+  // of blindly trusting the event will still come.
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initPage);
+  } else {
+    initPage();
+  }
 
   window.JLPT_SYNC = {
     setGlobalLock,
