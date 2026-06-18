@@ -78,29 +78,6 @@
     return ['1', 'true', 'yes', 'on', 'locked'].includes(s);
   }
 
-  async function rpcSelectRows(name, fallback = []) {
-    try {
-      const { data, error } = await client.rpc(name);
-      if (error) throw error;
-      if (Array.isArray(data)) return data;
-      if (data == null) return [];
-      return Array.isArray(data.rows) ? data.rows : fallback;
-    } catch (err) {
-      return fallback;
-    }
-  }
-
-  async function rpcExec(name, params = {}) {
-    try {
-      const { error } = await client.rpc(name, params);
-      if (error) throw error;
-      return true;
-    } catch (err) {
-      console.warn(`${name} failed:`, err?.message || err);
-      return false;
-    }
-  }
-
   function fmtTime(ts) {
     if (!ts) return '—';
     try { return new Date(ts).toLocaleString(); } catch { return String(ts); }
@@ -205,24 +182,43 @@
     }
   }
 
+  function mergeLiveAndResultRows(progressRows = [], sessionRows = []) {
+    const map = new Map();
+
+    const mergeInto = (row, source) => {
+      if (!row) return;
+      const key = `${String(row.user_id || '')}::${String(row.exam_key || '')}`;
+      const existing = map.get(key) || {};
+      map.set(key, {
+        ...existing,
+        ...row,
+        _source: source,
+        _hasProgress: source === 'progress' ? true : !!existing._hasProgress,
+        _hasSession: source === 'session' ? true : !!existing._hasSession,
+      });
+    };
+
+    (sessionRows || []).forEach((row) => mergeInto(row, 'session'));
+    (progressRows || []).forEach((row) => mergeInto(row, 'progress'));
+
+    return Array.from(map.values()).sort((a, b) => {
+      const at = new Date(a.updated_at || a.client_time || 0).getTime();
+      const bt = new Date(b.updated_at || b.client_time || 0).getTime();
+      return bt - at;
+    });
+  }
+
   async function loadSystemSettings() {
     try {
-      let rows = await rpcSelectRows('jlpt_get_system_settings', []);
-      if (!Array.isArray(rows) || !rows.length) {
-        const { data, error } = await client.from('system_settings').select('*');
-        if (error) throw error;
-        rows = Array.isArray(data) ? data : [];
-      }
+      const { data, error } = await client.from('system_settings').select('*');
+      if (error) throw error;
+      const rows = Array.isArray(data) ? data : [];
       const map = Object.fromEntries(rows.map((r) => [String(r.key || '').toLowerCase(), String(r.value ?? '')]));
       state.settings.exam_locked = toBool(map.exam_locked);
       state.settings.exam_lock_reason = map.exam_lock_reason || '';
-      state.settings.exam_live_enabled = String(map.exam_live_enabled ?? 'true').trim().toLowerCase() !== 'false';
-      state.settings.updated_at = rows.find((r) => String(r.key || '').toLowerCase() === 'exam_locked')?.updated_at
-        || rows[0]?.updated_at
-        || state.settings.updated_at;
-      state.settings.updated_by = rows.find((r) => String(r.key || '').toLowerCase() === 'exam_locked')?.updated_by
-        || rows[0]?.updated_by
-        || state.settings.updated_by;
+      state.settings.exam_live_enabled = !toBool(map.exam_live_enabled) || String(map.exam_live_enabled).trim().toLowerCase() === 'true';
+      state.settings.updated_at = rows[0]?.updated_at || state.settings.updated_at;
+      state.settings.updated_by = rows[0]?.updated_by || state.settings.updated_by;
       return state.settings;
     } catch (err) {
       console.warn('system_settings load failed:', err?.message || err);
@@ -233,16 +229,12 @@
   async function loadExamLocks(force = false) {
     if (!force && state.examLocks.size) return state.examLocks;
     try {
-      let rows = await rpcSelectRows('jlpt_get_exam_settings', []);
-      if (!Array.isArray(rows) || !rows.length) {
-        const { data, error } = await client
-          .from('exam_settings')
-          .select('exam_key,title,level,locked,lock_reason,updated_at,updated_by');
-        if (error) throw error;
-        rows = Array.isArray(data) ? data : [];
-      }
+      const { data, error } = await client
+        .from('exam_settings')
+        .select('exam_key,title,level,locked,lock_reason,updated_at,updated_by');
+      if (error) throw error;
       const map = new Map();
-      (rows || []).forEach((row) => map.set(String(row.exam_key || '').toLowerCase(), row));
+      (data || []).forEach((row) => map.set(String(row.exam_key || '').toLowerCase(), row));
       state.examLocks = map;
       return map;
     } catch (err) {
@@ -265,20 +257,14 @@
       return false;
     }
     try {
-      const ok = await rpcExec('jlpt_set_system_setting', {
-        p_key: key,
-        p_value: String(value ?? ''),
-        p_updated_by: ctx.session.user.id,
-      });
-      if (!ok) {
-        const { error } = await client.from('system_settings').upsert({
-          key,
-          value: String(value ?? ''),
-          updated_at: new Date().toISOString(),
-          updated_by: ctx.session.user.id,
-        }, { onConflict: 'key' });
-        if (error) throw error;
-      }
+      const payload = {
+        key,
+        value: String(value ?? ''),
+        updated_at: new Date().toISOString(),
+        updated_by: ctx.session.user.id,
+      };
+      const { error } = await client.from('system_settings').upsert(payload, { onConflict: 'key' });
+      if (error) throw error;
       await loadSystemSettings();
       renderIndexLockUI();
       renderAdminControlUI();
@@ -294,20 +280,10 @@
   async function setGlobalLock(locked, reason = '') {
     const ctx = await getContext();
     if (!ctx?.isAdmin) return false;
-    const ok1 = await setSystemSetting('exam_locked', locked ? 'true' : 'false');
-    const ok2 = await setSystemSetting('exam_lock_reason', reason || '');
-    const ok = ok1 && ok2;
-    if (ok) {
-      state.settings.exam_locked = !!locked;
-      state.settings.exam_lock_reason = reason || '';
-      renderIndexLockUI();
-      renderAdminControlUI();
-      await refreshAdminPanels();
-      toast(locked ? '🔒 Semua exam dikunci' : '🔓 Semua exam dibuka');
-      return true;
-    }
-    toast('⚠️ Gagal menyimpan lock global');
-    return false;
+    await setSystemSetting('exam_locked', locked ? 'true' : 'false');
+    await setSystemSetting('exam_lock_reason', reason || '');
+    toast(locked ? '🔒 Semua exam dikunci' : '🔓 Semua exam dibuka');
+    return true;
   }
 
   async function setExamLock(examKey, locked, reason = '') {
@@ -321,26 +297,17 @@
     try {
       const row = state.examLocks.get(key) || {};
       const catalogEntry = !row.title ? getExamCatalog().find((e) => e.key === key) : null;
-      const ok = await rpcExec('jlpt_set_exam_lock', {
-        p_exam_key: key,
-        p_locked: !!locked,
-        p_title: row.title || catalogEntry?.title || '',
-        p_level: row.level || catalogEntry?.level || '',
-        p_lock_reason: reason ?? row.lock_reason ?? '',
-        p_updated_by: ctx.session.user.id,
-      });
-      if (!ok) {
-        const { error } = await client.from('exam_settings').upsert({
-          exam_key: key,
-          title: row.title || catalogEntry?.title || '',
-          level: row.level || catalogEntry?.level || '',
-          locked: !!locked,
-          lock_reason: reason ?? row.lock_reason ?? '',
-          updated_at: new Date().toISOString(),
-          updated_by: ctx.session.user.id,
-        }, { onConflict: 'exam_key' });
-        if (error) throw error;
-      }
+      const payload = {
+        exam_key: key,
+        title: row.title || catalogEntry?.title || '',
+        level: row.level || catalogEntry?.level || '',
+        locked: !!locked,
+        lock_reason: reason ?? row.lock_reason ?? '',
+        updated_at: new Date().toISOString(),
+        updated_by: ctx.session.user.id,
+      };
+      const { error } = await client.from('exam_settings').upsert(payload, { onConflict: 'exam_key' });
+      if (error) throw error;
       await loadExamLocks(true);
       renderIndexLockUI();
       renderAdminControlUI();
@@ -522,25 +489,40 @@
       const progressPayload = buildLivePayload(snapshot);
       const sessionPayload = {
         user_id: ctx.session.user.id,
-        ...snapshot,
+        exam_key: snapshot.exam_key,
+        exam_title: snapshot.exam_title,
+        level: snapshot.level,
+        year: snapshot.year,
+        month: snapshot.month,
+        mode: snapshot.mode,
+        started_at: snapshot.started_at,
+        updated_at: snapshot.updated_at,
+        last_seen_at: snapshot.last_seen_at,
+        answers: snapshot.answers,
+        current_question: snapshot.current_question,
+        total_questions: snapshot.total_questions,
+        timer_remaining: snapshot.timer_remaining,
+        score: snapshot.score,
+        correct_count: snapshot.correct_count,
+        wrong_count: snapshot.wrong_count,
+        percentage: snapshot.percentage,
+        section_scores: snapshot.section_scores,
+        completed: snapshot.completed,
+        completed_at: snapshot.completed_at,
+        status: snapshot.status,
+        last_event: snapshot.last_event,
       };
 
-      const [progressOk, sessionOk] = await Promise.all([
-        rpcExec('jlpt_sync_exam_progress', { p_payload: progressPayload }),
-        rpcExec('jlpt_sync_exam_session', { p_payload: sessionPayload }),
+      const [progressRes, sessionRes] = await Promise.all([
+        client.from('exam_progress').upsert({
+          user_id: ctx.session.user.id,
+          ...progressPayload,
+        }, { onConflict: 'user_id,exam_key' }),
+        client.from('exam_sessions').upsert(sessionPayload, { onConflict: 'user_id,exam_key' }),
       ]);
 
-      if (!progressOk || !sessionOk) {
-        const [progressRes, sessionRes] = await Promise.all([
-          client.from('exam_progress').upsert({
-            user_id: ctx.session.user.id,
-            ...progressPayload,
-          }, { onConflict: 'user_id,exam_key' }),
-          client.from('exam_sessions').upsert(sessionPayload, { onConflict: 'user_id,exam_key' }),
-        ]);
-        if (progressRes.error) throw progressRes.error;
-        if (sessionRes.error) throw sessionRes.error;
-      }
+      if (progressRes.error) throw progressRes.error;
+      if (sessionRes.error) throw sessionRes.error;
       return true;
     } catch (err) {
       console.warn('syncSession failed:', err?.message || err);
@@ -938,63 +920,83 @@
     if (!state.isAdminPage) return;
     await loadUserMap();
     try {
-      let rows = await rpcSelectRows('jlpt_get_exam_progress', []);
-      if (!Array.isArray(rows) || !rows.length) {
-        const res = await client
-          .from('exam_progress')
-          .select('*')
-          .order('updated_at', { ascending: false })
-          .limit(100);
-        if (res.error) throw res.error;
-        rows = Array.isArray(res.data) ? res.data : [];
-      }
+      const [progressRes, sessionRes] = await Promise.all([
+        client.from('exam_progress').select('*').order('updated_at', { ascending: false }).limit(100),
+        client.from('exam_sessions').select('*').order('updated_at', { ascending: false }).limit(100),
+      ]);
+
+      if (progressRes.error) throw progressRes.error;
+      if (sessionRes.error) throw sessionRes.error;
+
+      const progressRows = Array.isArray(progressRes.data) ? progressRes.data : [];
+      const sessionRows = Array.isArray(sessionRes.data) ? sessionRes.data : [];
+      const rows = mergeLiveAndResultRows(progressRows, sessionRows).filter((row) => {
+        const status = String(row.status || '').toLowerCase();
+        return status === 'active' || status === 'idle' || status === 'done' || status === 'finished' || row.current_q || row.answered_count || row.remaining_seconds != null;
+      });
 
       const tbody = document.getElementById('jlpt-live-table');
       const count = document.getElementById('jlpt-live-count');
       const countBadge = document.getElementById('jlpt-live-count-badge');
-      if (count) count.textContent = `${rows.length} session`;
-      if (countBadge) countBadge.textContent = `${rows.length} session`;
+      if (count) count.textContent = `${rows.length} sesi aktif`;
+      if (countBadge) countBadge.textContent = `${rows.length} sesi aktif`;
 
       if (!tbody) return;
       if (!rows.length) {
-        tbody.innerHTML = '<tr><td colspan="5" style="padding:16px;color:var(--muted);">Belum ada sesi yang tersinkron.</td></tr>';
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="5" style="padding:18px;">
+              <div style="border:1px dashed var(--border);border-radius:18px;padding:22px;color:var(--muted);background:rgba(255,255,255,.02);">
+                <div style="font-weight:800;color:var(--text);margin-bottom:6px;">Belum ada user yang sedang ujian.</div>
+                <div style="font-size:13px;line-height:1.7;">Begitu user membuka exam dan sistem menerima heartbeat pertama, sesi mereka akan muncul di sini.</div>
+              </div>
+            </td>
+          </tr>`;
         return;
       }
 
       tbody.innerHTML = rows.map((row) => {
         const user = state.userMap.get(row.user_id) || {};
         const userLabel = user.display_name || user.full_name || user.email || row.user_id || '—';
-        const when = fmtTime(row.updated_at);
-        const rem = fmtSec(row.remaining_seconds);
-        const progress = `${Number(row.current_q || 0)}/${Number(row.total_q || 0) || '—'} • ${Number(row.correct_count || 0)} benar • ${Number(row.percentage || 0).toFixed ? Number(row.percentage || 0).toFixed(2) : row.percentage || 0}%`;
-        const status = String(row.status || 'active');
-        const badgeColor = status === 'done' ? '#5ff0b0' : status === 'active' ? '#7cc0ff' : '#ffd18a';
+        const when = fmtTime(row.updated_at || row.client_time);
+        const rem = fmtSec(row.remaining_seconds ?? row.timer_remaining);
+        const current = Number(row.current_q ?? row.current_question ?? 0);
+        const total = Number(row.total_q ?? row.total_questions ?? 0);
+        const answered = Number(row.answered_count ?? Object.keys(row.answers || {}).length ?? 0);
+        const correct = Number(row.correct_count ?? 0);
+        const pctNum = Number(row.percentage ?? 0);
+        const pct = Number.isFinite(pctNum) ? pctNum.toFixed(2) : '0.00';
+        const status = String(row.status || 'active').toLowerCase();
+        const badgeColor = status === 'done' || status === 'finished' ? '#5ff0b0' : status === 'active' ? '#7cc0ff' : '#ffd18a';
+        const statusText = status === 'done' ? 'DONE' : status === 'finished' ? 'FINISHED' : status.toUpperCase();
 
         return `
           <tr>
-            <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);">
-              <div style="font-weight:700;">${esc(userLabel)}</div>
-              <div style="font-size:11px;color:var(--muted);">${esc(row.user_id || '')}</div>
+            <td style="padding:14px 16px;border-top:1px solid rgba(255,255,255,.04);vertical-align:top;">
+              <div style="font-weight:800;font-size:14px;line-height:1.3;">${esc(userLabel)}</div>
+              <div style="font-size:11px;color:var(--muted);margin-top:4px;line-height:1.5;">${esc(user.email || row.user_id || '')}</div>
             </td>
-            <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);">
-              <div style="font-weight:700;">${esc(row.exam_title || row.exam_key || '—')}</div>
-              <div style="font-size:11px;color:var(--muted);">${esc(`${row.level || ''} ${row.mode || ''}`.trim())}</div>
+            <td style="padding:14px 16px;border-top:1px solid rgba(255,255,255,.04);vertical-align:top;">
+              <div style="font-weight:800;">${esc(row.exam_title || row.exam_key || '—')}</div>
+              <div style="font-size:11px;color:var(--muted);margin-top:4px;">${esc(`${row.level || ''} ${row.mode || ''}`.trim())}</div>
             </td>
-            <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);">
-              <div style="font-weight:700;">${esc(progress)}</div>
-              <div style="margin-top:6px;height:8px;background:rgba(255,255,255,.06);border-radius:999px;overflow:hidden;">
-                <div style="height:100%;width:${Math.max(0, Math.min(100, Number(row.percentage || 0)))}%;background:${badgeColor};"></div>
+            <td style="padding:14px 16px;border-top:1px solid rgba(255,255,255,.04);vertical-align:top;">
+              <div style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;font-size:11px;font-weight:800;border:1px solid rgba(255,255,255,.12);color:${badgeColor};background:rgba(255,255,255,.04);text-transform:uppercase;letter-spacing:.4px;">${esc(statusText)}</div>
+              <div style="font-size:12px;color:var(--muted);margin-top:8px;line-height:1.6;">
+                <div>Soal: <strong style="color:var(--text);">${current}/${total || '—'}</strong></div>
+                <div>Terjawab: <strong style="color:var(--text);">${answered}</strong> • Benar: <strong style="color:var(--text);">${correct}</strong></div>
+                <div>Skor: <strong style="color:var(--text);">${pct}%</strong></div>
               </div>
             </td>
-            <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);font-weight:700;">${esc(rem)}</td>
-            <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);font-size:12px;color:var(--muted);">${esc(when)}</td>
+            <td style="padding:14px 16px;border-top:1px solid rgba(255,255,255,.04);vertical-align:top;font-family:'JetBrains Mono',monospace;font-weight:700;">${esc(rem)}</td>
+            <td style="padding:14px 16px;border-top:1px solid rgba(255,255,255,.04);vertical-align:top;font-size:12px;color:var(--muted);line-height:1.6;">${esc(when)}</td>
           </tr>
         `;
       }).join('');
     } catch (err) {
       console.warn('refreshAdminLivePanel failed:', err?.message || err);
       const tbody = document.getElementById('jlpt-live-table');
-      if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="padding:16px;color:#ff9aaa;">Gagal memuat sesi live.</td></tr>';
+      if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="padding:16px;color:#ff9aaa;">Gagal memuat live view.</td></tr>';
     }
   }
 
@@ -1002,27 +1004,36 @@
     if (!state.isAdminPage) return;
     await loadUserMap();
     try {
-      let rows = await rpcSelectRows('jlpt_get_exam_sessions', []);
-      if (!Array.isArray(rows) || !rows.length) {
-        const res = await client
-          .from('exam_sessions')
-          .select('*')
-          .order('updated_at', { ascending: false })
-          .limit(100);
-        if (res.error) throw res.error;
-        rows = Array.isArray(res.data) ? res.data : [];
-      }
+      const [sessionRes, progressRes] = await Promise.all([
+        client.from('exam_sessions').select('*').order('updated_at', { ascending: false }).limit(200),
+        client.from('exam_progress').select('*').order('updated_at', { ascending: false }).limit(200),
+      ]);
+      if (sessionRes.error) throw sessionRes.error;
+      if (progressRes.error) throw progressRes.error;
+
+      const sessionRows = Array.isArray(sessionRes.data) ? sessionRes.data : [];
+      const progressRows = Array.isArray(progressRes.data) ? progressRes.data : [];
+      const rows = mergeLiveAndResultRows(progressRows, sessionRows).filter((row) => row.completed || String(row.status || '').toLowerCase() === 'done' || String(row.status || '').toLowerCase() === 'finished');
+
       state.resultsCache = rows;
 
       const tbody = document.getElementById('jlpt-results-table');
       const count = document.getElementById('jlpt-results-count');
       const countBadge = document.getElementById('jlpt-results-count-badge');
-      if (count) count.textContent = `${rows.length} session`;
-      if (countBadge) countBadge.textContent = `${rows.length} session`;
+      if (count) count.textContent = `${rows.length} hasil`;
+      if (countBadge) countBadge.textContent = `${rows.length} hasil`;
 
       if (!tbody) return;
       if (!rows.length) {
-        tbody.innerHTML = '<tr><td colspan="7" style="padding:16px;color:var(--muted);">Belum ada hasil ujian.</td></tr>';
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7" style="padding:18px;">
+              <div style="border:1px dashed var(--border);border-radius:18px;padding:22px;color:var(--muted);background:rgba(255,255,255,.02);">
+                <div style="font-weight:800;color:var(--text);margin-bottom:6px;">Belum ada hasil ujian.</div>
+                <div style="font-size:13px;line-height:1.7;">Hasil akan muncul otomatis setelah user menekan tombol selesai dan data masuk ke <code>exam_sessions</code>.</div>
+              </div>
+            </td>
+          </tr>`;
         return;
       }
 
@@ -1036,13 +1047,13 @@
         const dok = sec.dokkai?.percentage ?? '—';
         return `
           <tr>
-            <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);font-weight:700;">${esc(userLabel)}</td>
-            <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);">${esc(row.exam_title || row.exam_key || '—')}</td>
-            <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);font-family:'JetBrains Mono',monospace;">${esc(row.score ?? 0)}</td>
-            <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);font-weight:700;">${esc(String(pct.toFixed ? pct.toFixed(2) : pct))}%</td>
-            <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);">${esc(`${moji}% / ${bun}% / ${dok}%`)}</td>
-            <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);font-size:12px;color:var(--muted);">${esc(fmtTime(row.started_at))}</td>
-            <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);font-size:12px;color:var(--muted);">${esc(fmtTime(row.completed_at || row.updated_at))}</td>
+            <td style="padding:14px 16px;border-top:1px solid rgba(255,255,255,.04);font-weight:800;">${esc(userLabel)}</td>
+            <td style="padding:14px 16px;border-top:1px solid rgba(255,255,255,.04);">${esc(row.exam_title || row.exam_key || '—')}</td>
+            <td style="padding:14px 16px;border-top:1px solid rgba(255,255,255,.04);font-family:'JetBrains Mono',monospace;font-weight:700;">${esc(row.score ?? 0)}</td>
+            <td style="padding:14px 16px;border-top:1px solid rgba(255,255,255,.04);font-weight:800;">${esc(Number.isFinite(pct) ? pct.toFixed(2) : '0.00')}%</td>
+            <td style="padding:14px 16px;border-top:1px solid rgba(255,255,255,.04);line-height:1.7;">${esc(`${moji}% / ${bun}% / ${dok}%`)}</td>
+            <td style="padding:14px 16px;border-top:1px solid rgba(255,255,255,.04);font-size:12px;color:var(--muted);line-height:1.6;">${esc(fmtTime(row.started_at))}</td>
+            <td style="padding:14px 16px;border-top:1px solid rgba(255,255,255,.04);font-size:12px;color:var(--muted);line-height:1.6;">${esc(fmtTime(row.completed_at || row.updated_at))}</td>
           </tr>
         `;
       }).join('');
