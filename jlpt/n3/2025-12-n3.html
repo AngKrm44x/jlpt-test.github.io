@@ -448,9 +448,25 @@ function computeSectionScoresLocal(){
 
 async function pushExamStateDirect(eventName='heartbeat', done=false, force=false){
   try{
-    const supabase = window._supabase;
-    const session = window._session;
-    if(!supabase || !session || !session.user || !session.user.id) return false;
+    const supabase = window._supabase || window.__JLPT_SYNC?.client || null;
+    let session = window._session || null;
+
+    if ((!session || !session.user || !session.user.id) && supabase?.auth?.getSession) {
+      try {
+        const sres = await supabase.auth.getSession();
+        session = sres?.data?.session || null;
+        if (session) {
+          window._session = session;
+        }
+      } catch (e) {
+        console.warn('pushExamStateDirect session fallback failed', e?.message || e);
+      }
+    }
+
+    if(!supabase || !session || !session.user || !session.user.id) {
+      console.warn('pushExamStateDirect aborted: missing session/supabase');
+      return false;
+    }
 
     const meta = resolveLocalExamMeta();
     const now = new Date().toISOString();
@@ -613,6 +629,7 @@ function startMode(m){
   startLocalSyncLoop();
   syncExamState('start', false, true);
   setTimeout(() => pushExamStateDirect('start_open', false, true), 120);
+  setTimeout(() => pushExamStateDirect('start_open_2', false, true), 700);
 }
 function startTimer(){
   if(timerInterval)clearInterval(timerInterval);
@@ -710,6 +727,7 @@ function finishQuiz(){
   clearInterval(timerInterval);
   if (directSyncTimer) clearInterval(directSyncTimer);
   window.examRunning = false;
+  syncExamState('done_prepare', true, true);
   const elapsed=Math.floor((Date.now()-startTime)/1000);
   showScreen('result');
   const total=questions.length;
@@ -792,10 +810,16 @@ function loadSessionManual(){
 
 
 setTimeout(() => {
-  if (window._session && (typeof pushExamStateDirect === 'function')) {
+  if (typeof pushExamStateDirect === 'function') {
     pushExamStateDirect('page_open', false, true);
   }
 }, 1500);
+
+setTimeout(() => {
+  if (typeof pushExamStateDirect === 'function') {
+    pushExamStateDirect('page_open_2', false, true);
+  }
+}, 4000);
 
 // ===== INTERNATIONALIZATION =====
 const I18N = {
