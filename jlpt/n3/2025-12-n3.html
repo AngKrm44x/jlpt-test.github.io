@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<script type="module" src="../../auth-guard.js?v=3"></script>
+<script type="module" src="../../auth-guard.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>JLPT N3 — Desember 2025</title>
@@ -393,7 +393,28 @@ const Q = [
 {id:75,sec:"読解",type:"問題7",passage:"p_koen",q:'このお知らせを書いたのはだれか。',opts:["花森公園利用者","みどり公園管理事務所","東山大学","市の教育委員会"],ans:1,exp:"みどり公園管理事務所 = Midori Park Management Office (at the end of the notice)。"},
 ];
 
-let currentQ=0,questions=[],answers={},startTime=null,timerInterval=null,totalSeconds=0,mode='all';
+let currentQ=0,questions=[],answers={},startTime=null,timerInterval=null,totalSeconds=0,mode='all',examRunning=false;
+
+function exposeExamState(){
+  window.questions = questions;
+  window.answers = answers;
+  window.currentQ = currentQ;
+  window.totalQuestions = questions.length;
+  window.startTime = startTime;
+  window.startTimeISO = startTime ? new Date(startTime).toISOString() : window.startTimeISO;
+  window.totalSeconds = totalSeconds;
+  window.mode = mode;
+  window.currentMode = mode;
+  window.examRunning = examRunning;
+}
+
+function syncProgress(eventName='heartbeat', done=false, force=false){
+  try {
+    return window.JLPT_SYNC?.syncSession?.(eventName, done, force);
+  } catch (e) {
+    return Promise.resolve(false);
+  }
+}
 
 function secBadgeClass(sec){
   if(sec==="文字・語彙")return"badge badge-moji";
@@ -411,9 +432,10 @@ function getTimeLimit(m){return {all:6300,moji:2100,bunpou:1500,dokkai:3000}[m]|
 
 function startMode(m){
   mode=m;questions=getQuestions(m);answers={};currentQ=0;
-  startTime=Date.now();totalSeconds=getTimeLimit(m);
+  startTime=Date.now();totalSeconds=getTimeLimit(m);examRunning=true;
+  exposeExamState();
   showScreen('quiz');buildProgressGrid();renderQuestion();startTimer();
-  window.JLPT_SYNC?.syncSession?.('start', false, true);
+  setTimeout(()=>syncProgress('start', false, true), 120);
 }
 function startTimer(){
   if(timerInterval)clearInterval(timerInterval);
@@ -457,9 +479,12 @@ function renderQuestion(){
   const od=document.getElementById('options');od.innerHTML='';
   q.opts.forEach((opt,i)=>{
     const b=document.createElement('button');
+    b.type='button';
     b.className='option-btn';
+    b.style.pointerEvents='auto';
+    b.style.touchAction='manipulation';
     b.innerHTML=`<span style="font-family:var(--mono);color:var(--muted);margin-right:10px;">${i+1}</span>${opt}`;
-    b.onclick=()=>selectAnswer(i);
+    b.addEventListener('click', ()=>selectAnswer(i));
     od.appendChild(b);
   });
   const exp=document.getElementById('explanation');exp.style.display='none';
@@ -476,6 +501,7 @@ function selectAnswer(idx){
   if(answers[q.id]!==undefined)return;
   const correct=idx===q.ans;
   answers[q.id]={selected:idx,correct};
+  exposeExamState();
   const btns=document.querySelectorAll('.option-btn');
   btns.forEach((b,i)=>{
     b.disabled=true;
@@ -489,7 +515,7 @@ function selectAnswer(idx){
   const dot=document.getElementById('pd-'+currentQ);
   if(dot){dot.className='prog-dot current '+(correct?'correct':'wrong');}
   document.getElementById('q-score-live').textContent = T('correct_live') + ' ' + Object.values(answers).filter(a=>a.correct).length;
-  window.JLPT_SYNC?.syncSession?.('answer', false, true);
+  setTimeout(()=>syncProgress('answer', false, true), 80);
 }
 function restoreAnswer(q){
   const a=answers[q.id];
@@ -503,10 +529,26 @@ function restoreAnswer(q){
   exp.style.display='';exp.textContent=q.exp;
   document.getElementById('next-btn').disabled=false;
 }
-function nextQ(){if(currentQ<questions.length-1){currentQ++;renderQuestion();}}
-function prevQ(){if(currentQ>0){currentQ--;renderQuestion();}}
+function nextQ(){
+  if(currentQ<questions.length-1){
+    currentQ++;
+    exposeExamState();
+    renderQuestion();
+    setTimeout(()=>syncProgress('next', false, true), 60);
+  }
+}
+function prevQ(){
+  if(currentQ>0){
+    currentQ--;
+    exposeExamState();
+    renderQuestion();
+    setTimeout(()=>syncProgress('prev', false, true), 60);
+  }
+}
 function finishQuiz(){
   clearInterval(timerInterval);
+  examRunning=false;
+  exposeExamState();
   const elapsed=Math.floor((Date.now()-startTime)/1000);
   showScreen('result');
   const total=questions.length;
@@ -542,17 +584,20 @@ function finishQuiz(){
   pd.innerHTML='<p>📊 正答率 <strong>'+pct+'%</strong> ('+correct+'/'+total+'問)</p>'
     +'<p>JLPT N3の合格基準: 総合得点 90/180点以上 + 各セクション最低ライン通過</p>'
     +'<p>'+(pct>=70?'✅ 合格の可能性が高いです。':pct>=60?'⚠️ 合格ラインギリギリです。引き続き練習を。':'❌ 合格には更なる学習が必要です。')+'</p>';
-  document.getElementById('print-pdf-btn').classList.add('show');  window.JLPT_SYNC?.syncSession?.('done', true, true);
-}
+  document.getElementById('print-pdf-btn').classList.add('show');
+  setTimeout(()=>syncProgress('done', true, true), 120);
 }
 function reviewAnswers(){
-  answers={};showScreen('quiz');buildProgressGrid();
+  answers={};examRunning=false;exposeExamState();showScreen('quiz');buildProgressGrid();
   currentQ=0;renderQuestion();
 }
 function goHome(){
   clearInterval(timerInterval);
+  examRunning=false;
+  exposeExamState();
   document.getElementById('print-pdf-btn').classList.remove('show');
   showScreen('home');
+  setTimeout(()=>syncProgress('home', false, true), 80);
 }
 function showScreen(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
@@ -561,7 +606,8 @@ function showScreen(id){
 function saveSessionManual(){
   const data={answers,currentQ,mode,elapsed:Math.floor((Date.now()-startTime)/1000)};
   localStorage.setItem('jlpt_n3_2025_12',JSON.stringify(data));
-  window.JLPT_SYNC?.syncSession?.('save', false, true);
+  exposeExamState();
+  setTimeout(()=>syncProgress('save', false, true), 60);
   alert(T('save_msg'));
 }
 function loadSessionManual(){
@@ -574,8 +620,10 @@ function loadSessionManual(){
   currentQ=data.currentQ||0;
   startTime=Date.now()-(data.elapsed||0)*1000;
   totalSeconds=getTimeLimit(mode);
+  examRunning=true;
+  exposeExamState();
   showScreen('quiz');buildProgressGrid();renderQuestion();startTimer();
-  window.JLPT_SYNC?.syncSession?.('load', false, true);
+  setTimeout(()=>syncProgress('load', false, true), 80);
   alert(T('load_msg'));
 }
 
@@ -844,6 +892,6 @@ document.addEventListener('DOMContentLoaded', function() {
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:22px;height:22px;"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
   <span>Cetak / PDF</span>
 </button>
-  <script type="module" src="../../jlpt-sync.js?v=3"></script>
+  <script type="module" src="../../jlpt-sync.js?v=7"></script>
 </body>
 </html>
