@@ -394,32 +394,13 @@ const Q = [
 ];
 
 let currentQ=0,questions=[],answers={},startTime=null,timerInterval=null,totalSeconds=0,mode='all';
-
-function syncExamStateToWindow(){
-  window.currentQ = currentQ;
-  window.questions = questions;
-  window.answers = answers;
-  window.startTime = startTime;
-  window.totalSeconds = totalSeconds;
-  window.mode = mode;
-  window.currentMode = mode;
-  window.totalQuestions = questions.length;
-  window.startTimeISO = startTime ? new Date(startTime).toISOString() : window.startTimeISO || null;
-  window.__JLPT_EXAM_STATE__ = {
-    currentQ,
-    questions,
-    answers,
-    startTime,
-    totalSeconds,
-    mode,
-    currentMode: mode,
-    totalQuestions: questions.length,
-    startTimeISO: window.startTimeISO,
-  };
-}
-syncExamStateToWindow();
-window.__JLPT_EXAM_FINISHED__ = false;
-
+window.currentQ = currentQ;
+window.questions = questions;
+window.answers = answers;
+window.startTime = startTime;
+window.timerInterval = timerInterval;
+window.totalSeconds = totalSeconds;
+window.mode = mode;
 
 function secBadgeClass(sec){
   if(sec==="文字・語彙")return"badge badge-moji";
@@ -435,16 +416,31 @@ function getQuestions(m){
 }
 function getTimeLimit(m){return {all:6300,moji:2100,bunpou:1500,dokkai:3000}[m]||6300;}
 
+function syncJLPT(event='heartbeat', done=false, force=true){
+  try {
+    if (window.JLPT_SYNC && typeof window.JLPT_SYNC.syncSession === 'function') {
+      return window.JLPT_SYNC.syncSession(event, done, force);
+    }
+  } catch (e) {}
+  return Promise.resolve(false);
+}
+
+
 function startMode(m){
   mode=m;questions=getQuestions(m);answers={};currentQ=0;
   startTime=Date.now();totalSeconds=getTimeLimit(m);
-  syncExamStateToWindow();
-  window.__JLPT_SESSION_STARTED_AT__ = new Date(startTime).toISOString();
-  localStorage.setItem('jlpt_exam_live','1');
+  window.mode = mode;
+  window.questions = questions;
+  window.answers = answers;
+  window.currentQ = currentQ;
+  window.startTime = startTime;
+  window.totalSeconds = totalSeconds;
   showScreen('quiz');buildProgressGrid();renderQuestion();startTimer();
+  setTimeout(() => syncJLPT('start', false, true), 120);
 }
 function startTimer(){
   if(timerInterval)clearInterval(timerInterval);
+  window.timerInterval = timerInterval;
   timerInterval=setInterval(()=>{
     const elapsed=Math.floor((Date.now()-startTime)/1000);
     const remaining=totalSeconds-elapsed;
@@ -466,9 +462,9 @@ function buildProgressGrid(){
     g.appendChild(d);
   });
 }
-function goToQ(i){currentQ=i;syncExamStateToWindow();renderQuestion();}
+function goToQ(i){currentQ=i;window.currentQ = currentQ;renderQuestion();}
 function renderQuestion(){
-  const q=questions[currentQ];
+  window.questions = questions; window.answers = answers; window.currentQ = currentQ; const q=questions[currentQ];
   const secBadge=document.getElementById('q-sec-badge');
   secBadge.className=secBadgeClass(q.sec);secBadge.textContent=q.sec;
   document.getElementById('q-type-badge').textContent=q.type;
@@ -504,7 +500,7 @@ function selectAnswer(idx){
   if(answers[q.id]!==undefined)return;
   const correct=idx===q.ans;
   answers[q.id]={selected:idx,correct};
-  syncExamStateToWindow();
+  window.answers = answers;
   const btns=document.querySelectorAll('.option-btn');
   btns.forEach((b,i)=>{
     b.disabled=true;
@@ -518,6 +514,7 @@ function selectAnswer(idx){
   const dot=document.getElementById('pd-'+currentQ);
   if(dot){dot.className='prog-dot current '+(correct?'correct':'wrong');}
   document.getElementById('q-score-live').textContent = T('correct_live') + ' ' + Object.values(answers).filter(a=>a.correct).length;
+  setTimeout(() => syncJLPT('answer', false, true), 120);
 }
 function restoreAnswer(q){
   const a=answers[q.id];
@@ -531,13 +528,10 @@ function restoreAnswer(q){
   exp.style.display='';exp.textContent=q.exp;
   document.getElementById('next-btn').disabled=false;
 }
-function nextQ(){if(currentQ<questions.length-1){currentQ++;syncExamStateToWindow();renderQuestion();}}
-function prevQ(){if(currentQ>0){currentQ--;syncExamStateToWindow();renderQuestion();}}
+function nextQ(){if(currentQ<questions.length-1){currentQ++;window.currentQ=currentQ;renderQuestion();}}
+function prevQ(){if(currentQ>0){currentQ--;window.currentQ=currentQ;renderQuestion();}}
 function finishQuiz(){
   clearInterval(timerInterval);
-  window.__JLPT_EXAM_FINISHED__ = true;
-  localStorage.removeItem('jlpt_exam_live');
-  syncExamStateToWindow();
   const elapsed=Math.floor((Date.now()-startTime)/1000);
   showScreen('result');
   const total=questions.length;
@@ -574,6 +568,9 @@ function finishQuiz(){
     +'<p>JLPT N3の合格基準: 総合得点 90/180点以上 + 各セクション最低ライン通過</p>'
     +'<p>'+(pct>=70?'✅ 合格の可能性が高いです。':pct>=60?'⚠️ 合格ラインギリギリです。引き続き練習を。':'❌ 合格には更なる学習が必要です。')+'</p>';
   document.getElementById('print-pdf-btn').classList.add('show');
+  window.answers = answers;
+  window.currentQ = currentQ;
+  setTimeout(() => syncJLPT('done', true, true), 80);
 }
 function reviewAnswers(){
   answers={};showScreen('quiz');buildProgressGrid();
@@ -589,9 +586,10 @@ function showScreen(id){
   document.getElementById(id).classList.add('active');
 }
 function saveSessionManual(){
-  syncExamStateToWindow();
   const data={answers,currentQ,mode,elapsed:Math.floor((Date.now()-startTime)/1000)};
   localStorage.setItem('jlpt_n3_2025_12',JSON.stringify(data));
+  window.answers = answers; window.currentQ = currentQ; window.mode = mode; window.startTime = startTime; window.totalSeconds = totalSeconds;
+  setTimeout(() => syncJLPT('save', false, true), 80);
   alert(T('save_msg'));
 }
 function loadSessionManual(){
@@ -604,10 +602,9 @@ function loadSessionManual(){
   currentQ=data.currentQ||0;
   startTime=Date.now()-(data.elapsed||0)*1000;
   totalSeconds=getTimeLimit(mode);
-  syncExamStateToWindow();
-  window.__JLPT_SESSION_STARTED_AT__ = new Date(startTime).toISOString();
-  localStorage.setItem('jlpt_exam_live','1');
+  window.answers = answers; window.questions = questions; window.currentQ = currentQ; window.mode = mode; window.startTime = startTime; window.totalSeconds = totalSeconds;
   showScreen('quiz');buildProgressGrid();renderQuestion();startTimer();
+  setTimeout(() => syncJLPT('load', false, true), 80);
   alert(T('load_msg'));
 }
 
