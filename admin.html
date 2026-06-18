@@ -54,18 +54,6 @@
     goTo('./auth.html');
   }
 </script>
-<script>
-window.recordExamOpen = window.recordExamOpen || async function(event, linkEl){
-  if(event){
-    event.preventDefault();
-    event.stopPropagation();
-  }
-  if(linkEl && linkEl.href){
-    window.location.href = linkEl.href;
-  }
-  return false;
-};
-</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin Panel – JLPT Exam Hub</title>
@@ -1974,7 +1962,7 @@ async function updateIndexHtml(newLevel, newPath, isNewBadge, editOnly=false){
     const href  = `./jlpt/${n}/${year}-${month}-${n}.html`;
     const levelClass = `level-n${n}`;
     const newBadge = isNewBadge?'<div class="new-badge">NEW</div>':'';
-    const newCard = `\n<div class="card" data-name="${year}-${month}-jlpt" data-level="${newLevel}" data-year="${year}" data-examkey="${key}">\n<div class="card-kanji">${newLevel}</div>${newBadge}<div class="year">${year}</div>\n<div class="card-body"><div class="exam-title">${title}</div>\n<div class="badges"><span class="badge ${levelClass}">${newLevel}</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>\n<div class="exam-desc">${desc}</div></div>\n<div class="done-stamp">✓ Completed</div>\n<a href="${href}" class="open-btn" onclick="recordExamOpen(event,this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>\n</div>`;
+    const newCard = `\n<div class="card" data-name="${year}-${month}-jlpt" data-level="${newLevel}" data-year="${year}" data-examkey="${key}">\n<div class="card-kanji">${newLevel}</div>${newBadge}<div class="year">${year}</div>\n<div class="card-body"><div class="exam-title">${title}</div>\n<div class="badges"><span class="badge ${levelClass}">${newLevel}</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>\n<div class="exam-desc">${desc}</div></div>\n<div class="done-stamp">✓ Completed</div>\n<a href="${href}" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>\n</div>`;
 
     // Insert before closing </div> of examGrid
     html = html.replace(/(<\/div>\s*<!-- \/examGrid -->|id="examGrid"[^>]*>)/, m=>{
@@ -2007,7 +1995,7 @@ function rebuildIndexCards(html){
   const cardsHtml = _examList.map(e=>{
     const n = e.level.toLowerCase();
     const newBadge = e.isNew?'<div class="new-badge">NEW</div>':'';
-    return `<div class="card" data-name="${e.year}-${e.month}-jlpt" data-level="${e.level}" data-year="${e.year}" data-examkey="${e.key}">\n<div class="card-kanji">${e.level}</div>${newBadge}<div class="year">${e.year}</div>\n<div class="card-body"><div class="exam-title">${e.title}</div>\n<div class="badges"><span class="badge ${levelColors[e.level]||''}">${e.level}</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>\n<div class="exam-desc">${e.desc}</div></div>\n<div class="done-stamp">✓ Completed</div>\n<a href="${e.href}" class="open-btn" onclick="recordExamOpen(event,this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>\n</div>`;
+    return `<div class="card" data-name="${e.year}-${e.month}-jlpt" data-level="${e.level}" data-year="${e.year}" data-examkey="${e.key}">\n<div class="card-kanji">${e.level}</div>${newBadge}<div class="year">${e.year}</div>\n<div class="card-body"><div class="exam-title">${e.title}</div>\n<div class="badges"><span class="badge ${levelColors[e.level]||''}">${e.level}</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>\n<div class="exam-desc">${e.desc}</div></div>\n<div class="done-stamp">✓ Completed</div>\n<a href="${e.href}" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>\n</div>`;
   }).join('\n');
 
   // Replace everything between examGrid opening and .empty-state
@@ -2371,7 +2359,7 @@ window.togglePwd = window.toggleFieldPwd = function(id, btn){
 <div class="badges"><span class="badge ${levelClass}">${esc(level)}</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
 <div class="exam-desc">${desc}</div></div>
 <div class="done-stamp">✓ Completed</div>
-<a href="${href}" class="open-btn" onclick="recordExamOpen(event,this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
+<a href="${href}" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
 </div>`.trim();
   }
 
@@ -3556,7 +3544,7 @@ window.togglePwd = window.toggleFieldPwd = function(id, btn){
 <div class="badges"><span class="badge level-n${n.replace('n','')}">${safe(level)}</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
 <div class="exam-desc">${desc}</div></div>
 <div class="done-stamp">✓ Completed</div>
-<a href="${href}" class="open-btn" onclick="recordExamOpen(event,this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
+<a href="${href}" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
 </div>`.trim();
     }).join('\n\n');
     return cards;
@@ -4009,6 +3997,6 @@ window.togglePwd = window.toggleFieldPwd = function(id, btn){
 })();
 </script>
 
-  <script type="module" src="./jlpt-sync.js?v=2"></script>
+  <script type="module" src="./jlpt-sync.js?v=3"></script>
 </body>
 </html>
