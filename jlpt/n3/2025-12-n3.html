@@ -395,6 +395,22 @@ const Q = [
 
 let currentQ=0,questions=[],answers={},startTime=null,timerInterval=null,totalSeconds=0,mode='all';
 
+function syncExamState(eventName='heartbeat', done=false, force=true){
+  window.currentQ = currentQ;
+  window.questions = questions;
+  window.answers = answers;
+  window.startTime = startTime;
+  window.totalSeconds = totalSeconds;
+  window.mode = mode;
+  window.currentMode = mode;
+  window.totalQuestions = questions.length;
+  window.examRunning = !!timerInterval;
+  window.startTimeISO = window.startTimeISO || (startTime ? new Date(startTime).toISOString() : null);
+  if (window.JLPT_SYNC?.syncSession) {
+    try { window.JLPT_SYNC.syncSession(eventName, done, force); } catch (e) { console.warn('syncSession bridge failed:', e); }
+  }
+}
+
 function secBadgeClass(sec){
   if(sec==="文字・語彙")return"badge badge-moji";
   if(sec==="文法")return"badge badge-bunpou";
@@ -412,11 +428,14 @@ function getTimeLimit(m){return {all:6300,moji:2100,bunpou:1500,dokkai:3000}[m]|
 function startMode(m){
   mode=m;questions=getQuestions(m);answers={};currentQ=0;
   startTime=Date.now();totalSeconds=getTimeLimit(m);
+  window.__JLPT_SESSION_STARTED_AT__ = new Date(startTime).toISOString();
+  syncExamState('start_prepare', false, true);
   showScreen('quiz');buildProgressGrid();renderQuestion();startTimer();
-  window.JLPT_SYNC?.syncSession?.('start', false, true);
+  syncExamState('start', false, true);
 }
 function startTimer(){
   if(timerInterval)clearInterval(timerInterval);
+  window.examRunning = true;
   timerInterval=setInterval(()=>{
     const elapsed=Math.floor((Date.now()-startTime)/1000);
     const remaining=totalSeconds-elapsed;
@@ -438,7 +457,7 @@ function buildProgressGrid(){
     g.appendChild(d);
   });
 }
-function goToQ(i){currentQ=i;renderQuestion();}
+function goToQ(i){currentQ=i;syncExamState('goto', false, true);renderQuestion();}
 function renderQuestion(){
   const q=questions[currentQ];
   const secBadge=document.getElementById('q-sec-badge');
@@ -489,6 +508,7 @@ function selectAnswer(idx){
   const dot=document.getElementById('pd-'+currentQ);
   if(dot){dot.className='prog-dot current '+(correct?'correct':'wrong');}
   document.getElementById('q-score-live').textContent = T('correct_live') + ' ' + Object.values(answers).filter(a=>a.correct).length;
+  syncExamState('answer', false, true);
 }
 function restoreAnswer(q){
   const a=answers[q.id];
@@ -502,10 +522,11 @@ function restoreAnswer(q){
   exp.style.display='';exp.textContent=q.exp;
   document.getElementById('next-btn').disabled=false;
 }
-function nextQ(){if(currentQ<questions.length-1){currentQ++;renderQuestion();}}
-function prevQ(){if(currentQ>0){currentQ--;renderQuestion();}}
+function nextQ(){if(currentQ<questions.length-1){currentQ++;syncExamState('next', false, true);renderQuestion();}}
+function prevQ(){if(currentQ>0){currentQ--;syncExamState('prev', false, true);renderQuestion();}}
 function finishQuiz(){
   clearInterval(timerInterval);
+  window.examRunning = false;
   const elapsed=Math.floor((Date.now()-startTime)/1000);
   showScreen('result');
   const total=questions.length;
@@ -541,15 +562,18 @@ function finishQuiz(){
   pd.innerHTML='<p>📊 正答率 <strong>'+pct+'%</strong> ('+correct+'/'+total+'問)</p>'
     +'<p>JLPT N3の合格基準: 総合得点 90/180点以上 + 各セクション最低ライン通過</p>'
     +'<p>'+(pct>=70?'✅ 合格の可能性が高いです。':pct>=60?'⚠️ 合格ラインギリギリです。引き続き練習を。':'❌ 合格には更なる学習が必要です。')+'</p>';
-  document.getElementById('print-pdf-btn').classList.add('show');  window.JLPT_SYNC?.syncSession?.('done', true, true);
+  document.getElementById('print-pdf-btn').classList.add('show');
+  syncExamState('done', true, true);
 }
-}
+
 function reviewAnswers(){
   answers={};showScreen('quiz');buildProgressGrid();
   currentQ=0;renderQuestion();
 }
 function goHome(){
   clearInterval(timerInterval);
+  window.examRunning = false;
+  syncExamState('home', false, true);
   document.getElementById('print-pdf-btn').classList.remove('show');
   showScreen('home');
 }
@@ -560,7 +584,7 @@ function showScreen(id){
 function saveSessionManual(){
   const data={answers,currentQ,mode,elapsed:Math.floor((Date.now()-startTime)/1000)};
   localStorage.setItem('jlpt_n3_2025_12',JSON.stringify(data));
-  window.JLPT_SYNC?.syncSession?.('save', false, true);
+  syncExamState('save', false, true);
   alert(T('save_msg'));
 }
 function loadSessionManual(){
@@ -573,8 +597,9 @@ function loadSessionManual(){
   currentQ=data.currentQ||0;
   startTime=Date.now()-(data.elapsed||0)*1000;
   totalSeconds=getTimeLimit(mode);
+  syncExamState('load_prepare', false, true);
   showScreen('quiz');buildProgressGrid();renderQuestion();startTimer();
-  window.JLPT_SYNC?.syncSession?.('load', false, true);
+  syncExamState('load', false, true);
   alert(T('load_msg'));
 }
 
@@ -814,7 +839,6 @@ document.addEventListener('DOMContentLoaded', function() {
     b.classList.toggle('active', b.getAttribute('onclick') === `setLang('${saved}')`);
   });
   applyLang();
-  setTimeout(()=>window.JLPT_SYNC?.syncSession?.('page_ready', false, true), 1200);
 });
 (function(){
   const c=document.getElementById('bg-canvas');
