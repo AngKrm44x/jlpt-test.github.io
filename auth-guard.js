@@ -24,7 +24,7 @@ function detectPageKind() {
   const p = pathname.toLowerCase();
   if (p.endsWith('/admin.html') || p.endsWith('admin.html')) return 'admin';
   if (p.endsWith('/index.html') || p.endsWith('index.html')) return 'index';
-  if (/\/jlpt\/n[1-5]\/.*\.html$/i.test(p) || /n[1-5]\.html$/i.test(p) || /\d{4}-\d{2}-n[1-5]\.html$/i.test(p)) return 'exam';
+  if (/\/jlpt\/n[1-5]\/.*\.html$/i.test(p) || /n[1-5]\.html$/i.test(p)) return 'exam';
   return 'other';
 }
 
