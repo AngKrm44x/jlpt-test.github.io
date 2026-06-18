@@ -394,6 +394,182 @@ const Q = [
 ];
 
 let currentQ=0,questions=[],answers={},startTime=null,timerInterval=null,totalSeconds=0,mode='all';
+let directSyncTimer=null;
+
+function resolveLocalExamMeta(){
+  const p = (location.pathname || '').replace(/\\/g,'/').toLowerCase();
+  let key = '';
+  let level = '';
+  let year = '';
+  let month = '';
+  let m = p.match(/(\d{4})-(\d{2})-n([1-5])/i);
+  if (m) {
+    year = m[1];
+    month = m[2];
+    level = `N${m[3]}`;
+    key = `n${m[3]}-${m[1]}-${m[2]}`;
+  } else {
+    m = p.match(/n([1-5])-(\d{4})-(\d{2})/i);
+    if (m) {
+      level = `N${m[1]}`;
+      year = m[2];
+      month = m[3];
+      key = `n${m[1]}-${m[2]}-${m[3]}`;
+    } else {
+      const titleMatch = (document.title || '').match(/N([1-5])/i);
+      level = titleMatch ? `N${titleMatch[1]}` : 'N3';
+      const now = new Date();
+      key = `${level.toLowerCase()}-${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+    }
+  }
+  return { key, level, year, month, title: document.title || `${level} Exam` };
+}
+
+function computeSectionScoresLocal(){
+  const groups = [
+    { label: '文字・語彙', key: 'moji' },
+    { label: '文法', key: 'bunpou' },
+    { label: '読解', key: 'dokkai' },
+  ];
+  const qs = Array.isArray(questions) && questions.length ? questions : (Array.isArray(window.questions) ? window.questions : []);
+  const ans = answers && typeof answers === 'object' ? answers : (window.answers && typeof window.answers === 'object' ? window.answers : {});
+  return Object.fromEntries(groups.map((g) => {
+    const list = qs.filter((q) => {
+      const sec = String(q.sec || '');
+      return (g.key === 'moji' && (sec.includes('文字') || sec.includes('語彙'))) ||
+             (g.key === 'bunpou' && sec.includes('文法')) ||
+             (g.key === 'dokkai' && sec.includes('読解'));
+    });
+    const correct = list.filter((q) => ans[q.id] && ans[q.id].correct).length;
+    const total = list.length;
+    return [g.key, { label: g.label, correct, total, percentage: total ? Math.round((correct / total) * 10000) / 100 : 0 }];
+  }));
+}
+
+async function pushExamStateDirect(eventName='heartbeat', done=false, force=false){
+  try{
+    const supabase = window._supabase;
+    const session = window._session;
+    if(!supabase || !session || !session.user || !session.user.id) return false;
+
+    const meta = resolveLocalExamMeta();
+    const now = new Date().toISOString();
+    const total = Array.isArray(questions) && questions.length ? questions.length : (Array.isArray(window.questions) ? window.questions.length : 0);
+    const ans = answers && typeof answers === 'object' ? answers : (window.answers && typeof window.answers === 'object' ? window.answers : {});
+    const answered = Object.keys(ans).length;
+    const correct = Object.values(ans).filter(a => a && a.correct).length;
+    const wrong = Math.max(answered - correct, 0);
+    const pct = total ? Math.round((correct / total) * 10000) / 100 : 0;
+    const remaining = (typeof totalSeconds === 'number' && startTime) ? Math.max(totalSeconds - Math.floor((Date.now() - startTime) / 1000), 0) : null;
+    const sectionScores = computeSectionScoresLocal();
+
+    const payload = {
+      user_id: session.user.id,
+      exam_key: meta.key,
+      exam_title: meta.title,
+      level: meta.level,
+      year: meta.year ? Number(meta.year) : null,
+      month: meta.month || null,
+      mode: mode || window.mode || 'all',
+      started_at: window.__JLPT_SESSION_STARTED_AT__ || (startTime ? new Date(startTime).toISOString() : now),
+      updated_at: now,
+      last_seen_at: now,
+      answers: ans,
+      current_question: Number(currentQ || window.currentQ || 0) + 1,
+      total_questions: total,
+      timer_remaining: remaining,
+      score: correct,
+      correct_count: correct,
+      wrong_count: done ? Math.max(total - correct, 0) : wrong,
+      percentage: pct,
+      section_scores: sectionScores,
+      completed: !!done,
+      completed_at: done ? now : null,
+      status: done ? 'done' : (window.examRunning || !!timerInterval ? 'active' : 'opened'),
+      last_event: eventName,
+      current_q: Number(currentQ || window.currentQ || 0) + 1,
+      total_q: total,
+      answered_count: answered,
+      remaining_seconds: remaining,
+      client_time: now,
+    };
+
+    try { await supabase.rpc('sync_exam_activity', { payload }); } catch (e) { console.warn('sync_exam_activity failed', e?.message || e); }
+    try { await supabase.rpc('jlpt_sync_exam_progress', { p_payload: payload }); } catch (e) { console.warn('jlpt_sync_exam_progress failed', e?.message || e); }
+
+    try {
+      await supabase.from('exam_progress').upsert({
+        user_id: payload.user_id,
+        exam_key: payload.exam_key,
+        exam_title: payload.exam_title,
+        level: payload.level,
+        year: payload.year,
+        month: payload.month,
+        mode: payload.mode,
+        status: payload.status,
+        current_q: payload.current_q,
+        total_q: payload.total_q,
+        answered_count: payload.answered_count,
+        correct_count: payload.correct_count,
+        wrong_count: payload.wrong_count,
+        percentage: payload.percentage,
+        remaining_seconds: payload.remaining_seconds,
+        last_event: payload.last_event,
+        client_time: payload.client_time,
+        updated_at: payload.updated_at,
+      }, { onConflict: 'user_id,exam_key' });
+    } catch (e) {
+      console.warn('direct exam_progress upsert failed', e?.message || e);
+    }
+
+    try {
+      await supabase.from('exam_sessions').upsert({
+        user_id: payload.user_id,
+        exam_key: payload.exam_key,
+        exam_title: payload.exam_title,
+        level: payload.level,
+        year: payload.year,
+        month: payload.month,
+        mode: payload.mode,
+        started_at: payload.started_at,
+        updated_at: payload.updated_at,
+        last_seen_at: payload.last_seen_at,
+        answers: payload.answers,
+        current_question: payload.current_question,
+        total_questions: payload.total_questions,
+        timer_remaining: payload.timer_remaining,
+        score: payload.score,
+        correct_count: payload.correct_count,
+        wrong_count: payload.wrong_count,
+        percentage: payload.percentage,
+        section_scores: payload.section_scores,
+        completed: payload.completed,
+        completed_at: payload.completed_at,
+        status: payload.status,
+        last_event: payload.last_event,
+      }, { onConflict: 'user_id,exam_key' });
+    } catch (e) {
+      console.warn('direct exam_sessions upsert failed', e?.message || e);
+    }
+
+    return true;
+  } catch (err) {
+    console.warn('pushExamStateDirect error', err?.message || err);
+    return false;
+  }
+}
+
+function startLocalSyncLoop(){
+  if(directSyncTimer) clearInterval(directSyncTimer);
+  directSyncTimer = setInterval(() => {
+    if (window._session && (Array.isArray(questions) ? questions.length : 0)) {
+      pushExamStateDirect('heartbeat', false, false);
+    }
+  }, 5000);
+}
+
+window.__JLPT_PUSH_EXAM_STATE__ = pushExamStateDirect;
+
 
 function syncExamState(eventName='heartbeat', done=false, force=true){
   window.currentQ = currentQ;
@@ -406,6 +582,9 @@ function syncExamState(eventName='heartbeat', done=false, force=true){
   window.totalQuestions = questions.length;
   window.examRunning = !!timerInterval;
   window.startTimeISO = window.startTimeISO || (startTime ? new Date(startTime).toISOString() : null);
+  if (window.__JLPT_PUSH_EXAM_STATE__) {
+    try { window.__JLPT_PUSH_EXAM_STATE__(eventName, done, force); } catch (e) { console.warn('direct sync bridge failed:', e); }
+  }
   if (window.JLPT_SYNC?.syncSession) {
     try { window.JLPT_SYNC.syncSession(eventName, done, force); } catch (e) { console.warn('syncSession bridge failed:', e); }
   }
@@ -431,7 +610,9 @@ function startMode(m){
   window.__JLPT_SESSION_STARTED_AT__ = new Date(startTime).toISOString();
   syncExamState('start_prepare', false, true);
   showScreen('quiz');buildProgressGrid();renderQuestion();startTimer();
+  startLocalSyncLoop();
   syncExamState('start', false, true);
+  setTimeout(() => pushExamStateDirect('start_open', false, true), 120);
 }
 function startTimer(){
   if(timerInterval)clearInterval(timerInterval);
@@ -509,6 +690,7 @@ function selectAnswer(idx){
   if(dot){dot.className='prog-dot current '+(correct?'correct':'wrong');}
   document.getElementById('q-score-live').textContent = T('correct_live') + ' ' + Object.values(answers).filter(a=>a.correct).length;
   syncExamState('answer', false, true);
+  setTimeout(() => pushExamStateDirect('answer', false, true), 80);
 }
 function restoreAnswer(q){
   const a=answers[q.id];
@@ -522,10 +704,11 @@ function restoreAnswer(q){
   exp.style.display='';exp.textContent=q.exp;
   document.getElementById('next-btn').disabled=false;
 }
-function nextQ(){if(currentQ<questions.length-1){currentQ++;syncExamState('next', false, true);renderQuestion();}}
-function prevQ(){if(currentQ>0){currentQ--;syncExamState('prev', false, true);renderQuestion();}}
+function nextQ(){if(currentQ<questions.length-1){currentQ++;syncExamState('next', false, true);renderQuestion();setTimeout(() => pushExamStateDirect('next', false, true), 80);}}
+function prevQ(){if(currentQ>0){currentQ--;syncExamState('prev', false, true);renderQuestion();setTimeout(() => pushExamStateDirect('prev', false, true), 80);}}
 function finishQuiz(){
   clearInterval(timerInterval);
+  if (directSyncTimer) clearInterval(directSyncTimer);
   window.examRunning = false;
   const elapsed=Math.floor((Date.now()-startTime)/1000);
   showScreen('result');
@@ -564,6 +747,7 @@ function finishQuiz(){
     +'<p>'+(pct>=70?'✅ 合格の可能性が高いです。':pct>=60?'⚠️ 合格ラインギリギリです。引き続き練習を。':'❌ 合格には更なる学習が必要です。')+'</p>';
   document.getElementById('print-pdf-btn').classList.add('show');
   syncExamState('done', true, true);
+  setTimeout(() => pushExamStateDirect('done', true, true), 120);
 }
 
 function reviewAnswers(){
@@ -572,6 +756,7 @@ function reviewAnswers(){
 }
 function goHome(){
   clearInterval(timerInterval);
+  if (directSyncTimer) clearInterval(directSyncTimer);
   window.examRunning = false;
   syncExamState('home', false, true);
   document.getElementById('print-pdf-btn').classList.remove('show');
@@ -585,6 +770,7 @@ function saveSessionManual(){
   const data={answers,currentQ,mode,elapsed:Math.floor((Date.now()-startTime)/1000)};
   localStorage.setItem('jlpt_n3_2025_12',JSON.stringify(data));
   syncExamState('save', false, true);
+  setTimeout(() => pushExamStateDirect('save', false, true), 80);
   alert(T('save_msg'));
 }
 function loadSessionManual(){
@@ -600,8 +786,16 @@ function loadSessionManual(){
   syncExamState('load_prepare', false, true);
   showScreen('quiz');buildProgressGrid();renderQuestion();startTimer();
   syncExamState('load', false, true);
+  setTimeout(() => pushExamStateDirect('load', false, true), 80);
   alert(T('load_msg'));
 }
+
+
+setTimeout(() => {
+  if (window._session && (typeof pushExamStateDirect === 'function')) {
+    pushExamStateDirect('page_open', false, true);
+  }
+}, 1500);
 
 // ===== INTERNATIONALIZATION =====
 const I18N = {
