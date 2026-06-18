@@ -326,11 +326,12 @@
   }
 
   function computeStats() {
-    const qs = Array.isArray(window.questions) ? window.questions : [];
-    const ans = window.answers && typeof window.answers === 'object' ? window.answers : {};
+    const examState = window.__JLPT_EXAM_STATE__ || {};
+    const qs = Array.isArray(window.questions) ? window.questions : (Array.isArray(examState.questions) ? examState.questions : []);
+    const ans = (window.answers && typeof window.answers === 'object') ? window.answers : (examState.answers && typeof examState.answers === 'object' ? examState.answers : {});
     const answered = Object.keys(ans).length;
     const correct = Object.values(ans).filter((a) => a && a.correct).length;
-    const total = qs.length || Number(window.totalQuestions || 0) || 0;
+    const total = qs.length || Number(window.totalQuestions || examState.totalQuestions || 0) || 0;
     const wrong = Math.max(answered - correct, 0);
     const percent = total ? Math.round((correct / total) * 10000) / 100 : 0;
 
@@ -351,8 +352,9 @@
   }
 
   function remainingSeconds() {
-    const startTime = Number(window.startTime || 0);
-    const totalSeconds = Number(window.totalSeconds || 0);
+    const examState = window.__JLPT_EXAM_STATE__ || {};
+    const startTime = Number(window.startTime || examState.startTime || 0);
+    const totalSeconds = Number(window.totalSeconds || examState.totalSeconds || 0);
     if (!startTime || !totalSeconds) return null;
     return Math.max(totalSeconds - Math.floor((Date.now() - startTime) / 1000), 0);
   }
@@ -362,11 +364,12 @@
     const stats = computeStats();
     const rem = remainingSeconds();
     const now = new Date().toISOString();
-    const currentQ = Number(window.currentQ ?? 0);
+    const examState = window.__JLPT_EXAM_STATE__ || {};
+    const currentQ = Number(window.currentQ ?? examState.currentQ ?? 0);
     const totalQuestions = Number(stats.total || 0);
 
-    const answers = window.answers && typeof window.answers === 'object' ? window.answers : {};
-    const startedAt = window.__JLPT_SESSION_STARTED_AT__ || window.startTimeISO || null;
+    const answers = (window.answers && typeof window.answers === 'object') ? window.answers : (examState.answers && typeof examState.answers === 'object' ? examState.answers : {});
+    const startedAt = window.__JLPT_SESSION_STARTED_AT__ || window.startTimeISO || examState.startTimeISO || null;
 
     return {
       exam_key: meta.key,
@@ -894,14 +897,44 @@
     if (!state.isAdminPage) return;
     await loadUserMap();
     try {
-      const { data, error } = await client
-        .from('exam_progress')
-        .select('*')
-        .order('updated_at', { ascending: false })
-        .limit(100);
-      if (error) throw error;
+      const [progressRes, sessionRes] = await Promise.all([
+        client.from('exam_progress').select('*').order('updated_at', { ascending: false }).limit(100),
+        client.from('exam_sessions').select('*').order('updated_at', { ascending: false }).limit(100),
+      ]);
 
-      const rows = Array.isArray(data) ? data : [];
+      if (progressRes.error && sessionRes.error) throw (progressRes.error || sessionRes.error);
+
+      const progressRows = Array.isArray(progressRes.data) ? progressRes.data : [];
+      const sessionRows = Array.isArray(sessionRes.data) ? sessionRes.data : [];
+      const map = new Map();
+
+      const addRow = (row, source = 'progress') => {
+        const key = `${row.user_id || ''}::${row.exam_key || ''}`;
+        const existing = map.get(key) || {};
+        const merged = {
+          ...existing,
+          ...row,
+          source,
+          current_q: row.current_q ?? row.current_question ?? existing.current_q ?? existing.current_question ?? 0,
+          total_q: row.total_q ?? row.total_questions ?? existing.total_q ?? existing.total_questions ?? 0,
+          remaining_seconds: row.remaining_seconds ?? row.timer_remaining ?? existing.remaining_seconds ?? existing.timer_remaining ?? null,
+          correct_count: row.correct_count ?? existing.correct_count ?? 0,
+          wrong_count: row.wrong_count ?? existing.wrong_count ?? 0,
+          percentage: row.percentage ?? existing.percentage ?? 0,
+          status: row.status ?? existing.status ?? 'active',
+          updated_at: row.updated_at || existing.updated_at || row.last_seen_at || existing.last_seen_at || null,
+        };
+        map.set(key, merged);
+      };
+
+      progressRows.forEach((row) => addRow(row, 'progress'));
+      sessionRows.forEach((row) => {
+        const status = String(row.status || (row.completed ? 'done' : 'active')).toLowerCase();
+        if (status === 'done') return;
+        addRow(row, 'session');
+      });
+
+      const rows = Array.from(map.values()).sort((a, b) => String(b.updated_at || '').localeCompare(String(a.updated_at || '')));
       const tbody = document.getElementById('jlpt-live-table');
       const count = document.getElementById('jlpt-live-count');
       const countBadge = document.getElementById('jlpt-live-count-badge');
@@ -1441,7 +1474,10 @@
         if (state.isAdminPage) await refreshAdminLivePanel();
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'exam_sessions' }, async () => {
-        if (state.isAdminPage) await refreshAdminResultsPanel();
+        if (state.isAdminPage) {
+          await refreshAdminResultsPanel();
+          await refreshAdminLivePanel();
+        }
       })
       .subscribe();
   }

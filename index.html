@@ -2406,4 +2406,63 @@ updateVisibleCount();
 
 
   <script type="module" src="./jlpt-sync.js?v=2"></script>
+
+<script>
+(function () {
+  const SEARCH_FLAG_KEY = 'jlpt_exam_live';
+
+  function updateSearchLockedState() {
+    const active = localStorage.getItem(SEARCH_FLAG_KEY) === '1';
+    const box = document.querySelector('.search-box');
+    const buttons = document.querySelectorAll('.filter-btn, .level-pill, .view-btn, .open-btn');
+    if (box) {
+      box.disabled = active;
+      box.readOnly = active;
+      box.placeholder = active ? 'Exam sedang berlangsung — pencarian dinonaktifkan' : (box.getAttribute('data-placeholder') || box.placeholder || 'Search');
+      box.style.opacity = active ? '0.6' : '';
+      box.style.cursor = active ? 'not-allowed' : '';
+    }
+    buttons.forEach((el) => {
+      if (el) {
+        el.disabled = active && (el.classList.contains('filter-btn') || el.classList.contains('view-btn') || el.classList.contains('level-pill'));
+        if (active && el.classList.contains('open-btn')) {
+          el.setAttribute('aria-disabled', 'true');
+          el.style.pointerEvents = 'none';
+          el.style.opacity = '0.55';
+        } else if (el.classList.contains('open-btn')) {
+          el.removeAttribute('aria-disabled');
+          el.style.pointerEvents = '';
+          el.style.opacity = '';
+        }
+      }
+    });
+  }
+
+  window.addEventListener('storage', (e) => {
+    if (e.key === SEARCH_FLAG_KEY) updateSearchLockedState();
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (localStorage.getItem(SEARCH_FLAG_KEY) === '1') {
+      const key = (e.key || '').toLowerCase();
+      if ((e.ctrlKey || e.metaKey) && (key === 'f' || key === 'k')) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    }
+  }, true);
+
+  const origFocus = HTMLElement.prototype.focus;
+  HTMLElement.prototype.focus = function (...args) {
+    if (this && this.classList && this.classList.contains('search-box') && localStorage.getItem(SEARCH_FLAG_KEY) === '1') {
+      return;
+    }
+    return origFocus.apply(this, args);
+  };
+
+  document.addEventListener('DOMContentLoaded', updateSearchLockedState);
+  setInterval(updateSearchLockedState, 2000);
+})();
+</script>
+
 </body></html>
