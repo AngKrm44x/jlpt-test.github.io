@@ -2942,6 +2942,18 @@ window.togglePwd = window.toggleFieldPwd = function(id, btn){
           const row = payload.new || payload.old || {};
           pushActivity('system', 'Notifikasi user berubah', row.title || row.message || '—', { table: 'notifications', id: row.id, event: payload.eventType });
         })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'exam_progress' }, payload => {
+          const row = payload.new || payload.old || {};
+          pushActivity('system', 'Progress ujian berubah', `${row.exam_title || row.exam_key || '—'} • ${row.user_id || '—'}`, { table: 'exam_progress', id: row.id, event: payload.eventType });
+          refreshAllAdminViews(`exam_progress:${payload.eventType}`);
+          window.JLPT_SYNC?.refreshAdminLivePanel?.().catch?.(()=>{});
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'exam_sessions' }, payload => {
+          const row = payload.new || payload.old || {};
+          pushActivity('system', 'Hasil ujian berubah', `${row.exam_title || row.exam_key || '—'} • ${row.user_id || '—'}`, { table: 'exam_sessions', id: row.id, event: payload.eventType });
+          refreshAllAdminViews(`exam_sessions:${payload.eventType}`);
+          window.JLPT_SYNC?.refreshAdminResultsPanel?.().catch?.(()=>{});
+        })
         .subscribe(status => {
           if (status === 'SUBSCRIBED') {
             pushActivity('system', 'Realtime aktif', 'Panel admin sedang memantau perubahan user, laporan, dan request');
@@ -3997,6 +4009,6 @@ window.togglePwd = window.toggleFieldPwd = function(id, btn){
 })();
 </script>
 
-  <script type="module" src="./jlpt-sync.js?v=7"></script>
+  <script type="module" src="./jlpt-sync.js?v=4"></script>
 </body>
 </html>

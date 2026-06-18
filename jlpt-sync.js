@@ -182,32 +182,6 @@
     }
   }
 
-  function mergeLiveAndResultRows(progressRows = [], sessionRows = []) {
-    const map = new Map();
-
-    const mergeInto = (row, source) => {
-      if (!row) return;
-      const key = `${String(row.user_id || '')}::${String(row.exam_key || '')}`;
-      const existing = map.get(key) || {};
-      map.set(key, {
-        ...existing,
-        ...row,
-        _source: source,
-        _hasProgress: source === 'progress' ? true : !!existing._hasProgress,
-        _hasSession: source === 'session' ? true : !!existing._hasSession,
-      });
-    };
-
-    (sessionRows || []).forEach((row) => mergeInto(row, 'session'));
-    (progressRows || []).forEach((row) => mergeInto(row, 'progress'));
-
-    return Array.from(map.values()).sort((a, b) => {
-      const at = new Date(a.updated_at || a.client_time || 0).getTime();
-      const bt = new Date(b.updated_at || b.client_time || 0).getTime();
-      return bt - at;
-    });
-  }
-
   async function loadSystemSettings() {
     try {
       const { data, error } = await client.from('system_settings').select('*');
@@ -924,79 +898,106 @@
         client.from('exam_progress').select('*').order('updated_at', { ascending: false }).limit(100),
         client.from('exam_sessions').select('*').order('updated_at', { ascending: false }).limit(100),
       ]);
-
       if (progressRes.error) throw progressRes.error;
       if (sessionRes.error) throw sessionRes.error;
 
       const progressRows = Array.isArray(progressRes.data) ? progressRes.data : [];
       const sessionRows = Array.isArray(sessionRes.data) ? sessionRes.data : [];
-      const rows = mergeLiveAndResultRows(progressRows, sessionRows).filter((row) => {
-        const status = String(row.status || '').toLowerCase();
-        return status === 'active' || status === 'idle' || status === 'done' || status === 'finished' || row.current_q || row.answered_count || row.remaining_seconds != null;
+
+      const merged = [];
+      const seen = new Set();
+      const pushRow = (row, source='progress') => {
+        if (!row) return;
+        const key = `${String(row.user_id || '')}::${String(row.exam_key || '')}`;
+        if (seen.has(key)) return;
+        seen.add(key);
+        const base = { ...row };
+        if (source === 'session') {
+          base.current_q = Number(base.current_q || base.current_question || 0);
+          base.total_q = Number(base.total_q || base.total_questions || 0);
+          base.correct_count = Number(base.correct_count || 0);
+          base.wrong_count = Number(base.wrong_count || 0);
+          base.percentage = Number(base.percentage || 0);
+          base.remaining_seconds = base.remaining_seconds ?? base.timer_remaining ?? null;
+          base.status = base.status || (base.completed ? 'done' : 'active');
+          base.last_event = base.last_event || 'session';
+        }
+        merged.push(base);
+      };
+
+      progressRows.forEach((row) => pushRow(row, 'progress'));
+      sessionRows.forEach((row) => {
+        const key = `${String(row.user_id || '')}::${String(row.exam_key || '')}`;
+        const existingIdx = merged.findIndex((r) => `${String(r.user_id || '')}::${String(r.exam_key || '')}` === key);
+        if (existingIdx >= 0) {
+          const p = merged[existingIdx];
+          merged[existingIdx] = {
+            ...row,
+            current_q: Number(p.current_q ?? row.current_q ?? row.current_question ?? 0),
+            total_q: Number(p.total_q ?? row.total_q ?? row.total_questions ?? 0),
+            answered_count: Number(p.answered_count ?? row.answered_count ?? Object.keys(row.answers || {}).length ?? 0),
+            correct_count: Number(p.correct_count ?? row.correct_count ?? 0),
+            wrong_count: Number(p.wrong_count ?? row.wrong_count ?? 0),
+            percentage: Number(p.percentage ?? row.percentage ?? 0),
+            remaining_seconds: p.remaining_seconds ?? row.remaining_seconds ?? row.timer_remaining ?? null,
+            status: p.status || row.status || (row.completed ? 'done' : 'active'),
+            last_event: p.last_event || row.last_event || 'session',
+          };
+        } else {
+          pushRow(row, 'session');
+        }
       });
+
+      merged.sort((a, b) => new Date(b.updated_at || b.completed_at || 0) - new Date(a.updated_at || a.completed_at || 0));
 
       const tbody = document.getElementById('jlpt-live-table');
       const count = document.getElementById('jlpt-live-count');
       const countBadge = document.getElementById('jlpt-live-count-badge');
-      if (count) count.textContent = `${rows.length} sesi aktif`;
-      if (countBadge) countBadge.textContent = `${rows.length} sesi aktif`;
+      if (count) count.textContent = `${merged.length} session`;
+      if (countBadge) countBadge.textContent = `${merged.length} session`;
 
       if (!tbody) return;
-      if (!rows.length) {
-        tbody.innerHTML = `
-          <tr>
-            <td colspan="5" style="padding:18px;">
-              <div style="border:1px dashed var(--border);border-radius:18px;padding:22px;color:var(--muted);background:rgba(255,255,255,.02);">
-                <div style="font-weight:800;color:var(--text);margin-bottom:6px;">Belum ada user yang sedang ujian.</div>
-                <div style="font-size:13px;line-height:1.7;">Begitu user membuka exam dan sistem menerima heartbeat pertama, sesi mereka akan muncul di sini.</div>
-              </div>
-            </td>
-          </tr>`;
+      if (!merged.length) {
+        tbody.innerHTML = '<tr><td colspan="5" style="padding:16px;color:var(--muted);">Belum ada sesi yang tersinkron.</td></tr>';
         return;
       }
 
-      tbody.innerHTML = rows.map((row) => {
+      tbody.innerHTML = merged.map((row) => {
         const user = state.userMap.get(row.user_id) || {};
         const userLabel = user.display_name || user.full_name || user.email || row.user_id || '—';
-        const when = fmtTime(row.updated_at || row.client_time);
+        const when = fmtTime(row.updated_at || row.last_seen_at || row.completed_at);
         const rem = fmtSec(row.remaining_seconds ?? row.timer_remaining);
-        const current = Number(row.current_q ?? row.current_question ?? 0);
-        const total = Number(row.total_q ?? row.total_questions ?? 0);
-        const answered = Number(row.answered_count ?? Object.keys(row.answers || {}).length ?? 0);
-        const correct = Number(row.correct_count ?? 0);
-        const pctNum = Number(row.percentage ?? 0);
-        const pct = Number.isFinite(pctNum) ? pctNum.toFixed(2) : '0.00';
-        const status = String(row.status || 'active').toLowerCase();
-        const badgeColor = status === 'done' || status === 'finished' ? '#5ff0b0' : status === 'active' ? '#7cc0ff' : '#ffd18a';
-        const statusText = status === 'done' ? 'DONE' : status === 'finished' ? 'FINISHED' : status.toUpperCase();
+        const currentQ = Number(row.current_q || row.current_question || 0);
+        const totalQ = Number(row.total_q || row.total_questions || 0) || '—';
+        const correctCount = Number(row.correct_count || 0);
+        const pctNum = Number(row.percentage || 0);
+        const progress = `${currentQ}/${totalQ} • ${correctCount} benar • ${Number.isFinite(pctNum) ? pctNum.toFixed(2) : pctNum}%`;
+        const status = String(row.status || (row.completed ? 'done' : 'active'));
+        const badgeColor = status === 'done' ? '#5ff0b0' : status === 'active' ? '#7cc0ff' : '#ffd18a';
 
         return `
           <tr>
-            <td style="padding:14px 16px;border-top:1px solid rgba(255,255,255,.04);vertical-align:top;">
-              <div style="font-weight:800;font-size:14px;line-height:1.3;">${esc(userLabel)}</div>
-              <div style="font-size:11px;color:var(--muted);margin-top:4px;line-height:1.5;">${esc(user.email || row.user_id || '')}</div>
+            <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);">
+              <div style="font-weight:700;">${esc(userLabel)}</div>
+              <div style="font-size:11px;color:var(--muted);">${esc(row.user_id || '')}</div>
             </td>
-            <td style="padding:14px 16px;border-top:1px solid rgba(255,255,255,.04);vertical-align:top;">
-              <div style="font-weight:800;">${esc(row.exam_title || row.exam_key || '—')}</div>
-              <div style="font-size:11px;color:var(--muted);margin-top:4px;">${esc(`${row.level || ''} ${row.mode || ''}`.trim())}</div>
+            <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);">
+              <div style="font-weight:700;">${esc(row.exam_title || row.exam_key || '—')}</div>
+              <div style="font-size:11px;color:var(--muted);">${esc(`${row.level || ''} ${row.mode || ''}`.trim())}</div>
             </td>
-            <td style="padding:14px 16px;border-top:1px solid rgba(255,255,255,.04);vertical-align:top;">
-              <div style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;font-size:11px;font-weight:800;border:1px solid rgba(255,255,255,.12);color:${badgeColor};background:rgba(255,255,255,.04);text-transform:uppercase;letter-spacing:.4px;">${esc(statusText)}</div>
-              <div style="font-size:12px;color:var(--muted);margin-top:8px;line-height:1.6;">
-                <div>Soal: <strong style="color:var(--text);">${current}/${total || '—'}</strong></div>
-                <div>Terjawab: <strong style="color:var(--text);">${answered}</strong> • Benar: <strong style="color:var(--text);">${correct}</strong></div>
-                <div>Skor: <strong style="color:var(--text);">${pct}%</strong></div>
-              </div>
+            <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);">
+              <span style="padding:4px 10px;border-radius:999px;font-size:11px;font-weight:800;border:1px solid rgba(255,255,255,.12);color:${badgeColor};background:rgba(255,255,255,.06);">${esc(status.toUpperCase())}</span>
             </td>
-            <td style="padding:14px 16px;border-top:1px solid rgba(255,255,255,.04);vertical-align:top;font-family:'JetBrains Mono',monospace;font-weight:700;">${esc(rem)}</td>
-            <td style="padding:14px 16px;border-top:1px solid rgba(255,255,255,.04);vertical-align:top;font-size:12px;color:var(--muted);line-height:1.6;">${esc(when)}</td>
+            <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);font-family:'JetBrains Mono',monospace;">${esc(progress)}</td>
+            <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);font-family:'JetBrains Mono',monospace;">${esc(rem)}</td>
+            <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);font-size:12px;color:var(--muted);">${esc(when)}</td>
           </tr>
         `;
       }).join('');
     } catch (err) {
       console.warn('refreshAdminLivePanel failed:', err?.message || err);
       const tbody = document.getElementById('jlpt-live-table');
-      if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="padding:16px;color:#ff9aaa;">Gagal memuat live view.</td></tr>';
+      if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="padding:16px;color:#ff9aaa;">Gagal memuat live monitor.</td></tr>';
     }
   }
 
@@ -1004,36 +1005,24 @@
     if (!state.isAdminPage) return;
     await loadUserMap();
     try {
-      const [sessionRes, progressRes] = await Promise.all([
-        client.from('exam_sessions').select('*').order('updated_at', { ascending: false }).limit(200),
-        client.from('exam_progress').select('*').order('updated_at', { ascending: false }).limit(200),
-      ]);
-      if (sessionRes.error) throw sessionRes.error;
-      if (progressRes.error) throw progressRes.error;
-
-      const sessionRows = Array.isArray(sessionRes.data) ? sessionRes.data : [];
-      const progressRows = Array.isArray(progressRes.data) ? progressRes.data : [];
-      const rows = mergeLiveAndResultRows(progressRows, sessionRows).filter((row) => row.completed || String(row.status || '').toLowerCase() === 'done' || String(row.status || '').toLowerCase() === 'finished');
-
+      const { data, error } = await client
+        .from('exam_sessions')
+        .select('*')
+        .order('updated_at', { ascending: false })
+        .limit(100);
+      if (error) throw error;
+      const rows = Array.isArray(data) ? data : [];
       state.resultsCache = rows;
 
       const tbody = document.getElementById('jlpt-results-table');
       const count = document.getElementById('jlpt-results-count');
       const countBadge = document.getElementById('jlpt-results-count-badge');
-      if (count) count.textContent = `${rows.length} hasil`;
-      if (countBadge) countBadge.textContent = `${rows.length} hasil`;
+      if (count) count.textContent = `${rows.length} session`;
+      if (countBadge) countBadge.textContent = `${rows.length} session`;
 
       if (!tbody) return;
       if (!rows.length) {
-        tbody.innerHTML = `
-          <tr>
-            <td colspan="7" style="padding:18px;">
-              <div style="border:1px dashed var(--border);border-radius:18px;padding:22px;color:var(--muted);background:rgba(255,255,255,.02);">
-                <div style="font-weight:800;color:var(--text);margin-bottom:6px;">Belum ada hasil ujian.</div>
-                <div style="font-size:13px;line-height:1.7;">Hasil akan muncul otomatis setelah user menekan tombol selesai dan data masuk ke <code>exam_sessions</code>.</div>
-              </div>
-            </td>
-          </tr>`;
+        tbody.innerHTML = '<tr><td colspan="7" style="padding:16px;color:var(--muted);">Belum ada hasil ujian.</td></tr>';
         return;
       }
 
@@ -1047,13 +1036,13 @@
         const dok = sec.dokkai?.percentage ?? '—';
         return `
           <tr>
-            <td style="padding:14px 16px;border-top:1px solid rgba(255,255,255,.04);font-weight:800;">${esc(userLabel)}</td>
-            <td style="padding:14px 16px;border-top:1px solid rgba(255,255,255,.04);">${esc(row.exam_title || row.exam_key || '—')}</td>
-            <td style="padding:14px 16px;border-top:1px solid rgba(255,255,255,.04);font-family:'JetBrains Mono',monospace;font-weight:700;">${esc(row.score ?? 0)}</td>
-            <td style="padding:14px 16px;border-top:1px solid rgba(255,255,255,.04);font-weight:800;">${esc(Number.isFinite(pct) ? pct.toFixed(2) : '0.00')}%</td>
-            <td style="padding:14px 16px;border-top:1px solid rgba(255,255,255,.04);line-height:1.7;">${esc(`${moji}% / ${bun}% / ${dok}%`)}</td>
-            <td style="padding:14px 16px;border-top:1px solid rgba(255,255,255,.04);font-size:12px;color:var(--muted);line-height:1.6;">${esc(fmtTime(row.started_at))}</td>
-            <td style="padding:14px 16px;border-top:1px solid rgba(255,255,255,.04);font-size:12px;color:var(--muted);line-height:1.6;">${esc(fmtTime(row.completed_at || row.updated_at))}</td>
+            <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);font-weight:700;">${esc(userLabel)}</td>
+            <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);">${esc(row.exam_title || row.exam_key || '—')}</td>
+            <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);font-family:'JetBrains Mono',monospace;">${esc(row.score ?? 0)}</td>
+            <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);font-weight:700;">${esc(String(pct.toFixed ? pct.toFixed(2) : pct))}%</td>
+            <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);">${esc(`${moji}% / ${bun}% / ${dok}%`)}</td>
+            <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);font-size:12px;color:var(--muted);">${esc(fmtTime(row.started_at))}</td>
+            <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);font-size:12px;color:var(--muted);">${esc(fmtTime(row.completed_at || row.updated_at))}</td>
           </tr>
         `;
       }).join('');
@@ -1539,6 +1528,7 @@
     if (state.isExamPage) {
       installExamGuards();
       await ensureServerSession();
+      await syncSession('open_exam', false, true);
       observeExamFunctions();
       enforceLockState();
       state.heartbeatTimer = setInterval(() => {

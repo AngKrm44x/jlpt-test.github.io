@@ -574,6 +574,6 @@ let lt=0;
 (function loop(ts){requestAnimationFrame(loop);if(ts-lt<40)return;lt=ts;cx.clearRect(0,0,c.width,c.height);pts.forEach(p=>{p.x+=p.dx;p.y+=p.dy;if(p.x<0||p.x>c.width)p.dx*=-1;if(p.y<0||p.y>c.height)p.dy*=-1;cx.beginPath();cx.arc(p.x,p.y,p.r,0,Math.PI*2);cx.fillStyle='rgba(120,170,255,.4)';cx.fill();});})(0);
 </script>
 
-  <script type="module" src="./jlpt-sync.js?v=7"></script>
+  <script type="module" src="./jlpt-sync.js?v=4"></script>
 </body>
 </html>
