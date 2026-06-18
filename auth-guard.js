@@ -28,15 +28,32 @@ function detectPageKind() {
   return 'other';
 }
 
+// IMPORTANT: this MUST produce the exact same key format as
+// examMetaFromPath()/getExamCatalog() in jlpt-sync.js, which is the
+// canonical key format used by exam_settings.exam_key everywhere:
+//   n{level}-{year}-{month}   e.g. "n3-2025-12"
+// If this ever drifts out of sync with jlpt-sync.js, admin lock/unlock
+// actions will silently stop affecting direct-path access.
 function detectExamKey() {
-  const p = pathname.replace(/\\/g, '/');
-  const match = p.match(/(\d{4}-\d{2}-n[1-5])/i);
-  if (match) return match[1].toLowerCase();
-  const alt = p.match(/(n[1-5]-\d{4}-\d{2})/i);
-  if (alt) {
-    const parts = alt[1].toLowerCase().split('-');
-    if (parts.length === 3) return `${parts[1]}-${parts[2]}-${parts[0]}`;
+  const p = pathname.toLowerCase();
+
+  // Pattern A: filename like 2025-12-n3.html (also matches 2025-12-n3-something.html)
+  let m = p.match(/(\d{4})-(\d{2})-n([1-5])/i);
+  if (m) return `n${m[3]}-${m[1]}-${m[2]}`;
+
+  // Pattern B: filename like n3-2025-12.html
+  m = p.match(/n([1-5])-(\d{4})-(\d{2})/i);
+  if (m) return `n${m[1]}-${m[2]}-${m[3]}`;
+
+  // Pattern C (legacy): files like jlpt/n2/2025-12-jlpt.html that don't carry
+  // the level in the filename itself. Pull year/month from the filename and
+  // the level from the /jlpt/nX/ folder segment.
+  m = p.match(/(\d{4})-(\d{2})-jlpt/i);
+  if (m) {
+    const levelMatch = p.match(/\/jlpt\/n([1-5])\//i) || p.match(/\/n([1-5])\//i);
+    if (levelMatch) return `n${levelMatch[1]}-${m[1]}-${m[2]}`;
   }
+
   return '';
 }
 
@@ -53,11 +70,11 @@ async function readSettingsMap(table) {
 async function readCurrentLockState(examKey) {
   const [systemRows, examRows] = await Promise.all([
     readSettingsMap('system_settings'),
-    examKey ? readSettingsMap('exam_settings') : Promise.resolve([])
+    readSettingsMap('exam_settings')
   ]);
 
   const system = Object.fromEntries(systemRows.map((r) => [String(r.key || '').toLowerCase(), String(r.value ?? '')]));
-  const examRow = examRows.find((r) => String(r.exam_key || '').toLowerCase() === examKey);
+  const examRow = examKey ? examRows.find((r) => String(r.exam_key || '').toLowerCase() === examKey) : null;
 
   return {
     globalLocked: ['1', 'true', 'yes', 'on'].includes(String(system.exam_locked || '').toLowerCase()),
@@ -138,6 +155,32 @@ async function loadActiveUser() {
       }
       window.__JLPT_EXAM_KEY__ = examKey;
       window.__JLPT_LOCK_STATE__ = locks;
+
+      // Keep enforcing after load: if admin locks this exam (or locks
+      // everything) while the user is already on the page, kick them out
+      // for real instead of relying only on the in-page visual shield.
+      const recheck = async () => {
+        try {
+          const fresh = await readCurrentLockState(examKey);
+          window.__JLPT_LOCK_STATE__ = fresh;
+          if (fresh.globalLocked || fresh.examLocked) {
+            safeRedirect(base + 'index.html?locked=1');
+          }
+        } catch (e) {
+          console.warn('Lock re-check failed:', e);
+        }
+      };
+      setInterval(recheck, 6000);
+
+      try {
+        supabase
+          .channel('auth-guard-lock-watch')
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'system_settings' }, recheck)
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'exam_settings' }, recheck)
+          .subscribe();
+      } catch (e) {
+        console.warn('Realtime lock watch failed to subscribe:', e);
+      }
     }
 
     document.documentElement.style.visibility = 'visible';

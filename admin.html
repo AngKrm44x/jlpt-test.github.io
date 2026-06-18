@@ -590,6 +590,17 @@ select.form-input option{background:#0b1120;color:var(--text);}
       <span class="nav-badge" id="pendingBadge">0</span>
     </div>
 
+    <div class="nav-section">Kontrol Ujian</div>
+    <div class="nav-item" onclick="goto('examlock')" id="navExamLock">
+      <span class="nav-icon">🔐</span> Exam Lock Manager
+    </div>
+    <div class="nav-item" onclick="goto('livemonitor')" id="navLiveMonitor">
+      <span class="nav-icon">🟢</span> Live Exam Monitor
+    </div>
+    <div class="nav-item" onclick="goto('examresults')" id="navExamResults">
+      <span class="nav-icon">📈</span> Exam Results
+    </div>
+
     <div class="nav-section">Konfigurasi</div>
     <div class="nav-item" onclick="goto('github')">
       <span class="nav-icon">⚙️</span> GitHub Config
@@ -884,6 +895,24 @@ select.form-input option{background:#0b1120;color:var(--text);}
           <tbody id="pendingUserTable"><tr><td colspan="4" class="empty-state"><p>Memuat...</p></td></tr></tbody>
         </table>
       </div>
+    </div>
+
+    <!-- ===== EXAM LOCK MANAGER ===== -->
+    <!-- Filled dynamically by jlpt-sync.js (global lock + per-exam lock list) -->
+    <div class="pane" id="pane-examlock">
+      <div id="jlpt-examlock-mount"></div>
+    </div>
+
+    <!-- ===== LIVE EXAM MONITOR ===== -->
+    <!-- Filled dynamically by jlpt-sync.js (realtime exam_progress table) -->
+    <div class="pane" id="pane-livemonitor">
+      <div id="jlpt-livemonitor-mount"></div>
+    </div>
+
+    <!-- ===== EXAM RESULTS ===== -->
+    <!-- Filled dynamically by jlpt-sync.js (exam_sessions table + Export Excel) -->
+    <div class="pane" id="pane-examresults">
+      <div id="jlpt-examresults-mount"></div>
     </div>
 
     <!-- ===== GITHUB CONFIG ===== -->
@@ -1209,10 +1238,14 @@ window.goto = function(pane){
   // Reload config form setiap kali membuka tab github
   if(pane === 'github') loadConfigToForm();
   if (pane === 'requests' && typeof loadRequests === 'function') loadRequests();
+  if (pane === 'examlock' && window.JLPT_SYNC) window.JLPT_SYNC.renderAdminControlUI();
+  if (pane === 'livemonitor' && window.JLPT_SYNC) window.JLPT_SYNC.refreshAdminLivePanel();
+  if (pane === 'examresults' && window.JLPT_SYNC) window.JLPT_SYNC.refreshAdminResultsPanel();
   const titles = {
     dashboard:'Dashboard', upload:'Upload Soal Baru', exams:'Kelola Soal',
     editor:'Editor Soal', reports:'Laporan Error Soal', requests:'Request Soal', users:'Semua User',
-    pending:'User Pending Approval', github:'GitHub & Telegram Config'
+    pending:'User Pending Approval', github:'GitHub & Telegram Config',
+    examlock:'Exam Lock Manager', livemonitor:'Live Exam Monitor', examresults:'Exam Results'
   };
   document.getElementById('pageTitle').textContent = titles[pane]||pane;
   if(typeof window.closeSidebar==='function') window.closeSidebar();
@@ -3964,6 +3997,6 @@ window.togglePwd = window.toggleFieldPwd = function(id, btn){
 })();
 </script>
 
-  <script type="module" src="./jlpt-sync.js"></script>
+  <script type="module" src="./jlpt-sync.js?v=2"></script>
 </body>
 </html>
