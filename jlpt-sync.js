@@ -78,6 +78,29 @@
     return ['1', 'true', 'yes', 'on', 'locked'].includes(s);
   }
 
+  async function rpcSelectRows(name, fallback = []) {
+    try {
+      const { data, error } = await client.rpc(name);
+      if (error) throw error;
+      if (Array.isArray(data)) return data;
+      if (data == null) return [];
+      return Array.isArray(data.rows) ? data.rows : fallback;
+    } catch (err) {
+      return fallback;
+    }
+  }
+
+  async function rpcExec(name, params = {}) {
+    try {
+      const { error } = await client.rpc(name, params);
+      if (error) throw error;
+      return true;
+    } catch (err) {
+      console.warn(`${name} failed:`, err?.message || err);
+      return false;
+    }
+  }
+
   function fmtTime(ts) {
     if (!ts) return '—';
     try { return new Date(ts).toLocaleString(); } catch { return String(ts); }
@@ -184,15 +207,22 @@
 
   async function loadSystemSettings() {
     try {
-      const { data, error } = await client.from('system_settings').select('*');
-      if (error) throw error;
-      const rows = Array.isArray(data) ? data : [];
+      let rows = await rpcSelectRows('jlpt_get_system_settings', []);
+      if (!Array.isArray(rows) || !rows.length) {
+        const { data, error } = await client.from('system_settings').select('*');
+        if (error) throw error;
+        rows = Array.isArray(data) ? data : [];
+      }
       const map = Object.fromEntries(rows.map((r) => [String(r.key || '').toLowerCase(), String(r.value ?? '')]));
       state.settings.exam_locked = toBool(map.exam_locked);
       state.settings.exam_lock_reason = map.exam_lock_reason || '';
-      state.settings.exam_live_enabled = !toBool(map.exam_live_enabled) || String(map.exam_live_enabled).trim().toLowerCase() === 'true';
-      state.settings.updated_at = rows[0]?.updated_at || state.settings.updated_at;
-      state.settings.updated_by = rows[0]?.updated_by || state.settings.updated_by;
+      state.settings.exam_live_enabled = String(map.exam_live_enabled ?? 'true').trim().toLowerCase() !== 'false';
+      state.settings.updated_at = rows.find((r) => String(r.key || '').toLowerCase() === 'exam_locked')?.updated_at
+        || rows[0]?.updated_at
+        || state.settings.updated_at;
+      state.settings.updated_by = rows.find((r) => String(r.key || '').toLowerCase() === 'exam_locked')?.updated_by
+        || rows[0]?.updated_by
+        || state.settings.updated_by;
       return state.settings;
     } catch (err) {
       console.warn('system_settings load failed:', err?.message || err);
@@ -203,12 +233,16 @@
   async function loadExamLocks(force = false) {
     if (!force && state.examLocks.size) return state.examLocks;
     try {
-      const { data, error } = await client
-        .from('exam_settings')
-        .select('exam_key,title,level,locked,lock_reason,updated_at,updated_by');
-      if (error) throw error;
+      let rows = await rpcSelectRows('jlpt_get_exam_settings', []);
+      if (!Array.isArray(rows) || !rows.length) {
+        const { data, error } = await client
+          .from('exam_settings')
+          .select('exam_key,title,level,locked,lock_reason,updated_at,updated_by');
+        if (error) throw error;
+        rows = Array.isArray(data) ? data : [];
+      }
       const map = new Map();
-      (data || []).forEach((row) => map.set(String(row.exam_key || '').toLowerCase(), row));
+      (rows || []).forEach((row) => map.set(String(row.exam_key || '').toLowerCase(), row));
       state.examLocks = map;
       return map;
     } catch (err) {
@@ -231,14 +265,20 @@
       return false;
     }
     try {
-      const payload = {
-        key,
-        value: String(value ?? ''),
-        updated_at: new Date().toISOString(),
-        updated_by: ctx.session.user.id,
-      };
-      const { error } = await client.from('system_settings').upsert(payload, { onConflict: 'key' });
-      if (error) throw error;
+      const ok = await rpcExec('jlpt_set_system_setting', {
+        p_key: key,
+        p_value: String(value ?? ''),
+        p_updated_by: ctx.session.user.id,
+      });
+      if (!ok) {
+        const { error } = await client.from('system_settings').upsert({
+          key,
+          value: String(value ?? ''),
+          updated_at: new Date().toISOString(),
+          updated_by: ctx.session.user.id,
+        }, { onConflict: 'key' });
+        if (error) throw error;
+      }
       await loadSystemSettings();
       renderIndexLockUI();
       renderAdminControlUI();
@@ -254,10 +294,20 @@
   async function setGlobalLock(locked, reason = '') {
     const ctx = await getContext();
     if (!ctx?.isAdmin) return false;
-    await setSystemSetting('exam_locked', locked ? 'true' : 'false');
-    await setSystemSetting('exam_lock_reason', reason || '');
-    toast(locked ? '🔒 Semua exam dikunci' : '🔓 Semua exam dibuka');
-    return true;
+    const ok1 = await setSystemSetting('exam_locked', locked ? 'true' : 'false');
+    const ok2 = await setSystemSetting('exam_lock_reason', reason || '');
+    const ok = ok1 && ok2;
+    if (ok) {
+      state.settings.exam_locked = !!locked;
+      state.settings.exam_lock_reason = reason || '';
+      renderIndexLockUI();
+      renderAdminControlUI();
+      await refreshAdminPanels();
+      toast(locked ? '🔒 Semua exam dikunci' : '🔓 Semua exam dibuka');
+      return true;
+    }
+    toast('⚠️ Gagal menyimpan lock global');
+    return false;
   }
 
   async function setExamLock(examKey, locked, reason = '') {
@@ -271,17 +321,26 @@
     try {
       const row = state.examLocks.get(key) || {};
       const catalogEntry = !row.title ? getExamCatalog().find((e) => e.key === key) : null;
-      const payload = {
-        exam_key: key,
-        title: row.title || catalogEntry?.title || '',
-        level: row.level || catalogEntry?.level || '',
-        locked: !!locked,
-        lock_reason: reason ?? row.lock_reason ?? '',
-        updated_at: new Date().toISOString(),
-        updated_by: ctx.session.user.id,
-      };
-      const { error } = await client.from('exam_settings').upsert(payload, { onConflict: 'exam_key' });
-      if (error) throw error;
+      const ok = await rpcExec('jlpt_set_exam_lock', {
+        p_exam_key: key,
+        p_locked: !!locked,
+        p_title: row.title || catalogEntry?.title || '',
+        p_level: row.level || catalogEntry?.level || '',
+        p_lock_reason: reason ?? row.lock_reason ?? '',
+        p_updated_by: ctx.session.user.id,
+      });
+      if (!ok) {
+        const { error } = await client.from('exam_settings').upsert({
+          exam_key: key,
+          title: row.title || catalogEntry?.title || '',
+          level: row.level || catalogEntry?.level || '',
+          locked: !!locked,
+          lock_reason: reason ?? row.lock_reason ?? '',
+          updated_at: new Date().toISOString(),
+          updated_by: ctx.session.user.id,
+        }, { onConflict: 'exam_key' });
+        if (error) throw error;
+      }
       await loadExamLocks(true);
       renderIndexLockUI();
       renderAdminControlUI();
@@ -463,40 +522,25 @@
       const progressPayload = buildLivePayload(snapshot);
       const sessionPayload = {
         user_id: ctx.session.user.id,
-        exam_key: snapshot.exam_key,
-        exam_title: snapshot.exam_title,
-        level: snapshot.level,
-        year: snapshot.year,
-        month: snapshot.month,
-        mode: snapshot.mode,
-        started_at: snapshot.started_at,
-        updated_at: snapshot.updated_at,
-        last_seen_at: snapshot.last_seen_at,
-        answers: snapshot.answers,
-        current_question: snapshot.current_question,
-        total_questions: snapshot.total_questions,
-        timer_remaining: snapshot.timer_remaining,
-        score: snapshot.score,
-        correct_count: snapshot.correct_count,
-        wrong_count: snapshot.wrong_count,
-        percentage: snapshot.percentage,
-        section_scores: snapshot.section_scores,
-        completed: snapshot.completed,
-        completed_at: snapshot.completed_at,
-        status: snapshot.status,
-        last_event: snapshot.last_event,
+        ...snapshot,
       };
 
-      const [progressRes, sessionRes] = await Promise.all([
-        client.from('exam_progress').upsert({
-          user_id: ctx.session.user.id,
-          ...progressPayload,
-        }, { onConflict: 'user_id,exam_key' }),
-        client.from('exam_sessions').upsert(sessionPayload, { onConflict: 'user_id,exam_key' }),
+      const [progressOk, sessionOk] = await Promise.all([
+        rpcExec('jlpt_sync_exam_progress', { p_payload: progressPayload }),
+        rpcExec('jlpt_sync_exam_session', { p_payload: sessionPayload }),
       ]);
 
-      if (progressRes.error) throw progressRes.error;
-      if (sessionRes.error) throw sessionRes.error;
+      if (!progressOk || !sessionOk) {
+        const [progressRes, sessionRes] = await Promise.all([
+          client.from('exam_progress').upsert({
+            user_id: ctx.session.user.id,
+            ...progressPayload,
+          }, { onConflict: 'user_id,exam_key' }),
+          client.from('exam_sessions').upsert(sessionPayload, { onConflict: 'user_id,exam_key' }),
+        ]);
+        if (progressRes.error) throw progressRes.error;
+        if (sessionRes.error) throw sessionRes.error;
+      }
       return true;
     } catch (err) {
       console.warn('syncSession failed:', err?.message || err);
@@ -894,63 +938,22 @@
     if (!state.isAdminPage) return;
     await loadUserMap();
     try {
-      const [progressRes, sessionRes] = await Promise.all([
-        client.from('exam_progress').select('*').order('updated_at', { ascending: false }).limit(100),
-        client.from('exam_sessions').select('*').order('updated_at', { ascending: false }).limit(100),
-      ]);
+      let rows = await rpcSelectRows('jlpt_get_exam_progress', []);
+      if (!Array.isArray(rows) || !rows.length) {
+        const res = await client
+          .from('exam_progress')
+          .select('*')
+          .order('updated_at', { ascending: false })
+          .limit(100);
+        if (res.error) throw res.error;
+        rows = Array.isArray(res.data) ? res.data : [];
+      }
 
-      if (progressRes.error) throw progressRes.error;
-      if (sessionRes.error) throw sessionRes.error;
-
-      const mergedMap = new Map();
-
-      (Array.isArray(sessionRes.data) ? sessionRes.data : []).forEach((row) => {
-        const key = `${row.user_id || ''}::${row.exam_key || ''}`;
-        mergedMap.set(key, {
-          user_id: row.user_id,
-          exam_key: row.exam_key,
-          exam_title: row.exam_title || '',
-          level: row.level || '',
-          mode: row.mode || 'all',
-          status: row.completed ? 'done' : (row.status || 'active'),
-          current_q: row.current_question || 0,
-          total_q: row.total_questions || 0,
-          answered_count: Object.keys(row.answers || {}).length,
-          correct_count: row.correct_count || 0,
-          wrong_count: row.wrong_count || 0,
-          percentage: row.percentage || 0,
-          remaining_seconds: row.timer_remaining ?? null,
-          updated_at: row.updated_at || row.last_seen_at || row.started_at,
-        });
-      });
-
-      (Array.isArray(progressRes.data) ? progressRes.data : []).forEach((row) => {
-        const key = `${row.user_id || ''}::${row.exam_key || ''}`;
-        mergedMap.set(key, {
-          user_id: row.user_id,
-          exam_key: row.exam_key,
-          exam_title: row.exam_title || '',
-          level: row.level || '',
-          mode: row.mode || 'all',
-          status: row.status || 'active',
-          current_q: row.current_q || 0,
-          total_q: row.total_q || 0,
-          answered_count: row.answered_count || 0,
-          correct_count: row.correct_count || 0,
-          wrong_count: row.wrong_count || 0,
-          percentage: row.percentage || 0,
-          remaining_seconds: row.remaining_seconds ?? null,
-          updated_at: row.updated_at || row.client_time,
-        });
-      });
-
-      const rows = Array.from(mergedMap.values()).sort((a, b) => new Date(b.updated_at || 0) - new Date(a.updated_at || 0));
       const tbody = document.getElementById('jlpt-live-table');
       const count = document.getElementById('jlpt-live-count');
       const countBadge = document.getElementById('jlpt-live-count-badge');
-      const activeCount = rows.filter((r) => String(r.status || '').toLowerCase() === 'active').length;
-      if (count) count.textContent = `${activeCount} active / ${rows.length} session`;
-      if (countBadge) countBadge.textContent = `${activeCount} active / ${rows.length} session`;
+      if (count) count.textContent = `${rows.length} session`;
+      if (countBadge) countBadge.textContent = `${rows.length} session`;
 
       if (!tbody) return;
       if (!rows.length) {
@@ -978,8 +981,10 @@
               <div style="font-size:11px;color:var(--muted);">${esc(`${row.level || ''} ${row.mode || ''}`.trim())}</div>
             </td>
             <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);">
-              <span style="padding:4px 10px;border-radius:999px;font-size:11px;font-weight:800;border:1px solid rgba(255,255,255,.12);color:${badgeColor};background:rgba(255,255,255,.04);text-transform:uppercase;">${esc(status)}</span>
-              <div style="font-size:12px;color:var(--muted);margin-top:6px;">${esc(progress)}</div>
+              <div style="font-weight:700;">${esc(progress)}</div>
+              <div style="margin-top:6px;height:8px;background:rgba(255,255,255,.06);border-radius:999px;overflow:hidden;">
+                <div style="height:100%;width:${Math.max(0, Math.min(100, Number(row.percentage || 0)))}%;background:${badgeColor};"></div>
+              </div>
             </td>
             <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);font-weight:700;">${esc(rem)}</td>
             <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);font-size:12px;color:var(--muted);">${esc(when)}</td>
@@ -989,7 +994,7 @@
     } catch (err) {
       console.warn('refreshAdminLivePanel failed:', err?.message || err);
       const tbody = document.getElementById('jlpt-live-table');
-      if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="padding:16px;color:#ff9aaa;">Gagal memuat live view.</td></tr>';
+      if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="padding:16px;color:#ff9aaa;">Gagal memuat sesi live.</td></tr>';
     }
   }
 
@@ -997,14 +1002,16 @@
     if (!state.isAdminPage) return;
     await loadUserMap();
     try {
-      const { data, error } = await client
-        .from('exam_sessions')
-        .select('*')
-        .or('completed.eq.true,status.neq.idle')
-        .order('updated_at', { ascending: false })
-        .limit(100);
-      if (error) throw error;
-      const rows = Array.isArray(data) ? data : [];
+      let rows = await rpcSelectRows('jlpt_get_exam_sessions', []);
+      if (!Array.isArray(rows) || !rows.length) {
+        const res = await client
+          .from('exam_sessions')
+          .select('*')
+          .order('updated_at', { ascending: false })
+          .limit(100);
+        if (res.error) throw res.error;
+        rows = Array.isArray(res.data) ? res.data : [];
+      }
       state.resultsCache = rows;
 
       const tbody = document.getElementById('jlpt-results-table');
