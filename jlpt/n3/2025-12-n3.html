@@ -510,9 +510,7 @@ async function pushExamStateDirect(eventName='heartbeat', done=false, force=fals
       client_time: now,
     };
 
-    try { await supabase.rpc('sync_exam_activity', { payload }); } catch (e) { console.warn('sync_exam_activity failed', e?.message || e); }
-    try { await supabase.rpc('jlpt_sync_exam_progress', { p_payload: payload }); } catch (e) { console.warn('jlpt_sync_exam_progress failed', e?.message || e); }
-
+    // DIRECT SUPABASE UPSERT ONLY — no RPC dependency
     try {
       await supabase.from('exam_progress').upsert({
         user_id: payload.user_id,
@@ -1086,372 +1084,283 @@ document.addEventListener('DOMContentLoaded', function() {
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:22px;height:22px;"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
   <span>Cetak / PDF</span>
 </button>
-  <script type="module" src="../../jlpt-sync.js?v=8"></script>
-<script>
+  <script type="module" src="../../jlpt-sync.js?v=12"></script>
+<script type="module">
 (async function () {
-  if (window.__JLPT_EXACT_SYNC_BLOCK__) return;
-  window.__JLPT_EXACT_SYNC_BLOCK__ = true;
+  if (window.__JLPT_EXAM_ENHANCER_LOADED__) return;
+  window.__JLPT_EXAM_ENHANCER_LOADED__ = true;
 
-  const SUPABASE_URL = 'https://uincqpdexdenjcmwdfsv.supabase.co';
+  const SUPABASE_URL  = 'https://uincqpdexdenjcmwdfsv.supabase.co';
   const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpbmNxcGRleGRlbmpjbXdkZnN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5MjM4ODEsImV4cCI6MjA5NTQ5OTg4MX0.Lf1N_P_iiNQ2hnRJhd-Quy9MLKlZFSzbnXtXCnmRCS0';
+  const SYNC_SRC = '../../jlpt-sync.js?v=12';
+
+  const isFn = (v) => typeof v === 'function';
+  const nowIso = () => new Date().toISOString();
 
   let createClientFn = null;
   try {
     ({ createClient: createClientFn } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'));
-  } catch (err) {
-    console.warn('[JLPT exact sync] Supabase import failed:', err?.message || err);
+  } catch (e) {
+    console.warn('[enhancer] supabase import failed', e?.message || e);
   }
 
   if (createClientFn && !window._supabase) {
-    try {
-      window._supabase = createClientFn(SUPABASE_URL, SUPABASE_ANON);
-    } catch (err) {
-      console.warn('[JLPT exact sync] createClient failed:', err?.message || err);
+    try { window._supabase = createClientFn(SUPABASE_URL, SUPABASE_ANON); } catch (e) {}
+  }
+  try {
+    if (window._supabase && !window._session && window._supabase.auth?.getSession) {
+      const s = await window._supabase.auth.getSession();
+      window._session = s?.data?.session || null;
     }
+  } catch {}
+
+  try { await import(SYNC_SRC); } catch (e) { console.warn('[enhancer] sync import failed', e?.message || e); }
+
+  const state = { lastHash:'', lastSentAt:0, heartbeatTimer:null, wrappersInstalled:false, pageOpenSent:false };
+
+  function toast(msg) {
+    try {
+      if (typeof window.showToast === 'function') return window.showToast(msg);
+      if (typeof window.alert === 'function') return window.alert(msg);
+    } catch {}
+    console.log('[JLPT]', msg);
   }
 
-  if (!window._session && window._supabase?.auth?.getSession) {
-    try {
-      const res = await window._supabase.auth.getSession();
-      window._session = res?.data?.session || null;
-    } catch (err) {
-      console.warn('[JLPT exact sync] getSession failed:', err?.message || err);
-    }
-  }
-
-  let directSyncTimer = null;
-  let lastHash = '';
-  let lastSentAt = 0;
-
-  function resolveLocalExamMeta(){
-    const p = (location.pathname || '').replace(/\\/g,'/').toLowerCase();
-    let key = '';
-    let level = '';
-    let year = '';
-    let month = '';
+  function examMetaFromPath() {
+    const p = location.pathname.replace(/\\/g, '/').toLowerCase();
     let m = p.match(/(\d{4})-(\d{2})-n([1-5])/i);
-    if (m) {
-      year = m[1];
-      month = m[2];
-      level = `N${m[3]}`;
-      key = `n${m[3]}-${m[1]}-${m[2]}`;
-    } else {
-      m = p.match(/n([1-5])-(\d{4})-(\d{2})/i);
-      if (m) {
-        level = `N${m[1]}`;
-        year = m[2];
-        month = m[3];
-        key = `n${m[1]}-${m[2]}-${m[3]}`;
-      } else {
-        const titleMatch = (document.title || '').match(/N([1-5])/i);
-        level = titleMatch ? `N${titleMatch[1]}` : 'N3';
-        const now = new Date();
-        key = `${level.toLowerCase()}-${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-      }
-    }
-    return { key, level, year, month, title: document.title || `${level} Exam` };
+    if (m) return { key:`n${m[3]}-${m[1]}-${m[2]}`, level:`N${m[3]}`, year:+m[1], month:m[2], title:document.title || `N${m[3]} Exam` };
+    m = p.match(/n([1-5])-(\d{4})-(\d{2})/i);
+    if (m) return { key:`n${m[1]}-${m[2]}-${m[3]}`, level:`N${m[1]}`, year:+m[2], month:m[3], title:document.title || `N${m[1]} Exam` };
+    const fb = (location.pathname.split('/').pop() || document.title || 'exam').replace(/\.[^.]+$/, '');
+    const lv = fb.match(/n([1-5])/i);
+    return { key: fb.toLowerCase(), level: lv ? `N${lv[1]}` : 'N?', year: null, month: null, title: document.title || fb };
   }
 
-  function computeSectionScoresLocal(){
-    const groups = [
-      { label: '文字・語彙', key: 'moji' },
-      { label: '文法', key: 'bunpou' },
-      { label: '読解', key: 'dokkai' },
-    ];
-    const qs = Array.isArray(window.questions) && window.questions.length ? window.questions : [];
+  async function getSession() {
+    if (window._session?.user?.id) return window._session;
+    if (!window._supabase?.auth?.getSession) return null;
+    try {
+      const s = await window._supabase.auth.getSession();
+      window._session = s?.data?.session || null;
+      return window._session;
+    } catch { return null; }
+  }
+
+  function snapshot(eventName='heartbeat', done=false, statusOverride='') {
+    const meta = examMetaFromPath();
+    const qs = Array.isArray(window.questions) ? window.questions : [];
     const ans = window.answers && typeof window.answers === 'object' ? window.answers : {};
-    return Object.fromEntries(groups.map((g) => {
-      const list = qs.filter((q) => {
-        const sec = String(q.sec || '');
-        return (g.key === 'moji' && (sec.includes('文字') || sec.includes('語彙'))) ||
-               (g.key === 'bunpou' && sec.includes('文法')) ||
-               (g.key === 'dokkai' && sec.includes('読解'));
-      });
-      const correct = list.filter((q) => ans[q.id] && ans[q.id].correct).length;
-      const total = list.length;
-      return [g.key, { label: g.label, correct, total, percentage: total ? Math.round((correct / total) * 10000) / 100 : 0 }];
-    }));
+    const answered = Object.keys(ans).length;
+    const correct = Object.values(ans).filter(a => a && a.correct).length;
+    const wrong = Math.max(answered - correct, 0);
+    const total = qs.length || Number(window.totalQuestions || 0) || 0;
+    const start = Number(window.startTime || 0);
+    const totalSec = Number(window.totalSeconds || 0);
+    const remaining = start && totalSec ? Math.max(totalSec - Math.floor((Date.now() - start) / 1000), 0) : null;
+    const status = statusOverride || (done ? 'done' : ((window.examRunning || window.timerInterval) ? 'active' : 'opened'));
+    const now = nowIso();
+
+    return {
+      exam_key: meta.key,
+      exam_title: meta.title,
+      level: meta.level,
+      year: meta.year,
+      month: meta.month,
+      mode: window.mode || window.currentMode || 'all',
+      started_at: window.__JLPT_SESSION_STARTED_AT__ || window.startTimeISO || now,
+      updated_at: now,
+      last_seen_at: now,
+      current_question: Number(window.currentQ || 0) + 1,
+      total_questions: total,
+      timer_remaining: remaining,
+      answers: ans,
+      score: correct,
+      correct_count: correct,
+      wrong_count: wrong,
+      percentage: total ? Math.round((correct / total) * 10000) / 100 : 0,
+      section_scores: window.sectionScores || window.section_scores || {},
+      completed: !!done,
+      completed_at: done ? now : null,
+      status,
+      last_event: eventName,
+    };
   }
 
-  async function pushExamStateDirect(eventName='heartbeat', done=false, force=false){
-    try{
-      const supabase = window._supabase || window.__JLPT_SYNC?.client || null;
-      let session = window._session || null;
+  async function pushDirect(eventName='heartbeat', done=false, force=false, statusOverride='') {
+    const supabase = window._supabase || null;
+    const session = await getSession();
+    if (!supabase || !session?.user?.id) return false;
 
-      if ((!session || !session.user || !session.user.id) && supabase?.auth?.getSession) {
-        try {
-          const sres = await supabase.auth.getSession();
-          session = sres?.data?.session || null;
-          if (session) window._session = session;
-        } catch (e) {
-          console.warn('pushExamStateDirect session fallback failed', e?.message || e);
-        }
-      }
+    const s = snapshot(eventName, done, statusOverride);
+    const hash = JSON.stringify([s.exam_key, s.current_question, s.total_questions, s.correct_count, s.wrong_count, s.percentage, s.status, s.last_event, done, Object.keys(s.answers || {}).length, s.timer_remaining]);
+    const now = Date.now();
+    if (!force && state.lastHash === hash && now - state.lastSentAt < 4000) return true;
+    state.lastHash = hash;
+    state.lastSentAt = now;
 
-      if(!supabase || !session || !session.user || !session.user.id) {
-        console.warn('pushExamStateDirect aborted: missing session/supabase');
-        return false;
-      }
+    const progressPayload = {
+      user_id: session.user.id,
+      exam_key: s.exam_key,
+      exam_title: s.exam_title,
+      level: s.level,
+      year: s.year,
+      month: s.month,
+      mode: s.mode,
+      status: s.status,
+      current_q: s.current_question,
+      total_q: s.total_questions,
+      answered_count: Object.keys(s.answers || {}).length,
+      correct_count: s.correct_count,
+      wrong_count: s.wrong_count,
+      percentage: s.percentage,
+      remaining_seconds: s.timer_remaining,
+      last_event: s.last_event,
+      client_time: s.updated_at,
+      updated_at: s.updated_at,
+    };
+    const sessionPayload = {
+      user_id: session.user.id,
+      exam_key: s.exam_key,
+      exam_title: s.exam_title,
+      level: s.level,
+      year: s.year,
+      month: s.month,
+      mode: s.mode,
+      started_at: s.started_at,
+      updated_at: s.updated_at,
+      last_seen_at: s.last_seen_at,
+      answers: s.answers,
+      current_question: s.current_question,
+      total_questions: s.total_questions,
+      timer_remaining: s.timer_remaining,
+      score: s.score,
+      correct_count: s.correct_count,
+      wrong_count: s.wrong_count,
+      percentage: s.percentage,
+      section_scores: s.section_scores,
+      completed: s.completed,
+      completed_at: s.completed_at,
+      status: s.status,
+      last_event: s.last_event,
+    };
 
-      const meta = resolveLocalExamMeta();
-      const now = new Date().toISOString();
-      const qs = Array.isArray(window.questions) ? window.questions : [];
-      const total = qs.length;
-      const ans = window.answers && typeof window.answers === 'object' ? window.answers : {};
-      const answered = Object.keys(ans).length;
-      const correct = Object.values(ans).filter(a => a && a.correct).length;
-      const wrong = Math.max(answered - correct, 0);
-      const pct = total ? Math.round((correct / total) * 10000) / 100 : 0;
-      const remaining = (typeof window.totalSeconds === 'number' && typeof window.startTime === 'number' && window.startTime)
-        ? Math.max(window.totalSeconds - Math.floor((Date.now() - window.startTime) / 1000), 0)
-        : null;
-      const sectionScores = computeSectionScoresLocal();
-      const payload = {
-        user_id: session.user.id,
-        exam_key: meta.key,
-        exam_title: meta.title,
-        level: meta.level,
-        year: meta.year ? Number(meta.year) : null,
-        month: meta.month || null,
-        mode: window.mode || window.currentMode || 'all',
-        started_at: window.__JLPT_SESSION_STARTED_AT__ || (window.startTime ? new Date(window.startTime).toISOString() : now),
-        updated_at: now,
-        last_seen_at: now,
-        answers: ans,
-        current_question: Number(window.currentQ || 0) + 1,
-        total_questions: total,
-        timer_remaining: remaining,
-        score: correct,
-        correct_count: correct,
-        wrong_count: done ? Math.max(total - correct, 0) : wrong,
-        percentage: pct,
-        section_scores: sectionScores,
-        completed: !!done,
-        completed_at: done ? now : null,
-        status: done ? 'done' : (window.examRunning || !!window.timerInterval ? 'active' : 'opened'),
-        last_event: eventName,
-        current_q: Number(window.currentQ || 0) + 1,
-        total_q: total,
-        answered_count: answered,
-        remaining_seconds: remaining,
-        client_time: now,
-      };
-
-      const signature = JSON.stringify([
-        payload.exam_key,
-        payload.current_q,
-        payload.total_q,
-        payload.answered_count,
-        payload.correct_count,
-        payload.wrong_count,
-        payload.percentage,
-        payload.status,
-        payload.last_event,
-        payload.completed,
-        payload.timer_remaining,
+    try {
+      const [a, b] = await Promise.all([
+        supabase.from('exam_progress').upsert(progressPayload, { onConflict: 'user_id,exam_key' }),
+        supabase.from('exam_sessions').upsert(sessionPayload, { onConflict: 'user_id,exam_key' }),
       ]);
-      const nowMs = Date.now();
-      if (!force && lastHash === signature && nowMs - lastSentAt < 4000) return true;
-      lastHash = signature;
-      lastSentAt = nowMs;
-
-      // DIRECT SUPABASE UPSERT ONLY — no RPC dependency
-      try {
-        const { error } = await supabase.from('exam_progress').upsert({
-          user_id: payload.user_id,
-          exam_key: payload.exam_key,
-          exam_title: payload.exam_title,
-          level: payload.level,
-          year: payload.year,
-          month: payload.month,
-          mode: payload.mode,
-          status: payload.status,
-          current_q: payload.current_q,
-          total_q: payload.total_q,
-          answered_count: payload.answered_count,
-          correct_count: payload.correct_count,
-          wrong_count: payload.wrong_count,
-          percentage: payload.percentage,
-          remaining_seconds: payload.remaining_seconds,
-          last_event: payload.last_event,
-          client_time: payload.client_time,
-          updated_at: payload.updated_at,
-        }, { onConflict: 'user_id,exam_key' });
-        if (error) throw error;
-      } catch (e) {
-        console.warn('direct exam_progress upsert failed', e?.message || e);
-      }
-
-      try {
-        const { error } = await supabase.from('exam_sessions').upsert({
-          user_id: payload.user_id,
-          exam_key: payload.exam_key,
-          exam_title: payload.exam_title,
-          level: payload.level,
-          year: payload.year,
-          month: payload.month,
-          mode: payload.mode,
-          started_at: payload.started_at,
-          updated_at: payload.updated_at,
-          last_seen_at: payload.last_seen_at,
-          answers: payload.answers,
-          current_question: payload.current_question,
-          total_questions: payload.total_questions,
-          timer_remaining: payload.timer_remaining,
-          score: payload.score,
-          correct_count: payload.correct_count,
-          wrong_count: payload.wrong_count,
-          percentage: payload.percentage,
-          section_scores: payload.section_scores,
-          completed: payload.completed,
-          completed_at: payload.completed_at,
-          status: payload.status,
-          last_event: payload.last_event,
-        }, { onConflict: 'user_id,exam_key' });
-        if (error) throw error;
-      } catch (e) {
-        console.warn('direct exam_sessions upsert failed', e?.message || e);
-      }
-
+      if (a?.error) console.warn('[enhancer] exam_progress upsert error', a.error.message || a.error);
+      if (b?.error) console.warn('[enhancer] exam_sessions upsert error', b.error.message || b.error);
       return true;
-    } catch (err) {
-      console.warn('pushExamStateDirect error', err?.message || err);
+    } catch (e) {
+      console.warn('[enhancer] direct sync failed', e?.message || e);
       return false;
     }
   }
 
-  function syncExamState(eventName='heartbeat', done=false, force=true){
-    window.currentQ = typeof currentQ !== 'undefined' ? currentQ : (window.currentQ || 0);
-    window.questions = typeof questions !== 'undefined' ? questions : (window.questions || []);
-    window.answers = typeof answers !== 'undefined' ? answers : (window.answers || {});
-    window.startTime = typeof startTime !== 'undefined' ? startTime : window.startTime;
-    window.totalSeconds = typeof totalSeconds !== 'undefined' ? totalSeconds : (window.totalSeconds || 0);
-    window.mode = typeof mode !== 'undefined' ? mode : (window.mode || 'all');
-    window.currentMode = window.mode;
-    window.totalQuestions = (window.questions || []).length;
-    window.examRunning = !!(typeof timerInterval !== 'undefined' ? timerInterval : window.timerInterval);
-    window.startTimeISO = window.startTimeISO || (window.startTime ? new Date(window.startTime).toISOString() : null);
-    window.__JLPT_SESSION_STARTED_AT__ = window.__JLPT_SESSION_STARTED_AT__ || window.startTimeISO;
+  function mirrorState() {
+    try {
+      if (typeof currentQ !== 'undefined') window.currentQ = currentQ;
+      if (typeof questions !== 'undefined') window.questions = questions;
+      if (typeof answers !== 'undefined') window.answers = answers;
+      if (typeof startTime !== 'undefined') window.startTime = startTime;
+      if (typeof totalSeconds !== 'undefined') window.totalSeconds = totalSeconds;
+      if (typeof mode !== 'undefined') window.mode = mode;
+      window.currentMode = window.mode;
+      window.totalQuestions = (window.questions || []).length;
+      window.examRunning = !!(typeof timerInterval !== 'undefined' ? timerInterval : window.timerInterval);
+      window.startTimeISO = window.startTimeISO || (window.startTime ? new Date(window.startTime).toISOString() : null);
+      window.__JLPT_SESSION_STARTED_AT__ = window.__JLPT_SESSION_STARTED_AT__ || window.startTimeISO;
+    } catch {}
+  }
 
+  function syncExamState(eventName='heartbeat', done=false, force=true) {
+    mirrorState();
     if (window.__JLPT_PUSH_EXAM_STATE__) {
-      try { window.__JLPT_PUSH_EXAM_STATE__(eventName, done, force); } catch (e) { console.warn('direct sync bridge failed:', e); }
-    }
-    if (window.JLPT_SYNC?.syncSession) {
-      try { window.JLPT_SYNC.syncSession(eventName, done, force); } catch (e) { console.warn('syncSession bridge failed:', e); }
+      try { window.__JLPT_PUSH_EXAM_STATE__(eventName, done, force); } catch {}
+    } else if (window.JLPT_SYNC?.syncSession) {
+      try { window.JLPT_SYNC.syncSession(eventName, done, force); } catch {}
+    } else {
+      pushDirect(eventName, done, force).catch?.(()=>{});
     }
   }
 
   function requestFullscreenSafe() {
-    try {
-      if (!document.fullscreenElement && document.documentElement?.requestFullscreen) {
-        document.documentElement.requestFullscreen({ navigationUI: 'hide' }).catch(() => {});
-      }
-    } catch {}
+    try { if (!document.fullscreenElement && document.documentElement?.requestFullscreen) document.documentElement.requestFullscreen({ navigationUI:'hide' }).catch(()=>{}); } catch {}
   }
-
   function exitFullscreenSafe() {
-    try {
-      if (document.fullscreenElement && document.exitFullscreen) {
-        document.exitFullscreen().catch(() => {});
-      }
-    } catch {}
+    try { if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(()=>{}); } catch {}
   }
 
   function wrapFn(name, after) {
-    const original = window[name];
-    if (typeof original !== 'function' || original.__jlptEnhanced) return false;
+    const orig = window[name];
+    if (!isFn(orig) || orig.__jlptWrapped) return;
     const wrapped = function (...args) {
-      const result = original.apply(this, args);
-      try { after && after.apply(this, [result, args]); } catch (e) { console.warn(`[JLPT exact sync] ${name} hook failed:`, e?.message || e); }
-      return result;
+      const res = orig.apply(this, args);
+      try { after && after.apply(this, [res, args]); } catch {}
+      return res;
     };
-    wrapped.__jlptEnhanced = true;
-    wrapped.__jlptOriginal = original;
+    wrapped.__jlptWrapped = true;
     window[name] = wrapped;
-    return true;
-  }
-
-  function installShortcuts() {
-    document.addEventListener('keydown', (e) => {
-      if (!window.examRunning) return;
-      const blocked = new Set(['F5', 'F6', 'F12', 'Escape', 'PrintScreen']);
-      const ctrlBlocked = new Set(['l', 'n', 't', 'w', 'r', 'u', 's', 'p', 'f', 'j']);
-      if (blocked.has(e.key) || ((e.ctrlKey || e.metaKey) && ctrlBlocked.has((e.key || '').toLowerCase())) || (e.altKey && ['ArrowLeft','ArrowRight'].includes(e.key))) {
-        e.preventDefault();
-        e.stopPropagation();
-        try { if (window.showToast) window.showToast('⛔ Navigasi diblokir saat ujian'); } catch {}
-      }
-    }, true);
-
-    document.addEventListener('contextmenu', (e) => {
-      if (window.examRunning) e.preventDefault();
-    }, true);
   }
 
   function installWrappers() {
-    // Try to gently wrap common exam lifecycle functions when they exist.
-    wrapFn('startMode', function () {
-      setTimeout(requestFullscreenSafe, 120);
-      setTimeout(() => syncExamState('start', false, true), 150);
-      setTimeout(() => pushExamStateDirect('start_open', false, true), 300);
-    });
-    wrapFn('selectAnswer', function () {
-      setTimeout(() => syncExamState('answer', false, true), 50);
-    });
-    wrapFn('nextQ', function () {
-      setTimeout(() => syncExamState('next', false, true), 50);
-    });
-    wrapFn('prevQ', function () {
-      setTimeout(() => syncExamState('prev', false, true), 50);
-    });
-    wrapFn('saveSessionManual', function () {
-      setTimeout(() => syncExamState('save', false, true), 50);
-    });
-    wrapFn('loadSessionManual', function () {
-      setTimeout(() => syncExamState('load', false, true), 50);
-    });
-    wrapFn('openReport', function () {
-      setTimeout(() => syncExamState('report_open', false, true), 50);
-    });
-    wrapFn('closeReport', function () {
-      setTimeout(() => syncExamState('report_close', false, true), 50);
-    });
-    wrapFn('finishQuiz', function () {
-      setTimeout(exitFullscreenSafe, 100);
-      setTimeout(() => syncExamState('done', true, true), 150);
-      setTimeout(() => pushExamStateDirect('done', true, true), 250);
-    });
-    wrapFn('goHome', function () {
-      setTimeout(exitFullscreenSafe, 100);
-      setTimeout(() => syncExamState('home', false, true), 150);
-    });
+    if (state.wrappersInstalled) return;
+    state.wrappersInstalled = true;
+    wrapFn('startMode', () => { setTimeout(requestFullscreenSafe, 100); setTimeout(() => syncExamState('start', false, true), 150); setTimeout(() => pushDirect('start_open', false, true), 300); });
+    wrapFn('selectAnswer', () => setTimeout(() => syncExamState('answer', false, true), 50));
+    wrapFn('nextQ', () => setTimeout(() => syncExamState('next', false, true), 50));
+    wrapFn('prevQ', () => setTimeout(() => syncExamState('prev', false, true), 50));
+    wrapFn('saveSessionManual', () => setTimeout(() => syncExamState('save', false, true), 50));
+    wrapFn('loadSessionManual', () => setTimeout(() => syncExamState('load', false, true), 50));
+    wrapFn('openReport', () => setTimeout(() => syncExamState('report_open', false, true), 50));
+    wrapFn('closeReport', () => setTimeout(() => syncExamState('report_close', false, true), 50));
+    wrapFn('finishQuiz', () => { setTimeout(exitFullscreenSafe, 100); setTimeout(() => syncExamState('done', true, true), 150); setTimeout(() => pushDirect('done', true, true), 250); });
+    wrapFn('goHome', () => { setTimeout(exitFullscreenSafe, 100); setTimeout(() => syncExamState('home', false, true), 150); });
   }
 
-  function startLocalSyncLoop(){
-    if(directSyncTimer) clearInterval(directSyncTimer);
-    directSyncTimer = setInterval(() => {
-      if (window._session && (Array.isArray(window.questions) ? window.questions.length : 0)) {
-        pushExamStateDirect('heartbeat', false, false);
+  function installGuards() {
+    document.addEventListener('keydown', (e) => {
+      if (!window.examRunning) return;
+      const blocked = new Set(['F5', 'F6', 'F11', 'F12', 'Escape', 'PrintScreen']);
+      const ctrlBlocked = new Set(['l','n','t','w','r','u','s','p','f','j','k','h','d','g']);
+      if (blocked.has(e.key) || ((e.ctrlKey || e.metaKey) && ctrlBlocked.has((e.key || '').toLowerCase())) || (e.altKey && ['ArrowLeft','ArrowRight'].includes(e.key))) {
+        e.preventDefault(); e.stopPropagation();
+        toast('⛔ Navigasi diblokir saat ujian');
       }
-    }, 5000);
+    }, true);
+    document.addEventListener('contextmenu', (e) => { if (window.examRunning) e.preventDefault(); }, true);
   }
 
-  // Expose for any existing admin/live monitor hooks.
-  window.__JLPT_PUSH_EXAM_STATE__ = pushExamStateDirect;
-  window.__JLPT_SYNC_EXACT__ = { pushExamStateDirect, syncExamState, startLocalSyncLoop };
+  function startHeartbeat() {
+    if (state.heartbeatTimer) clearInterval(state.heartbeatTimer);
+    state.heartbeatTimer = setInterval(() => {
+      if (window._session && (Array.isArray(window.questions) ? window.questions.length : 0)) {
+        pushDirect('heartbeat', false, false);
+      }
+    }, 10000);
+  }
 
-  installShortcuts();
-  installWrappers();
-  startLocalSyncLoop();
+  async function pageOpenOnce() {
+    if (state.pageOpenSent) return;
+    state.pageOpenSent = true;
+    await pushDirect('page_open', false, true, 'opened');
+    setTimeout(() => pushDirect('page_open_2', false, true, 'opened'), 2000);
+  }
 
-  // page-open sync for pages that don't already have their own startup sync.
-  setTimeout(() => {
-    syncExamState('page_open', false, true);
-    pushExamStateDirect('page_open', false, true);
-  }, 1000);
-  setTimeout(() => {
-    pushExamStateDirect('page_open_2', false, true);
-  }, 3000);
+  function init() {
+    installGuards();
+    installWrappers();
+    startHeartbeat();
+    pageOpenOnce();
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true });
+  else init();
+
+  window.__JLPT_PUSH_EXAM_STATE__ = pushDirect;
+  window.__JLPT_EXAM_ENHANCER__ = { pushDirect, syncExamState, requestFullscreenSafe, exitFullscreenSafe };
 })();
 </script>
 </body>
