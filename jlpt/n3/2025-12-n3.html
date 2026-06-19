@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<script type="module" src="../../auth-guard.js?v=4"></script>
+<script type="module" src="../../auth-guard.js?v=3"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>JLPT N3 — Desember 2025</title>
@@ -510,9 +510,8 @@ async function pushExamStateDirect(eventName='heartbeat', done=false, force=fals
       client_time: now,
     };
 
-    try { await supabase.rpc('sync_exam_activity', { payload }); } catch (e) { console.warn('sync_exam_activity failed', e?.message || e); }
-    try { await supabase.rpc('jlpt_sync_exam_progress', { p_payload: payload }); } catch (e) { console.warn('jlpt_sync_exam_progress failed', e?.message || e); }
 
+    // DIRECT SUPABASE UPSERT ONLY (no RPC dependency)
     try {
       await supabase.from('exam_progress').upsert({
         user_id: payload.user_id,
@@ -1086,6 +1085,6 @@ document.addEventListener('DOMContentLoaded', function() {
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:22px;height:22px;"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
   <span>Cetak / PDF</span>
 </button>
-  <script type="module" src="../../jlpt-sync.js?v=4"></script>
+  <script type="module" src="../../jlpt-sync.js?v=3"></script>
 </body>
 </html>
