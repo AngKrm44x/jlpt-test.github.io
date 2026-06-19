@@ -46,6 +46,7 @@
     userMap: new Map(),
     resultsCache: [],
   };
+  state.client = client;
 
   function pageKind() {
     const p = location.pathname.replace(/\\/g, '/').toLowerCase();
@@ -788,18 +789,56 @@
     return catalog.filter((x, idx, arr) => x.key && arr.findIndex((y) => y.key === x.key) === idx);
   }
 
+
   async function refreshAdminLivePanel() {
     if (!state.isAdminPage) return;
     await loadUserMap();
     try {
-      const { data, error } = await client
-        .from('exam_progress')
-        .select('*')
-        .order('updated_at', { ascending: false })
-        .limit(100);
-      if (error) throw error;
+      const [progressRes, sessionsRes] = await Promise.all([
+        client.from('exam_progress').select('*').order('updated_at', { ascending: false }).limit(100),
+        client.from('exam_sessions').select('*').order('updated_at', { ascending: false }).limit(100),
+      ]);
+      if (progressRes.error) throw progressRes.error;
+      if (sessionsRes.error) throw sessionsRes.error;
 
-      const rows = Array.isArray(data) ? data : [];
+      const progressRows = Array.isArray(progressRes.data) ? progressRes.data : [];
+      const sessionRows = Array.isArray(sessionsRes.data) ? sessionsRes.data : [];
+      const merged = new Map();
+
+      for (const row of progressRows) {
+        const key = `${row.user_id || ''}|${row.exam_key || ''}`;
+        merged.set(key, { ...row, __source: 'progress' });
+      }
+      for (const row of sessionRows) {
+        const key = `${row.user_id || ''}|${row.exam_key || ''}`;
+        const prev = merged.get(key) || {};
+        merged.set(key, {
+          ...prev,
+          user_id: row.user_id || prev.user_id,
+          exam_key: row.exam_key || prev.exam_key,
+          exam_title: row.exam_title || prev.exam_title,
+          level: row.level || prev.level,
+          mode: row.mode || prev.mode,
+          status: prev.status || (row.completed ? 'done' : 'active'),
+          current_q: prev.current_q ?? row.current_question ?? row.current_q ?? 0,
+          total_q: prev.total_q ?? row.total_questions ?? row.total_q ?? 0,
+          answered_count: prev.answered_count ?? Object.keys(row.answers || {}).length,
+          correct_count: prev.correct_count ?? row.correct_count ?? 0,
+          wrong_count: prev.wrong_count ?? row.wrong_count ?? 0,
+          percentage: prev.percentage ?? row.percentage ?? 0,
+          remaining_seconds: prev.remaining_seconds ?? row.timer_remaining ?? null,
+          last_event: prev.last_event || row.last_event || (row.completed ? 'done' : ''),
+          updated_at: prev.updated_at || row.updated_at || row.completed_at || row.started_at,
+          __source: prev.__source || 'session',
+        });
+      }
+
+      const rows = Array.from(merged.values()).sort((a, b) => {
+        const ta = new Date(a.updated_at || 0).getTime();
+        const tb = new Date(b.updated_at || 0).getTime();
+        return tb - ta;
+      });
+
       const tbody = document.getElementById('jlpt-live-table');
       const count = document.getElementById('jlpt-live-count');
       if (count) count.textContent = `${rows.length} session`;
@@ -815,7 +854,9 @@
         const userLabel = user.display_name || user.full_name || user.email || row.user_id || '—';
         const when = fmtTime(row.updated_at);
         const rem = fmtSec(row.remaining_seconds);
-        const progress = `${Number(row.current_q || 0)}/${Number(row.total_q || 0) || '—'} • ${Number(row.correct_count || 0)} benar • ${Number(row.percentage || 0).toFixed ? Number(row.percentage || 0).toFixed(2) : row.percentage || 0}%`;
+        const current = Number(row.current_q || row.current_question || 0);
+        const total = Number(row.total_q || row.total_questions || 0);
+        const progress = `${current}/${total || '—'} • ${Number(row.correct_count || 0)} benar • ${Number(row.percentage || 0).toFixed ? Number(row.percentage || 0).toFixed(2) : row.percentage || 0}%`;
         const status = String(row.status || 'active');
         const badgeColor = status === 'done' ? '#5ff0b0' : status === 'active' ? '#7cc0ff' : '#ffd18a';
 
@@ -846,6 +887,7 @@
   }
 
   async function refreshAdminResultsPanel() {
+
     if (!state.isAdminPage) return;
     await loadUserMap();
     try {
@@ -855,20 +897,22 @@
         .order('updated_at', { ascending: false })
         .limit(100);
       if (error) throw error;
-      const rows = Array.isArray(data) ? data : [];
-      state.resultsCache = rows;
+      const allRows = Array.isArray(data) ? data : [];
+      const rows = allRows.filter((r) => r.completed);
+      state.resultsCache = rows.length ? rows : allRows;
 
       const tbody = document.getElementById('jlpt-results-table');
       const count = document.getElementById('jlpt-results-count');
-      if (count) count.textContent = `${rows.length} session`;
+      if (count) count.textContent = `${rows.length || allRows.length} session`;
 
       if (!tbody) return;
-      if (!rows.length) {
+      const renderRows = rows.length ? rows : allRows;
+      if (!renderRows.length) {
         tbody.innerHTML = '<tr><td colspan="7" style="padding:16px;color:var(--muted);">Belum ada hasil ujian.</td></tr>';
         return;
       }
 
-      tbody.innerHTML = rows.map((row) => {
+      tbody.innerHTML = renderRows.map((row) => {
         const user = state.userMap.get(row.user_id) || {};
         const userLabel = user.display_name || user.full_name || user.email || row.user_id || '—';
         const pct = Number(row.percentage || 0);
@@ -907,7 +951,9 @@
   function ensureAdminPanel() {
     const existing = document.getElementById('jlpt-sync-admin-wrap');
     if (existing) return existing;
-    const mount = document.getElementById('pane-dashboard') || document.querySelector('.content') || document.body;
+    const lockMount = document.getElementById('jlpt-examlock-mount');
+    const liveMount = document.getElementById('jlpt-livemonitor-mount');
+    const resultsMount = document.getElementById('jlpt-examresults-mount');
     const wrap = document.createElement('div');
     wrap.id = 'jlpt-sync-admin-wrap';
     wrap.style.cssText = 'margin:18px 0 28px;display:grid;gap:16px;';
@@ -1031,7 +1077,40 @@
       </div>
     `;
 
-    mount.prepend(wrap);
+    const globalCard = wrap.querySelector('#jlpt-admin-global-card');
+    const examLockCard = wrap.querySelector('#jlpt-examlock-card');
+    const liveCard = wrap.querySelector('#jlpt-admin-live-card');
+    const resultsCard = wrap.querySelector('#jlpt-admin-results-card');
+
+    if (lockMount) {
+      if (!lockMount.dataset.jlptMounted) {
+        lockMount.replaceChildren();
+        lockMount.append(globalCard, examLockCard);
+        lockMount.dataset.jlptMounted = '1';
+      }
+    } else if (globalCard && examLockCard && !document.getElementById('jlpt-admin-global-card')) {
+      document.body.prepend(globalCard, examLockCard);
+    }
+
+    if (liveMount) {
+      if (!liveMount.dataset.jlptMounted) {
+        liveMount.replaceChildren();
+        liveMount.append(liveCard);
+        liveMount.dataset.jlptMounted = '1';
+      }
+    } else if (liveCard && !document.getElementById('jlpt-admin-live-card')) {
+      document.body.appendChild(liveCard);
+    }
+
+    if (resultsMount) {
+      if (!resultsMount.dataset.jlptMounted) {
+        resultsMount.replaceChildren();
+        resultsMount.append(resultsCard);
+        resultsMount.dataset.jlptMounted = '1';
+      }
+    } else if (resultsCard && !document.getElementById('jlpt-admin-results-card')) {
+      document.body.appendChild(resultsCard);
+    }
 
     wrap.querySelector('#jlpt-lock-btn')?.addEventListener('click', async () => {
       const reasonInput = prompt('Alasan lock semua ujian (opsional):', state.settings.exam_lock_reason || '');
@@ -1070,9 +1149,9 @@
     const panel = ensureAdminPanel();
     const locked = !!state.settings.exam_locked;
 
-    const pill = panel.querySelector('#jlpt-lock-pill');
-    const stateText = panel.querySelector('#jlpt-lock-state');
-    const updatedText = panel.querySelector('#jlpt-lock-updated');
+    const pill = document.querySelector('#jlpt-lock-pill');
+    const stateText = document.querySelector('#jlpt-lock-state');
+    const updatedText = document.querySelector('#jlpt-lock-updated');
     if (pill) {
       pill.textContent = locked ? 'LOCKED' : 'UNLOCKED';
       pill.style.color = locked ? '#ff9aaa' : '#5ff0b0';
@@ -1082,8 +1161,8 @@
     if (stateText) stateText.textContent = locked ? 'Semua ujian terkunci' : 'Semua ujian terbuka';
     if (updatedText) updatedText.textContent = state.settings.updated_at ? fmtTime(state.settings.updated_at) : '—';
 
-    const search = String(panel.querySelector('#jlpt-exam-search')?.value || '').trim().toLowerCase();
-    const level = String(panel.querySelector('#jlpt-exam-level')?.value || '').trim().toUpperCase();
+    const search = String(document.querySelector('#jlpt-exam-search')?.value || '').trim().toLowerCase();
+    const level = String(document.querySelector('#jlpt-exam-level')?.value || '').trim().toUpperCase();
     const catalog = getExamCatalog();
     const filtered = catalog.filter((e) => {
       const matchSearch = !search || `${e.key} ${e.title} ${e.level} ${e.year} ${e.href}`.toLowerCase().includes(search);
@@ -1091,7 +1170,7 @@
       return matchSearch && matchLevel;
     });
 
-    const list = panel.querySelector('#jlpt-exam-lock-list');
+    const list = document.querySelector('#jlpt-exam-lock-list');
     if (list) {
       if (!filtered.length) {
         list.innerHTML = '<div style="grid-column:1/-1;padding:18px;color:var(--muted);border:1px dashed var(--border);border-radius:16px;">Tidak ada exam yang cocok.</div>';
@@ -1123,7 +1202,7 @@
       }
     }
 
-    const globalCards = panel.querySelectorAll('#jlpt-admin-global-card, #jlpt-exam-lock-card, #jlpt-admin-live-card, #jlpt-admin-results-card');
+    const globalCards = document.querySelectorAll('#jlpt-admin-global-card, #jlpt-exam-lock-card, #jlpt-admin-live-card, #jlpt-admin-results-card');
     globalCards.forEach((card) => { if (card) card.style.display = ''; });
   }
 
@@ -1331,6 +1410,7 @@
     if (state.isExamPage) {
       installExamGuards();
       await ensureServerSession();
+      await syncSession('page_open', false, true);
       observeExamFunctions();
       enforceLockState();
       state.heartbeatTimer = setInterval(() => {
@@ -1348,6 +1428,7 @@
   document.addEventListener('DOMContentLoaded', initPage);
 
   window.JLPT_SYNC = {
+    client,
     setGlobalLock,
     setExamLock,
     setMultipleExamLocks,

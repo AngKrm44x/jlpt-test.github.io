@@ -1189,16 +1189,6 @@ async function initApp(){
     loadExamListFromIndex(),
   ]);
 
-  if (!window.__JLPT_ADMIN_AUTO_REFRESH__) {
-    window.__JLPT_ADMIN_AUTO_REFRESH__ = setInterval(() => {
-      if (window.JLPT_SYNC) {
-        window.JLPT_SYNC.refreshAdminLivePanel();
-        window.JLPT_SYNC.refreshAdminResultsPanel();
-        window.JLPT_SYNC.renderAdminControlUI();
-      }
-    }, 5000);
-  }
-
   // File input events
   const dropZone = document.getElementById('dropZone');
   const fileInput = document.getElementById('fileInput');
@@ -4007,6 +3997,6 @@ window.togglePwd = window.toggleFieldPwd = function(id, btn){
 })();
 </script>
 
-  <script type="module" src="./jlpt-sync.js?v=3"></script>
+  <script type="module" src="./jlpt-sync.js?v=4"></script>
 </body>
 </html>
