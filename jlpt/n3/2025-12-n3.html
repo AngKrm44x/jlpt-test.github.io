@@ -510,6 +510,7 @@ async function pushExamStateDirect(eventName='heartbeat', done=false, force=fals
       client_time: now,
     };
 
+    // DIRECT SUPABASE UPSERT ONLY — no RPC dependency
     try {
       await supabase.from('exam_progress').upsert({
         user_id: payload.user_id,
