@@ -1339,29 +1339,191 @@
   }
 
   // ── XLSX export ──────────────────────────────────────────────────────────────
+
   async function loadXLSX() {
     if (window.XLSX) return window.XLSX;
-    await new Promise((res, rej) => {
-      const s  = document.createElement('script');
-      s.src    = 'https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js';
-      s.onload = res; s.onerror = () => rej(new Error('Failed to load XLSX'));
-      document.head.appendChild(s);
-    });
-    return window.XLSX;
+    const candidates = [
+      'https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.full.min.js',
+      'https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js',
+    ];
+
+    let lastErr = null;
+    for (const src of candidates) {
+      try {
+        await new Promise((res, rej) => {
+          const s  = document.createElement('script');
+          s.src    = src;
+          s.onload = res;
+          s.onerror = () => rej(new Error('Failed to load XLSX from ' + src));
+          document.head.appendChild(s);
+        });
+        if (window.XLSX) return window.XLSX;
+      } catch (err) {
+        lastErr = err;
+      }
+    }
+    throw lastErr || new Error('Failed to load XLSX');
   }
 
-  function sectionSummaryFromRow(row) {
-    const sec = row.section_scores || {};
-    const get = k => (sec[k] && typeof sec[k].percentage !== 'undefined') ? sec[k].percentage : null;
-    return {
-      moji_pct: get('moji'), bunpou_pct: get('bunpou'), dokkai_pct: get('dokkai'),
-      moji_correct:   sec.moji?.correct   ?? null,
-      bunpou_correct: sec.bunpou?.correct ?? null,
-      dokkai_correct: sec.dokkai?.correct ?? null,
-      moji_total:     sec.moji?.total     ?? null,
-      bunpou_total:   sec.bunpou?.total   ?? null,
-      dokkai_total:   sec.dokkai?.total   ?? null,
+  function fmtDateTimeCell(value) {
+    if (!value) return '—';
+    try {
+      const d = new Date(value);
+      if (Number.isNaN(d.getTime())) return String(value);
+      return d.toLocaleString('id-ID', {
+        year: 'numeric',
+        month: 'short',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    } catch {
+      return String(value);
+    }
+  }
+
+  function fmtDurationCell(minutes) {
+    if (minutes == null || Number.isNaN(Number(minutes))) return '—';
+    const n = Number(minutes);
+    return n < 1 ? `${Math.round(n * 60)} detik` : `${n.toFixed(2)} menit`;
+  }
+
+  function makeSectionText(sec) {
+    if (!sec) return '—';
+    const parts = [];
+    const push = (label, pct, corr, total) => {
+      if (pct == null && corr == null && total == null) return;
+      parts.push(`${label}: ${pct == null ? '—' : `${Number(pct).toFixed(2)}%`} (${corr ?? '—'}/${total ?? '—'})`);
     };
+    push('M', sec.moji_pct, sec.moji_correct, sec.moji_total);
+    push('B', sec.bunpou_pct, sec.bunpou_correct, sec.bunpou_total);
+    push('D', sec.dokkai_pct, sec.dokkai_correct, sec.dokkai_total);
+    return parts.join(' | ');
+  }
+
+  function styleCell(cell, style) {
+    if (cell) cell.s = style;
+  }
+
+  function applyWorksheetTheme(ws, headersRowIndex = 1, freezeRow = 1, headerRange = null) {
+    ws['!freeze'] = { xSplit: 0, ySplit: freezeRow };
+    ws['!autofilter'] = headerRange ? { ref: headerRange } : undefined;
+    ws['!rows'] = ws['!rows'] || [];
+  }
+
+  function setColWidths(ws, widths) {
+    ws['!cols'] = widths.map(w => ({ wch: w }));
+  }
+
+  function buildSheetFromRows(XLSX, title, subtitle, columns, rows, options = {}) {
+    const data = [];
+    data.push([title]);
+    data.push([subtitle]);
+    data.push([]);
+    data.push(columns.map(c => c.label));
+
+    for (const row of rows) {
+      data.push(columns.map(c => {
+        try {
+          return c.value(row);
+        } catch {
+          return '';
+        }
+      }));
+    }
+
+    const ws = XLSX.utils.aoa_to_sheet(data);
+
+    const titleRow = 1;
+    const subRow   = 2;
+    const headRow   = 4;
+    const lastCol   = XLSX.utils.encode_col(columns.length - 1);
+    const lastRow   = data.length;
+    ws['!merges'] = [
+      { s: { r: titleRow - 1, c: 0 }, e: { r: titleRow - 1, c: columns.length - 1 } },
+      { s: { r: subRow - 1, c: 0 },   e: { r: subRow - 1, c: columns.length - 1 } },
+    ];
+
+    setColWidths(ws, columns.map(c => c.width || 16));
+    applyWorksheetTheme(ws, headRow, headRow, `A${headRow}:${lastCol}${lastRow}`);
+
+    const styles = {
+      title: {
+        font: { bold: true, sz: 16, color: { rgb: 'FFFFFF' } },
+        fill: { patternType: 'solid', fgColor: { rgb: options.titleFill || '2D4EA1' } },
+        alignment: { horizontal: 'center', vertical: 'center' },
+        border: {
+          top: { style: 'thin', color: { rgb: 'D6E2FF' } },
+          bottom: { style: 'thin', color: { rgb: 'D6E2FF' } },
+          left: { style: 'thin', color: { rgb: 'D6E2FF' } },
+          right: { style: 'thin', color: { rgb: 'D6E2FF' } },
+        },
+      },
+      subtitle: {
+        font: { italic: true, color: { rgb: '6B7280' } },
+        alignment: { horizontal: 'left', vertical: 'center', wrapText: true },
+      },
+      header: {
+        font: { bold: true, color: { rgb: 'FFFFFF' } },
+        fill: { patternType: 'solid', fgColor: { rgb: '0F172A' } },
+        border: {
+          top: { style: 'thin', color: { rgb: '334155' } },
+          bottom: { style: 'thin', color: { rgb: '334155' } },
+          left: { style: 'thin', color: { rgb: '334155' } },
+          right: { style: 'thin', color: { rgb: '334155' } },
+        },
+        alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+      },
+      body: {
+        font: { color: { rgb: '111827' } },
+        alignment: { vertical: 'top', wrapText: true },
+        border: {
+          top: { style: 'thin', color: { rgb: 'E5E7EB' } },
+          bottom: { style: 'thin', color: { rgb: 'E5E7EB' } },
+          left: { style: 'thin', color: { rgb: 'E5E7EB' } },
+          right: { style: 'thin', color: { rgb: 'E5E7EB' } },
+        },
+      },
+      bodyAlt: {
+        font: { color: { rgb: '111827' } },
+        fill: { patternType: 'solid', fgColor: { rgb: 'F8FAFC' } },
+        alignment: { vertical: 'top', wrapText: true },
+        border: {
+          top: { style: 'thin', color: { rgb: 'E5E7EB' } },
+          bottom: { style: 'thin', color: { rgb: 'E5E7EB' } },
+          left: { style: 'thin', color: { rgb: 'E5E7EB' } },
+          right: { style: 'thin', color: { rgb: 'E5E7EB' } },
+        },
+      },
+    };
+
+    styleCell(ws['A1'], styles.title);
+    styleCell(ws['A2'], styles.subtitle);
+
+    for (let c = 0; c < columns.length; c++) {
+      const cell = ws[XLSX.utils.encode_cell({ r: headRow - 1, c })];
+      if (cell) styleCell(cell, styles.header);
+    }
+
+    for (let r = headRow; r < data.length; r++) {
+      for (let c = 0; c < columns.length; c++) {
+        const cell = ws[XLSX.utils.encode_cell({ r, c })];
+        if (!cell) continue;
+        styleCell(cell, (r % 2 === 0) ? styles.bodyAlt : styles.body);
+        const col = columns[c];
+        if (col && col.numFmt) cell.z = col.numFmt;
+        if (col && col.align) {
+          cell.s = cell.s || {};
+          cell.s.alignment = { ...(cell.s.alignment || {}), horizontal: col.align };
+        }
+      }
+    }
+
+    if (columns.some(c => c.autoFilter !== false)) {
+      ws['!autofilter'] = { ref: `A${headRow}:${lastCol}${lastRow}` };
+    }
+
+    return ws;
   }
 
   async function exportResultsExcel() {
@@ -1372,40 +1534,141 @@
         : (await client.from('exam_sessions').select('*').order('updated_at', { ascending: false }).limit(1000)).data || [];
       if (!rows.length) { toast('Belum ada data untuk diekspor'); return; }
 
+      const live = (await client.from('exam_progress').select('*').order('updated_at', { ascending: false }).limit(1000)).data || [];
       const XLSX = await loadXLSX();
       const wb   = XLSX.utils.book_new();
+      const genAt = new Date().toISOString();
 
-      const summary = rows.map(row => {
+      const summaryRows = rows.map(row => {
         const user = state.userMap.get(row.user_id) || {};
         const sec  = sectionSummaryFromRow(row);
         const start = row.started_at   ? new Date(row.started_at)   : null;
         const end   = row.completed_at ? new Date(row.completed_at) : (row.updated_at ? new Date(row.updated_at) : null);
         const dur   = start && end ? Math.max((end - start) / 60000, 0) : null;
         return {
-          user_name:   user.display_name || user.full_name || user.email || row.user_id,
-          user_email:  user.email || '', user_id: row.user_id,
-          exam_key:    row.exam_key, exam_title: row.exam_title, level: row.level, mode: row.mode,
-          score:       row.score, percentage: Number(row.percentage || 0),
-          correct_count: row.correct_count, wrong_count: row.wrong_count,
-          total_questions: row.total_questions,
-          completed:   row.completed ? 'yes' : 'no',
-          started_at:  row.started_at, completed_at: row.completed_at,
+          user_name: user.display_name || user.full_name || user.email || row.user_id,
+          user_email: user.email || '',
+          user_id: row.user_id,
+          exam_key: row.exam_key,
+          exam_title: row.exam_title,
+          level: row.level,
+          mode: row.mode,
+          score: Number(row.score || 0),
+          percentage: Number(row.percentage || 0),
+          correct_count: Number(row.correct_count || 0),
+          wrong_count: Number(row.wrong_count || 0),
+          total_questions: Number(row.total_questions || 0),
+          completed: row.completed ? 'Yes' : 'No',
+          started_at: row.started_at,
+          completed_at: row.completed_at,
           duration_minutes: dur == null ? null : Number(dur.toFixed(2)),
-          ...sec, last_event: row.last_event, status: row.status,
+          section_text: makeSectionText(sec),
+          last_event: row.last_event || '',
+          status: row.status || '',
         };
       });
 
-      const live = (await client.from('exam_progress').select('*').order('updated_at', { ascending: false }).limit(1000)).data || [];
-      const liveSheet = live.map(row => {
+      const liveRows = live.map(row => {
         const user = state.userMap.get(row.user_id) || {};
         return {
           user_name: user.display_name || user.full_name || user.email || row.user_id,
-          user_email: user.email || '', ...row,
+          user_email: user.email || '',
+          exam_key: row.exam_key || '',
+          exam_title: row.exam_title || '',
+          level: row.level || '',
+          mode: row.mode || '',
+          current_q: Number(row.current_q || 0),
+          total_q: Number(row.total_q || 0),
+          answered_count: Number(row.answered_count || 0),
+          correct_count: Number(row.correct_count || 0),
+          wrong_count: Number(row.wrong_count || 0),
+          percentage: Number(row.percentage || 0),
+          remaining_seconds: row.remaining_seconds == null ? null : Number(row.remaining_seconds),
+          status: row.status || '',
+          last_event: row.last_event || '',
+          updated_at: row.updated_at || '',
         };
       });
 
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summary),   'Summary');
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(liveSheet), 'Live Progress');
+      const overview = [
+        ['JLPT Exam Export', ''],
+        ['Generated at', genAt],
+        ['Summary rows', summaryRows.length],
+        ['Live progress rows', liveRows.length],
+        ['Top score', summaryRows.length ? Math.max(...summaryRows.map(r => Number(r.percentage || 0))) : 0],
+        ['Avg score', summaryRows.length ? Number((summaryRows.reduce((a, r) => a + Number(r.percentage || 0), 0) / summaryRows.length).toFixed(2)) : 0],
+      ];
+      const overviewWs = XLSX.utils.aoa_to_sheet(overview);
+      overviewWs['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 1 } }];
+      overviewWs['!cols'] = [{ wch: 24 }, { wch: 40 }];
+      const ovStyles = {
+        title: { font: { bold: true, sz: 16, color: { rgb: 'FFFFFF' } }, fill: { patternType: 'solid', fgColor: { rgb: '2D4EA1' } }, alignment: { horizontal: 'center' } },
+        label: { font: { bold: true, color: { rgb: '111827' } }, fill: { patternType: 'solid', fgColor: { rgb: 'F8FAFC' } } },
+        value: { font: { color: { rgb: '111827' } }, fill: { patternType: 'solid', fgColor: { rgb: 'FFFFFF' } } },
+      };
+      overviewWs['A1'].s = ovStyles.title;
+      overviewWs['B1'].s = ovStyles.title;
+      for (let r = 2; r < overview.length; r++) {
+        if (overviewWs[`A${r+1}`]) overviewWs[`A${r+1}`].s = ovStyles.label;
+        if (overviewWs[`B${r+1}`]) overviewWs[`B${r+1}`].s = ovStyles.value;
+      }
+
+      const summaryColumns = [
+        { label: 'User', width: 22, value: r => r.user_name },
+        { label: 'Email', width: 24, value: r => r.user_email },
+        { label: 'Exam', width: 22, value: r => r.exam_title },
+        { label: 'Level', width: 10, value: r => r.level, align: 'center' },
+        { label: 'Mode', width: 10, value: r => r.mode, align: 'center' },
+        { label: 'Score', width: 10, value: r => r.score, align: 'center', numFmt: '0' },
+        { label: 'Percent', width: 10, value: r => `${Number(r.percentage || 0).toFixed(2)}%`, align: 'center' },
+        { label: 'Correct', width: 10, value: r => r.correct_count, align: 'center', numFmt: '0' },
+        { label: 'Wrong', width: 10, value: r => r.wrong_count, align: 'center', numFmt: '0' },
+        { label: 'Total', width: 9, value: r => r.total_questions, align: 'center', numFmt: '0' },
+        { label: 'Started', width: 20, value: r => fmtDateTimeCell(r.started_at) },
+        { label: 'Completed', width: 20, value: r => fmtDateTimeCell(r.completed_at) },
+        { label: 'Duration', width: 11, value: r => fmtDurationCell(r.duration_minutes), align: 'center' },
+        { label: 'Section Detail', width: 48, value: r => r.section_text },
+        { label: 'Last Event', width: 14, value: r => r.last_event, align: 'center' },
+        { label: 'Status', width: 12, value: r => r.status, align: 'center' },
+      ];
+
+      const liveColumns = [
+        { label: 'User', width: 22, value: r => r.user_name },
+        { label: 'Email', width: 24, value: r => r.user_email },
+        { label: 'Exam', width: 22, value: r => r.exam_title },
+        { label: 'Level', width: 10, value: r => r.level, align: 'center' },
+        { label: 'Mode', width: 10, value: r => r.mode, align: 'center' },
+        { label: 'Current Q', width: 10, value: r => r.current_q, align: 'center', numFmt: '0' },
+        { label: 'Total Q', width: 9, value: r => r.total_q, align: 'center', numFmt: '0' },
+        { label: 'Answered', width: 10, value: r => r.answered_count, align: 'center', numFmt: '0' },
+        { label: 'Correct', width: 10, value: r => r.correct_count, align: 'center', numFmt: '0' },
+        { label: 'Wrong', width: 9, value: r => r.wrong_count, align: 'center', numFmt: '0' },
+        { label: 'Percent', width: 10, value: r => `${Number(r.percentage || 0).toFixed(2)}%`, align: 'center' },
+        { label: 'Remaining', width: 12, value: r => r.remaining_seconds == null ? '—' : fmtSec(r.remaining_seconds), align: 'center' },
+        { label: 'Status', width: 12, value: r => r.status, align: 'center' },
+        { label: 'Last Event', width: 14, value: r => r.last_event, align: 'center' },
+        { label: 'Updated', width: 20, value: r => fmtDateTimeCell(r.updated_at) },
+      ];
+
+      const guideRows = [
+        { item: 'M', title: '文字・語彙', detail: 'Persentase berdasarkan section moji.' },
+        { item: 'B', title: '文法', detail: 'Persentase berdasarkan section bunpou.' },
+        { item: 'D', title: '読解', detail: 'Persentase berdasarkan section dokkai.' },
+        { item: 'Percent', title: 'Nilai total', detail: 'Total persentase jawaban benar dari seluruh soal.' },
+        { item: 'Duration', title: 'Durasi pengerjaan', detail: 'Selisih waktu start dan selesai, dalam menit.' },
+        { item: 'Status', title: 'Status sesi', detail: 'opened / active / done / idle sesuai state ujian.' },
+      ];
+      const guideColumns = [
+        { label: 'Key', width: 10, value: r => r.item, align: 'center' },
+        { label: 'Label', width: 18, value: r => r.title },
+        { label: 'Keterangan', width: 48, value: r => r.detail },
+      ];
+
+      XLSX.utils.book_append_sheet(wb, overviewWs, 'Overview');
+      XLSX.utils.book_append_sheet(wb, buildSheetFromRows(XLSX, 'JLPT Exam Results', `Generated ${fmtDateTimeCell(genAt)} · Summary sessions`, summaryColumns, summaryRows, { titleFill: '1D4ED8' }), 'Summary');
+      XLSX.utils.book_append_sheet(wb, buildSheetFromRows(XLSX, 'JLPT Live Progress', `Generated ${fmtDateTimeCell(genAt)} · Realtime progress`, liveColumns, liveRows, { titleFill: '0F766E' }), 'Live Progress');
+      XLSX.utils.book_append_sheet(wb, buildSheetFromRows(XLSX, 'JLPT Export Guide', 'Penjelasan kolom export untuk admin.', guideColumns, guideRows, { titleFill: '7C3AED' }), 'Guide');
+
       XLSX.writeFile(wb, `jlpt_results_${new Date().toISOString().slice(0, 10)}.xlsx`);
       toast('✅ Excel berhasil diekspor');
     } catch (err) {
@@ -1413,6 +1676,7 @@
       toast('❌ Gagal export Excel: ' + (err?.message || err));
     }
   }
+
 
   // ── Main init ────────────────────────────────────────────────────────────────
   async function initPage() {
