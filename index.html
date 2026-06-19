@@ -2409,5 +2409,216 @@ updateVisibleCount();
 
 
 
-  <script type="module" src="./jlpt-sync.js?v=4"></script>
+  <script type="module">
+(() => {
+  const SUPABASE_URL  = 'https://uincqpdexdenjcmwdfsv.supabase.co';
+  const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpbmNxcGRleGRlbmpjbXdkZnN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5MjM4ODEsImV4cCI6MjA5NTQ5OTg4MX0.Lf1N_P_iiNQ2hnRJhd-Quy9MLKlZFSzbnXtXCnmRCS0';
+
+  const state = {
+    client: null,
+    system: new Map(),
+    exams: new Map(),
+    initialized: false,
+    channel: null,
+    pollTimer: null,
+    lastApplied: '',
+  };
+
+  const toBool = (v) => {
+    if (typeof v === 'boolean') return v;
+    const s = String(v ?? '').trim().toLowerCase();
+    return ['1', 'true', 'yes', 'on', 'locked'].includes(s);
+  };
+
+  const getKeyFromHref = (href = '') => {
+    const s = String(href || '').replace(/\\/g, '/');
+    const m = s.match(/(\d{4})-(\d{2})-n([1-5])/i);
+    if (m) return `n${m[3]}-${m[1]}-${m[2]}`;
+    const m2 = s.match(/n([1-5])-(\d{4})-(\d{2})/i);
+    if (m2) return `n${m2[1]}-${m2[2]}-${m2[3]}`;
+    return '';
+  };
+
+  const toast = (msg) => {
+    try {
+      if (typeof window.showToast === 'function') return window.showToast(msg);
+      if (typeof window.alert === 'function') return window.alert(msg);
+    } catch {}
+    console.log('[JLPT INDEX LOCK]', msg);
+  };
+
+  const ensureBanner = () => {
+    let banner = document.getElementById('jlpt-index-lock-banner');
+    if (banner) return banner;
+    banner = document.createElement('div');
+    banner.id = 'jlpt-index-lock-banner';
+    banner.style.cssText = [
+      'display:none',
+      'margin:0 0 16px 0',
+      'padding:14px 16px',
+      'border-radius:18px',
+      'border:1px solid rgba(255,181,71,.28)',
+      'background:rgba(255,181,71,.10)',
+      'color:#ffd18a',
+      'font-size:13px',
+      'line-height:1.65',
+      'box-shadow:0 10px 30px rgba(0,0,0,.16)'
+    ].join(';');
+    banner.innerHTML = '<strong>🔒 Ujian sedang dikunci admin.</strong><br><span id="jlpt-index-lock-banner-text">Tunggu admin membuka akses ujian.</span>';
+
+    const hero = document.querySelector('.hero');
+    if (hero?.parentNode) hero.insertAdjacentElement('afterend', banner);
+    else (document.querySelector('.container') || document.body).prepend(banner);
+    return banner;
+  };
+
+  const setCardState = (card, locked, reason = '') => {
+    if (!card) return;
+    const btn = card.querySelector('.open-btn');
+    const stamp = card.querySelector('.done-stamp');
+
+    card.dataset.jlptLocked = locked ? '1' : '';
+    card.style.opacity = locked ? '0.72' : '';
+    card.style.filter = locked ? 'saturate(0.85)' : '';
+
+    if (btn) {
+      if (!btn.dataset.originalText) btn.dataset.originalText = btn.innerHTML;
+      if (!btn.dataset.originalHref) btn.dataset.originalHref = btn.getAttribute('href') || '';
+      if (locked) {
+        btn.setAttribute('aria-disabled', 'true');
+        btn.tabIndex = -1;
+        btn.style.pointerEvents = 'none';
+        btn.style.opacity = '0.48';
+        btn.style.filter = 'grayscale(0.2)';
+        btn.style.cursor = 'not-allowed';
+        btn.title = reason || 'Ujian sedang dikunci admin';
+        btn.innerHTML = 'LOCKED <span class="open-btn-arrow">🔒</span>';
+      } else {
+        btn.removeAttribute('aria-disabled');
+        btn.tabIndex = 0;
+        btn.style.pointerEvents = '';
+        btn.style.opacity = '';
+        btn.style.filter = '';
+        btn.style.cursor = '';
+        btn.title = '';
+        btn.innerHTML = btn.dataset.originalText || 'OPEN EXAM <span class="open-btn-arrow">→</span>';
+        btn.setAttribute('href', btn.dataset.originalHref || btn.getAttribute('href') || '');
+      }
+    }
+
+    if (stamp && locked) {
+      stamp.classList.remove('show');
+    }
+  };
+
+  const applyLocks = () => {
+    const globalLocked = toBool(state.system.get('exam_locked'));
+    const reason = state.system.get('exam_lock_reason') || '';
+    const rows = [...state.exams.values()];
+    const lockedCount = rows.filter((r) => r.locked).length;
+
+    const banner = ensureBanner();
+    const bannerText = banner.querySelector('#jlpt-index-lock-banner-text');
+    const showBanner = globalLocked || lockedCount > 0;
+
+    banner.style.display = showBanner ? 'block' : 'none';
+    if (bannerText) {
+      bannerText.textContent = globalLocked
+        ? (reason || 'Semua ujian sedang dikunci admin.')
+        : `${lockedCount} ujian sedang dikunci admin. Ujian lain tetap dapat dibuka.`;
+    }
+
+    document.querySelectorAll('.card[data-examkey]').forEach((card) => {
+      const key = String(card.dataset.examkey || '').toLowerCase();
+      const row = state.exams.get(key);
+      const locked = !!globalLocked || !!row?.locked;
+      setCardState(card, locked, row?.lock_reason || reason || '');
+    });
+  };
+
+  const fetchLockState = async () => {
+    if (!state.client) return false;
+    try {
+      const [{ data: sysData, error: sysErr }, { data: exData, error: exErr }] = await Promise.all([
+        state.client.from('system_settings').select('key,value,updated_at'),
+        state.client.from('exam_settings').select('exam_key,title,level,locked,lock_reason,updated_at'),
+      ]);
+      if (sysErr) throw sysErr;
+      if (exErr) throw exErr;
+
+      state.system = new Map((sysData || []).map((r) => [String(r.key || '').toLowerCase(), String(r.value ?? '')]));
+      state.exams = new Map((exData || []).map((r) => [String(r.exam_key || '').toLowerCase(), {
+        exam_key: String(r.exam_key || '').toLowerCase(),
+        locked: !!r.locked,
+        lock_reason: String(r.lock_reason || ''),
+        title: String(r.title || ''),
+        level: String(r.level || ''),
+        updated_at: r.updated_at || null,
+      }]));
+      return true;
+    } catch (err) {
+      console.warn('[index lock sync] failed to fetch lock state:', err?.message || err);
+      return false;
+    }
+  };
+
+  const syncNow = async () => {
+    const ok = await fetchLockState();
+    if (ok) applyLocks();
+
+    // Keep jlpt-sync in the loop if it exists, but do not depend on it.
+    try {
+      if (window.JLPT_SYNC?.renderIndexLockUI) window.JLPT_SYNC.renderIndexLockUI();
+    } catch {}
+  };
+
+  const setupRealtime = () => {
+    if (!state.client || state.channel) return;
+    try {
+      state.channel = state.client
+        .channel('jlpt-index-lock-sync')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'system_settings' }, syncNow)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'exam_settings' }, syncNow)
+        .subscribe();
+    } catch (err) {
+      console.warn('[index lock sync] realtime subscription failed:', err?.message || err);
+    }
+  };
+
+  const init = async () => {
+    if (state.initialized) return;
+    state.initialized = true;
+
+    try {
+      const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm');
+      state.client = window._supabase || createClient(SUPABASE_URL, SUPABASE_ANON);
+      if (!window._supabase) window._supabase = state.client;
+    } catch (err) {
+      console.warn('[index lock sync] supabase init failed:', err?.message || err);
+      return;
+    }
+
+    await syncNow();
+    setupRealtime();
+
+    // Fallback polling in case realtime is delayed/disabled.
+    state.pollTimer = window.setInterval(syncNow, 8000);
+
+    // Re-apply after the page becomes visible again.
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') syncNow();
+    });
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init, { once: true });
+  } else {
+    init();
+  }
+
+  window.JLPT_INDEX_LOCK_SYNC = { syncNow, applyLocks };
+})();
+</script>
+
+  <script type="module" src="./jlpt-sync.js?v=5"></script>
 </body></html>
