@@ -904,7 +904,7 @@
     const count      = document.getElementById('jlpt-live-count');
     const countBadge = document.getElementById('jlpt-live-count-badge');
 
-    if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="padding:16px;color:var(--muted);">Memuat data sesi...</td></tr>';
+    if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="padding:16px;color:var(--muted);">Memuat data sesi...</td></tr>';
 
     try {
       const [progressRes, sessionRes] = await Promise.all([
@@ -951,7 +951,7 @@
 
       if (!tbody) { console.warn('[jlpt-sync] #jlpt-live-table not found in DOM'); return; }
       if (!rows.length) {
-        tbody.innerHTML = '<tr><td colspan="5" style="padding:16px;color:var(--muted);">Belum ada sesi yang tersinkron.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" style="padding:16px;color:var(--muted);">Belum ada sesi yang tersinkron.</td></tr>';
         return;
       }
       tbody.innerHTML = rows.map(row => {
@@ -975,11 +975,14 @@
           </td>
           <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);font-weight:700;">${esc(fmtSec(row.remaining_seconds))}</td>
           <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);font-size:12px;color:var(--muted);">${esc(fmtTime(row.updated_at))}</td>
+          <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);">
+            <button type="button" class="act-btn delete" onclick="window.JLPT_SYNC?.deleteExamSession({user_id:'${String(row.user_id).replace("'", "\'")}', exam_key:'${String(row.exam_key).replace("'", "\'")}'})">🗑️ Delete</button>
+          </td>
         </tr>`;
       }).join('');
     } catch (err) {
       console.error('[jlpt-sync] refreshAdminLivePanel failed:', err?.message || err);
-      if (tbody) tbody.innerHTML = `<tr><td colspan="5" style="padding:16px;color:#ff9aaa;">Gagal memuat live view: ${esc(err?.message || String(err))}</td></tr>`;
+      if (tbody) tbody.innerHTML = `<tr><td colspan="6" style="padding:16px;color:#ff9aaa;">Gagal memuat live view: ${esc(err?.message || String(err))}</td></tr>`;
     }
   }
 
@@ -992,7 +995,7 @@
     const count      = document.getElementById('jlpt-results-count');
     const countBadge = document.getElementById('jlpt-results-count-badge');
 
-    if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="padding:16px;color:var(--muted);">Memuat hasil ujian...</td></tr>';
+    if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="padding:16px;color:var(--muted);">Memuat hasil ujian...</td></tr>';
 
     try {
       const { data, error } = await client
@@ -1010,7 +1013,7 @@
 
       if (!tbody) { console.warn('[jlpt-sync] #jlpt-results-table not found in DOM'); return; }
       if (!rows.length) {
-        tbody.innerHTML = '<tr><td colspan="7" style="padding:16px;color:var(--muted);">Belum ada hasil ujian.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" style="padding:16px;color:var(--muted);">Belum ada hasil ujian.</td></tr>';
         return;
       }
       tbody.innerHTML = rows.map(row => {
@@ -1029,11 +1032,14 @@
           <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);">${esc(`${moji}% / ${bun}% / ${dok}%`)}</td>
           <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);font-size:12px;color:var(--muted);">${esc(fmtTime(row.started_at))}</td>
           <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);font-size:12px;color:var(--muted);">${esc(fmtTime(row.completed_at || row.updated_at))}</td>
+          <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);">
+            <button type="button" class="act-btn delete" onclick="window.JLPT_SYNC?.deleteExamSession({user_id:'${String(row.user_id).replace("'", "\'")}', exam_key:'${String(row.exam_key).replace("'", "\'")}'})">🗑️ Delete</button>
+          </td>
         </tr>`;
       }).join('');
     } catch (err) {
       console.error('[jlpt-sync] refreshAdminResultsPanel failed:', err?.message || err);
-      if (tbody) tbody.innerHTML = `<tr><td colspan="7" style="padding:16px;color:#ff9aaa;">Gagal memuat hasil: ${esc(err?.message || String(err))}</td></tr>`;
+      if (tbody) tbody.innerHTML = `<tr><td colspan="8" style="padding:16px;color:#ff9aaa;">Gagal memuat hasil: ${esc(err?.message || String(err))}</td></tr>`;
     }
   }
 
@@ -1047,42 +1053,6 @@
   }
 
   // ── ensureAdminPanel – build admin HTML into mount points once ───────────────
-
-
-function bindAdminActionDelegates(root = document) {
-  if (root.__jlptActionDelegatesBound) return;
-  root.__jlptActionDelegatesBound = true;
-
-  root.addEventListener('click', async (e) => {
-    const exportBtn = e.target?.closest?.('#jlpt-export-xlsx');
-    if (exportBtn) {
-      e.preventDefault();
-      e.stopPropagation();
-      try {
-        await exportResultsExcel();
-      } catch (err) {
-        console.error('[jlpt-sync] delegated export click failed:', err);
-      }
-      return;
-    }
-
-    const delBtn = e.target?.closest?.('[data-session-delete="1"]');
-    if (delBtn) {
-      e.preventDefault();
-      e.stopPropagation();
-      const userId = delBtn.getAttribute('data-user-id');
-      const examKey = delBtn.getAttribute('data-exam-key');
-      if (!userId || !examKey) return;
-      try {
-        await deleteExamSession({ user_id: userId, exam_key: examKey });
-      } catch (err) {
-        console.error('[jlpt-sync] delegated delete click failed:', err);
-      }
-      return;
-    }
-  }, true);
-}
-
   function ensureAdminPanel() {
     if (document.getElementById('jlpt-sync-admin-wrap')) return document.getElementById('jlpt-sync-admin-wrap');
 
@@ -1165,7 +1135,7 @@ function bindAdminActionDelegates(root = document) {
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
             <span id="jlpt-live-count-badge" style="padding:8px 12px;border-radius:999px;font-size:12px;font-weight:800;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);">— session</span>
-            <button id="jlpt-refresh-live" type="button" class="topbar-btn" style="pointer-events:auto;position:relative;z-index:2;">🔄 Refresh Live</button>
+            <button id="jlpt-refresh-live" type="button" class="topbar-btn">🔄 Refresh Live</button>
           </div>
         </div>
         <div style="overflow:auto;">
@@ -1177,6 +1147,7 @@ function bindAdminActionDelegates(root = document) {
                 <th style="text-align:left;padding:12px 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Progress</th>
                 <th style="text-align:left;padding:12px 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Remaining</th>
                 <th style="text-align:left;padding:12px 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Updated</th>
+                <th style="text-align:left;padding:12px 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Action</th>
               </tr>
             </thead>
             <tbody id="jlpt-live-table">
@@ -1195,8 +1166,8 @@ function bindAdminActionDelegates(root = document) {
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
             <span id="jlpt-results-count-badge" style="padding:8px 12px;border-radius:999px;font-size:12px;font-weight:800;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);">— session</span>
-            <button id="jlpt-export-xlsx" type="button" class="topbar-btn primary" style="pointer-events:auto;position:relative;z-index:2;">📥 Export Excel</button>
-            <button id="jlpt-refresh-results" type="button" class="topbar-btn" style="pointer-events:auto;position:relative;z-index:2;">🔄 Refresh Results</button>
+            <button id="jlpt-export-xlsx" type="button" class="topbar-btn primary">📥 Export Excel</button>
+            <button id="jlpt-refresh-results" type="button" class="topbar-btn">🔄 Refresh Results</button>
           </div>
         </div>
         <div style="overflow:auto;">
@@ -1210,6 +1181,7 @@ function bindAdminActionDelegates(root = document) {
                 <th style="text-align:left;padding:12px 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Sections (M/B/D)</th>
                 <th style="text-align:left;padding:12px 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Started</th>
                 <th style="text-align:left;padding:12px 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Completed</th>
+                <th style="text-align:left;padding:12px 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Action</th>
               </tr>
             </thead>
             <tbody id="jlpt-results-table">
@@ -1263,9 +1235,6 @@ function bindAdminActionDelegates(root = document) {
     root.querySelector('#jlpt-exam-search')?.addEventListener('input',  () => renderAdminControlUI());
     root.querySelector('#jlpt-exam-level')?.addEventListener('change',  () => renderAdminControlUI());
     root.querySelector('#jlpt-export-xlsx')?.addEventListener('click',  () => exportResultsExcel());
-
-    bindAdminActionDelegates(wrap);
-    bindAdminActionDelegates(document);
 
     state.adminPanelReady = true;
     return wrap;
@@ -1380,23 +1349,25 @@ function bindAdminActionDelegates(root = document) {
   // ── XLSX export ──────────────────────────────────────────────────────────────
 
 
-async function deleteExamSession(rowOrId) {
-  const row = typeof rowOrId === 'object' ? rowOrId : null;
-  const userId = row?.user_id || rowOrId?.user_id || null;
-  const examKey = row?.exam_key || rowOrId?.exam_key || null;
+async function deleteExamSession(rowOrPayload) {
+  const payload = rowOrPayload && typeof rowOrPayload === 'object' ? rowOrPayload : {};
+  const userId  = payload.user_id || payload.userId || null;
+  const examKey = payload.exam_key || payload.examKey || null;
   if (!userId || !examKey) {
     toast('⚠️ Data session tidak lengkap');
     return false;
   }
-  if (!confirm(`Hapus session user ini?\n\nUser: ${userId}\nExam: ${examKey}\n\nAksi ini akan menghapus live progress dan hasil akhir.`)) return false;
+
+  const ok = confirm(`Hapus session user ini?\n\nUser: ${userId}\nExam: ${examKey}\n\nAksi ini akan menghapus live progress dan hasil akhir.`);
+  if (!ok) return false;
 
   try {
-    const [a, b] = await Promise.all([
+    const [progressRes, sessionRes] = await Promise.all([
       client.from('exam_progress').delete().eq('user_id', userId).eq('exam_key', examKey),
       client.from('exam_sessions').delete().eq('user_id', userId).eq('exam_key', examKey),
     ]);
-    if (a?.error) throw a.error;
-    if (b?.error) throw b.error;
+    if (progressRes?.error) throw progressRes.error;
+    if (sessionRes?.error) throw sessionRes.error;
 
     state.resultsCache = (state.resultsCache || []).filter(r => !(r.user_id === userId && r.exam_key === examKey));
     if (state.isAdminPage) {
@@ -1411,7 +1382,6 @@ async function deleteExamSession(rowOrId) {
     return false;
   }
 }
-
   async function loadXLSX() {
     if (window.XLSX) return window.XLSX;
     await new Promise((res, rej) => {
@@ -1540,7 +1510,7 @@ async function deleteExamSession(rowOrId) {
     loadSystemSettings, loadExamLocks,
     renderIndexLockUI, renderAdminControlUI,
     refreshAdminLivePanel, refreshAdminResultsPanel, refreshAdminPanels,
-    syncSession, exportResultsExcel, deleteExamSession,
+    syncSession, exportResultsExcel,
     examMeta: examMetaFromPath,
   };
 })();
