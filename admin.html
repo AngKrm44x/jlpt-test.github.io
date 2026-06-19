@@ -544,9 +544,16 @@ select.form-input option{background:#0b1120;color:var(--text);}
 .activity-empty{padding:28px 20px;text-align:center;color:var(--muted);}
 
 </style>
+
+<script>
+  // Fallbacks for admin action buttons
+  window.deleteExamSession = function (...args) {
+    return window.JLPT_SYNC?.deleteExamSession?.(...args);
+  };
+</script>
+
 </head>
 <body>
-<!-- Admin panels are wired by jlpt-sync.js -->
 
 <!-- Mobile toggle -->
 <button class="mobile-toggle" onclick="toggleSidebar()">☰</button>

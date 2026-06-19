@@ -976,7 +976,7 @@
           <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);font-weight:700;">${esc(fmtSec(row.remaining_seconds))}</td>
           <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);font-size:12px;color:var(--muted);">${esc(fmtTime(row.updated_at))}</td>
           <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);">
-            <button type="button" class="act-btn delete" onclick="window.JLPT_SYNC?.deleteExamSession({user_id:'${String(row.user_id).replace("'", "\'")}', exam_key:'${String(row.exam_key).replace("'", "\'")}'})">🗑️ Delete</button>
+            <button type="button" class="act-btn delete" data-session-delete="1" data-user-id="${esc(row.user_id)}" data-exam-key="${esc(row.exam_key)}">🗑️ Delete</button>
           </td>
         </tr>`;
       }).join('');
@@ -1033,7 +1033,7 @@
           <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);font-size:12px;color:var(--muted);">${esc(fmtTime(row.started_at))}</td>
           <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);font-size:12px;color:var(--muted);">${esc(fmtTime(row.completed_at || row.updated_at))}</td>
           <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);">
-            <button type="button" class="act-btn delete" onclick="window.JLPT_SYNC?.deleteExamSession({user_id:'${String(row.user_id).replace("'", "\'")}', exam_key:'${String(row.exam_key).replace("'", "\'")}'})">🗑️ Delete</button>
+            <button type="button" class="act-btn delete" data-session-delete="1" data-user-id="${esc(row.user_id)}" data-exam-key="${esc(row.exam_key)}">🗑️ Delete</button>
           </td>
         </tr>`;
       }).join('');
@@ -1135,7 +1135,7 @@
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
             <span id="jlpt-live-count-badge" style="padding:8px 12px;border-radius:999px;font-size:12px;font-weight:800;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);">— session</span>
-            <button id="jlpt-refresh-live" type="button" class="topbar-btn">🔄 Refresh Live</button>
+            <button id="jlpt-refresh-live" class="topbar-btn">🔄 Refresh Live</button>
           </div>
         </div>
         <div style="overflow:auto;">
@@ -1147,11 +1147,10 @@
                 <th style="text-align:left;padding:12px 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Progress</th>
                 <th style="text-align:left;padding:12px 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Remaining</th>
                 <th style="text-align:left;padding:12px 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Updated</th>
-                <th style="text-align:left;padding:12px 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Action</th>
               </tr>
             </thead>
             <tbody id="jlpt-live-table">
-              <tr><td colspan="5" style="padding:16px;color:var(--muted);">Memuat...</td></tr>
+              <tr><td colspan="6" style="padding:16px;color:var(--muted);">Memuat...</td></tr>
             </tbody>
           </table>
         </div>
@@ -1166,8 +1165,8 @@
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
             <span id="jlpt-results-count-badge" style="padding:8px 12px;border-radius:999px;font-size:12px;font-weight:800;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);">— session</span>
-            <button id="jlpt-export-xlsx" type="button" class="topbar-btn primary">📥 Export Excel</button>
-            <button id="jlpt-refresh-results" type="button" class="topbar-btn">🔄 Refresh Results</button>
+            <button id="jlpt-export-xlsx"    class="topbar-btn primary">📥 Export Excel</button>
+            <button id="jlpt-refresh-results" class="topbar-btn">🔄 Refresh Results</button>
           </div>
         </div>
         <div style="overflow:auto;">
@@ -1181,11 +1180,10 @@
                 <th style="text-align:left;padding:12px 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Sections (M/B/D)</th>
                 <th style="text-align:left;padding:12px 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Started</th>
                 <th style="text-align:left;padding:12px 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Completed</th>
-                <th style="text-align:left;padding:12px 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Action</th>
               </tr>
             </thead>
             <tbody id="jlpt-results-table">
-              <tr><td colspan="7" style="padding:16px;color:var(--muted);">Memuat...</td></tr>
+              <tr><td colspan="8" style="padding:16px;color:var(--muted);">Memuat...</td></tr>
             </tbody>
           </table>
         </div>
@@ -1235,6 +1233,12 @@
     root.querySelector('#jlpt-exam-search')?.addEventListener('input',  () => renderAdminControlUI());
     root.querySelector('#jlpt-exam-level')?.addEventListener('change',  () => renderAdminControlUI());
     root.querySelector('#jlpt-export-xlsx')?.addEventListener('click',  () => exportResultsExcel());
+
+    bindAdminActionDelegates(root);
+    bindAdminActionDelegates(document);
+
+    bindAdminActionDelegates(wrap);
+    bindAdminActionDelegates(document);
 
     state.adminPanelReady = true;
     return wrap;
@@ -1347,41 +1351,6 @@
   }
 
   // ── XLSX export ──────────────────────────────────────────────────────────────
-
-
-async function deleteExamSession(rowOrPayload) {
-  const payload = rowOrPayload && typeof rowOrPayload === 'object' ? rowOrPayload : {};
-  const userId  = payload.user_id || payload.userId || null;
-  const examKey = payload.exam_key || payload.examKey || null;
-  if (!userId || !examKey) {
-    toast('⚠️ Data session tidak lengkap');
-    return false;
-  }
-
-  const ok = confirm(`Hapus session user ini?\n\nUser: ${userId}\nExam: ${examKey}\n\nAksi ini akan menghapus live progress dan hasil akhir.`);
-  if (!ok) return false;
-
-  try {
-    const [progressRes, sessionRes] = await Promise.all([
-      client.from('exam_progress').delete().eq('user_id', userId).eq('exam_key', examKey),
-      client.from('exam_sessions').delete().eq('user_id', userId).eq('exam_key', examKey),
-    ]);
-    if (progressRes?.error) throw progressRes.error;
-    if (sessionRes?.error) throw sessionRes.error;
-
-    state.resultsCache = (state.resultsCache || []).filter(r => !(r.user_id === userId && r.exam_key === examKey));
-    if (state.isAdminPage) {
-      await refreshAdminLivePanel();
-      await refreshAdminResultsPanel();
-    }
-    toast('🗑️ Session user dihapus');
-    return true;
-  } catch (err) {
-    console.error('[jlpt-sync] deleteExamSession failed:', err?.message || err);
-    toast('❌ Gagal hapus session: ' + (err?.message || err));
-    return false;
-  }
-}
   async function loadXLSX() {
     if (window.XLSX) return window.XLSX;
     await new Promise((res, rej) => {
@@ -1406,6 +1375,61 @@ async function deleteExamSession(rowOrPayload) {
       dokkai_total:   sec.dokkai?.total   ?? null,
     };
   }
+
+
+
+async function deleteExamSession(rowOrUserId, maybeExamKey) {
+  const parseRow = () => {
+    if (rowOrUserId && typeof rowOrUserId === 'object') return rowOrUserId;
+    const fromEventTarget = (typeof event !== 'undefined' && event?.target?.closest)
+      ? event.target.closest('[data-user-id][data-exam-key]')
+      : null;
+    if (fromEventTarget) {
+      return {
+        user_id: fromEventTarget.getAttribute('data-user-id'),
+        exam_key: fromEventTarget.getAttribute('data-exam-key'),
+      };
+    }
+    return {
+      user_id: typeof rowOrUserId === 'string' ? rowOrUserId : (rowOrUserId?.user_id || ''),
+      exam_key: typeof maybeExamKey === 'string' ? maybeExamKey : (rowOrUserId?.exam_key || ''),
+    };
+  };
+
+  const row = parseRow();
+  const userId = row?.user_id || '';
+  const examKey = row?.exam_key || '';
+  if (!userId || !examKey) {
+    toast('⚠️ Data session tidak lengkap');
+    return false;
+  }
+
+  const confirmMsg = `Hapus session user ini?\n\nUser: ${userId}\nExam: ${examKey}\n\nAksi ini akan menghapus live progress dan hasil akhir.`;
+  if (!confirm(confirmMsg)) return false;
+
+  try {
+    const [progressRes, sessionRes] = await Promise.all([
+      client.from('exam_progress').delete().eq('user_id', userId).eq('exam_key', examKey),
+      client.from('exam_sessions').delete().eq('user_id', userId).eq('exam_key', examKey),
+    ]);
+
+    if (progressRes?.error) throw progressRes.error;
+    if (sessionRes?.error) throw sessionRes.error;
+
+    state.resultsCache = (state.resultsCache || []).filter(r => !(String(r.user_id) === String(userId) && String(r.exam_key) === String(examKey)));
+    if (state.isAdminPage) {
+      await refreshAdminLivePanel();
+      await refreshAdminResultsPanel();
+    }
+
+    toast('🗑️ Session user dihapus');
+    return true;
+  } catch (err) {
+    console.error('[jlpt-sync] deleteExamSession failed:', err?.message || err);
+    toast('❌ Gagal hapus session: ' + (err?.message || err));
+    return false;
+  }
+}
 
   async function exportResultsExcel() {
     try {
@@ -1457,6 +1481,33 @@ async function deleteExamSession(rowOrPayload) {
     }
   }
 
+
+
+function bindAdminActionDelegates(root = document) {
+  if (!root || root.__jlptActionDelegatesBound) return;
+  root.__jlptActionDelegatesBound = true;
+
+  root.addEventListener('click', async (e) => {
+    const exportBtn = e.target?.closest?.('#jlpt-export-xlsx');
+    if (exportBtn) {
+      e.preventDefault();
+      e.stopPropagation();
+      try { await exportResultsExcel(); } catch (err) { console.error('[jlpt-sync] export click failed:', err); }
+      return;
+    }
+
+    const delBtn = e.target?.closest?.('[data-session-delete="1"]');
+    if (delBtn) {
+      e.preventDefault();
+      e.stopPropagation();
+      const userId = delBtn.getAttribute('data-user-id');
+      const examKey = delBtn.getAttribute('data-exam-key');
+      if (!userId || !examKey) return;
+      try { await deleteExamSession({ user_id: userId, exam_key: examKey }); } catch (err) { console.error('[jlpt-sync] delete click failed:', err); }
+    }
+  }, true);
+}
+
   // ── Main init ────────────────────────────────────────────────────────────────
   async function initPage() {
     const kind = pageKind();
@@ -1505,12 +1556,13 @@ async function deleteExamSession(rowOrPayload) {
   }
 
   // ── Public API ───────────────────────────────────────────────────────────────
+  window.deleteExamSession = (...args) => window.JLPT_SYNC?.deleteExamSession?.(...args);
   window.JLPT_SYNC = {
     setGlobalLock, setExamLock, setMultipleExamLocks,
     loadSystemSettings, loadExamLocks,
     renderIndexLockUI, renderAdminControlUI,
     refreshAdminLivePanel, refreshAdminResultsPanel, refreshAdminPanels,
-    syncSession, exportResultsExcel,
+    syncSession, exportResultsExcel, deleteExamSession,
     examMeta: examMetaFromPath,
   };
 })();
