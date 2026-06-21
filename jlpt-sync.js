@@ -583,7 +583,45 @@
     }
   }
 
+// ── Lock shield (shown to users when admin locks an exam) ────────────────────
+  function showExamLockShield(reason = '') {
+    if (!state.isExamPage) return;
+    let shield = document.getElementById('jlpt-exam-lock-shield');
+    if (!shield) {
+      shield = document.createElement('div');
+      shield.id = 'jlpt-exam-lock-shield';
+      shield.style.cssText = 'position:fixed;inset:0;z-index:999999;background:rgba(5,9,16,.95);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:18px;text-align:center;';
+      shield.innerHTML = `
+        <div style="max-width:560px;background:#111a2f;border:1px solid rgba(255,95,115,.3);border-radius:24px;padding:28px 24px;box-shadow:0 25px 80px rgba(0,0,0,.6);">
+          <div style="font-size:46px;margin-bottom:10px;">🔒</div>
+          <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;margin-bottom:8px;color:#ff9aaa;">Ujian sedang dikunci</div>
+          <div id="jlpt-lock-shield-text" style="font-size:14px;color:#aab8d8;line-height:1.8;">Admin belum membuka akses ujian ini.</div>
+        </div>`;
+      document.body.appendChild(shield);
+    }
+    const txt = shield.querySelector('#jlpt-lock-shield-text');
+    if (txt) txt.textContent = reason || 'Admin belum membuka akses ujian ini.';
+    shield.style.display = 'flex';
+  }
 
+  function hideExamLockShield() {
+    const el = document.getElementById('jlpt-exam-lock-shield');
+    if (el) el.remove();
+  }
+
+  function enforceLockState() {
+    if (!state.isExamPage) return;
+    const locked    = !!state.settings.exam_locked;
+    const rowLocked = !!state.examLocks.get(examMetaFromPath().key)?.locked;
+    const isLocked  = (locked || rowLocked) && !state.isAdmin;
+    if (isLocked) {
+      state.examRunning = false;
+      showExamLockShield(state.settings.exam_lock_reason || state.examLocks.get(examMetaFromPath().key)?.lock_reason || '');
+    } else {
+      hideExamLockShield();
+    }
+  }
+  
   // ── Fullscreen enforcement ───────────────────────────────────────────────────
   async function requestExamFullscreen() {
     try {
