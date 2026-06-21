@@ -70,6 +70,9 @@
     adminPanelReady: false,
     userMap: new Map(),
     resultsCache: [],
+    liveTimeFilter: 'all',
+    resultsTimeFilter: 'all',
+    resultsSelectedUsers: null,
   };
   state.client = client;
 
@@ -118,6 +121,19 @@
   }
 
   function currentPath() { return location.pathname.replace(/\\/g, '/'); }
+
+  function getTimeFilterCutoff(filter) {
+    const now = Date.now();
+    const map = {
+      '15m':   now - 15 * 60 * 1000,
+      '30m':   now - 30 * 60 * 1000,
+      '1h':    now - 60 * 60 * 1000,
+      'today': new Date(new Date().setHours(0,0,0,0)).getTime(),
+      'week':  now - 7  * 24 * 60 * 60 * 1000,
+      'month': now - 30 * 24 * 60 * 60 * 1000,
+    };
+    return map[filter] ?? null; // null = no cutoff (all)
+  }
 
   function examMetaFromPath() {
     if (state.examMeta) return state.examMeta;
@@ -583,7 +599,7 @@
     }
   }
 
-// ── Lock shield (shown to users when admin locks an exam) ────────────────────
+  // ── Lock shield (shown to users when admin locks an exam) ────────────────────
   function showExamLockShield(reason = '') {
     if (!state.isExamPage) return;
     let shield = document.getElementById('jlpt-exam-lock-shield');
@@ -621,7 +637,7 @@
       hideExamLockShield();
     }
   }
-  
+
   // ── Fullscreen enforcement ───────────────────────────────────────────────────
   async function requestExamFullscreen() {
     try {
@@ -944,17 +960,32 @@
       });
 
       const rows        = Array.from(mergedMap.values()).sort((a, b) => new Date(b.updated_at || 0) - new Date(a.updated_at || 0));
-      const activeCount = rows.filter(r => String(r.status || '').toLowerCase() === 'active').length;
-      const summary     = `${activeCount} active / ${rows.length} session`;
+
+      // Apply time filter
+      const cutoff = getTimeFilterCutoff(state.liveTimeFilter || 'all');
+      const filtered = cutoff
+        ? rows.filter(r => r.updated_at && new Date(r.updated_at).getTime() >= cutoff)
+        : rows;
+
+      const activeCount = filtered.filter(r => String(r.status || '').toLowerCase() === 'active').length;
+      const summary     = `${activeCount} active / ${filtered.length} session${cutoff ? ` (${state.liveTimeFilter})` : ''}`;
       if (count)      count.textContent      = summary;
       if (countBadge) countBadge.textContent = summary;
 
+      // Highlight active filter button
+      document.querySelectorAll('.jlpt-live-time-btn').forEach(btn => {
+        const isActive = btn.dataset.liveFilter === (state.liveTimeFilter || 'all');
+        btn.style.background  = isActive ? 'rgba(74,158,255,.18)' : '';
+        btn.style.borderColor = isActive ? 'rgba(74,158,255,.5)'  : '';
+        btn.style.color       = isActive ? '#7cc0ff'              : '';
+      });
+
       if (!tbody) { console.warn('[jlpt-sync] #jlpt-live-table not found in DOM'); return; }
-      if (!rows.length) {
-        tbody.innerHTML = '<tr><td colspan="6" style="padding:16px;color:var(--muted);">Belum ada sesi yang tersinkron.</td></tr>';
+      if (!filtered.length) {
+        tbody.innerHTML = '<tr><td colspan="6" style="padding:16px;color:var(--muted);">Belum ada sesi yang tersinkron dalam rentang waktu ini.</td></tr>';
         return;
       }
-      tbody.innerHTML = rows.map(row => {
+      tbody.innerHTML = filtered.map(row => {
         const user      = state.userMap.get(row.user_id) || {};
         const userLabel = user.display_name || user.full_name || user.email || row.user_id || '—';
         const status    = String(row.status || 'active');
@@ -1008,15 +1039,32 @@
       const rows = Array.isArray(data) ? data : [];
       state.resultsCache = rows;
 
-      if (count)      count.textContent      = `${rows.length} session`;
-      if (countBadge) countBadge.textContent = `${rows.length} session`;
+      // Apply time filter
+      const resCutoff = getTimeFilterCutoff(state.resultsTimeFilter || 'all');
+      const filteredRows = resCutoff
+        ? rows.filter(r => {
+            const ts = r.completed_at || r.updated_at;
+            return ts && new Date(ts).getTime() >= resCutoff;
+          })
+        : rows;
+
+      // Highlight active results filter button
+      document.querySelectorAll('.jlpt-results-time-btn').forEach(btn => {
+        const isActive = btn.dataset.resultsFilter === (state.resultsTimeFilter || 'all');
+        btn.style.background  = isActive ? 'rgba(74,158,255,.18)' : '';
+        btn.style.borderColor = isActive ? 'rgba(74,158,255,.5)'  : '';
+        btn.style.color       = isActive ? '#7cc0ff'              : '';
+      });
+
+      if (count)      count.textContent      = `${filteredRows.length} session${resCutoff ? ` (${state.resultsTimeFilter})` : ''}`;
+      if (countBadge) countBadge.textContent = `${filteredRows.length} session`;
 
       if (!tbody) { console.warn('[jlpt-sync] #jlpt-results-table not found in DOM'); return; }
-      if (!rows.length) {
-        tbody.innerHTML = '<tr><td colspan="8" style="padding:16px;color:var(--muted);">Belum ada hasil ujian.</td></tr>';
+      if (!filteredRows.length) {
+        tbody.innerHTML = '<tr><td colspan="9" style="padding:16px;color:var(--muted);">Belum ada hasil ujian dalam rentang waktu ini.</td></tr>';
         return;
       }
-      tbody.innerHTML = rows.map(row => {
+      tbody.innerHTML = filteredRows.map(row => {
         const user  = state.userMap.get(row.user_id) || {};
         const label = user.display_name || user.full_name || user.email || row.user_id || '—';
         const pct   = Number(row.percentage || 0);
@@ -1025,6 +1073,9 @@
         const bun   = sec.bunpou?.percentage ?? '—';
         const dok   = sec.dokkai?.percentage ?? '—';
         return `<tr>
+          <td style="padding:10px 14px;border-top:1px solid rgba(255,255,255,.04);">
+            <input type="checkbox" class="jlpt-row-check" data-user-id="${esc(row.user_id)}" data-exam-key="${esc(row.exam_key)}">
+          </td>
           <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);font-weight:700;">${esc(label)}</td>
           <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);">${esc(row.exam_title || row.exam_key || '—')}</td>
           <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);font-family:'JetBrains Mono',monospace;">${esc(row.score ?? 0)}</td>
@@ -1033,7 +1084,7 @@
           <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);font-size:12px;color:var(--muted);">${esc(fmtTime(row.started_at))}</td>
           <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);font-size:12px;color:var(--muted);">${esc(fmtTime(row.completed_at || row.updated_at))}</td>
           <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);">
-            <button type="button" class="act-btn delete" data-session-delete="1" data-user-id="${esc(row.user_id)}" data-exam-key="${esc(row.exam_key)}">🗑️ Delete</button>
+            <button type="button" class="act-btn delete" data-session-delete="1" data-user-id="${esc(row.user_id)}" data-exam-key="${esc(row.exam_key)}">🗑️</button>
           </td>
         </tr>`;
       }).join('');
@@ -1133,10 +1184,18 @@
             <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;margin-bottom:4px;">🟢 Live Exam Monitor</div>
             <div style="font-size:13px;color:var(--muted);">Lihat user yang sedang ujian, progress, dan sisa waktu secara realtime.</div>
           </div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
             <span id="jlpt-live-count-badge" style="padding:8px 12px;border-radius:999px;font-size:12px;font-weight:800;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);">— session</span>
             <button id="jlpt-refresh-live" class="topbar-btn">🔄 Refresh Live</button>
           </div>
+        </div>
+        <!-- Time Filter Bar -->
+        <div style="display:flex;gap:6px;flex-wrap:wrap;padding:12px 18px;border-bottom:1px solid var(--border);background:rgba(255,255,255,.015);">
+          <span style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.06em;align-self:center;margin-right:4px;">Filter:</span>
+          ${['all','15m','30m','1h','today','week','month'].map(f => {
+            const label = {all:'Semua','15m':'15 mnt','30m':'30 mnt','1h':'1 jam',today:'Hari ini',week:'Minggu ini',month:'Bulan ini'}[f];
+            return `<button class="jlpt-live-time-btn topbar-btn" data-live-filter="${f}" style="padding:6px 12px;font-size:12px;">${label}</button>`;
+          }).join('')}
         </div>
         <div style="overflow:auto;">
           <table style="width:100%;border-collapse:collapse;">
@@ -1147,6 +1206,7 @@
                 <th style="text-align:left;padding:12px 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Progress</th>
                 <th style="text-align:left;padding:12px 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Remaining</th>
                 <th style="text-align:left;padding:12px 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Updated</th>
+                <th style="text-align:left;padding:12px 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Aksi</th>
               </tr>
             </thead>
             <tbody id="jlpt-live-table">
@@ -1163,16 +1223,27 @@
             <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;margin-bottom:4px;">📈 Exam Results</div>
             <div style="font-size:13px;color:var(--muted);">Hasil akhir user dan export ke Excel dengan detail per section.</div>
           </div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
             <span id="jlpt-results-count-badge" style="padding:8px 12px;border-radius:999px;font-size:12px;font-weight:800;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);">— session</span>
-            <button id="jlpt-export-xlsx"    class="topbar-btn primary">📥 Export Excel</button>
-            <button id="jlpt-refresh-results" class="topbar-btn">🔄 Refresh Results</button>
+            <button id="jlpt-export-selected-xlsx" class="topbar-btn" title="Export hanya user yang dicentang">☑️ Export Terpilih</button>
+            <button id="jlpt-export-xlsx"    class="topbar-btn primary">📥 Export Semua</button>
+            <button id="jlpt-refresh-results" class="topbar-btn">🔄 Refresh</button>
           </div>
+        </div>
+        <!-- Time Filter Bar -->
+        <div style="display:flex;gap:6px;flex-wrap:wrap;padding:12px 18px;border-bottom:1px solid var(--border);background:rgba(255,255,255,.015);align-items:center;">
+          <span style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-right:4px;">Filter waktu:</span>
+          ${['all','15m','30m','1h','today','week','month'].map(f => {
+            const label = {all:'Semua','15m':'15 mnt','30m':'30 mnt','1h':'1 jam',today:'Hari ini',week:'Minggu ini',month:'Bulan ini'}[f];
+            return `<button class="jlpt-results-time-btn topbar-btn" data-results-filter="${f}" style="padding:6px 12px;font-size:12px;">${label}</button>`;
+          }).join('')}
+          <span id="jlpt-results-selected-label" style="margin-left:auto;font-size:12px;color:var(--muted);"></span>
         </div>
         <div style="overflow:auto;">
           <table style="width:100%;border-collapse:collapse;">
             <thead style="background:rgba(255,255,255,.02);">
               <tr>
+                <th style="padding:12px 14px;"><input type="checkbox" id="jlpt-results-check-all" title="Pilih semua"></th>
                 <th style="text-align:left;padding:12px 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">User</th>
                 <th style="text-align:left;padding:12px 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Exam</th>
                 <th style="text-align:left;padding:12px 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Score</th>
@@ -1180,10 +1251,11 @@
                 <th style="text-align:left;padding:12px 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Sections (M/B/D)</th>
                 <th style="text-align:left;padding:12px 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Started</th>
                 <th style="text-align:left;padding:12px 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Completed</th>
+                <th style="text-align:left;padding:12px 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Aksi</th>
               </tr>
             </thead>
             <tbody id="jlpt-results-table">
-              <tr><td colspan="8" style="padding:16px;color:var(--muted);">Memuat...</td></tr>
+              <tr><td colspan="9" style="padding:16px;color:var(--muted);">Memuat...</td></tr>
             </tbody>
           </table>
         </div>
@@ -1215,6 +1287,46 @@
     root.querySelector('#jlpt-refresh-live')?.addEventListener('click',    () => refreshAdminLivePanel());
     root.querySelector('#jlpt-refresh-results')?.addEventListener('click', () => refreshAdminResultsPanel());
     root.querySelector('#jlpt-refresh-locks')?.addEventListener('click',   () => renderAdminControlUI());
+
+    // Live time-filter buttons
+    root.querySelectorAll('.jlpt-live-time-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        state.liveTimeFilter = btn.dataset.liveFilter || 'all';
+        root.querySelectorAll('.jlpt-live-time-btn').forEach(b => {
+          b.style.background    = b === btn ? 'rgba(74,158,255,.18)' : '';
+          b.style.borderColor   = b === btn ? 'rgba(74,158,255,.5)'  : '';
+          b.style.color         = b === btn ? '#7cc0ff'              : '';
+        });
+        refreshAdminLivePanel();
+      });
+    });
+
+    // Results time-filter buttons
+    root.querySelectorAll('.jlpt-results-time-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        state.resultsTimeFilter = btn.dataset.resultsFilter || 'all';
+        root.querySelectorAll('.jlpt-results-time-btn').forEach(b => {
+          b.style.background  = b === btn ? 'rgba(74,158,255,.18)' : '';
+          b.style.borderColor = b === btn ? 'rgba(74,158,255,.5)'  : '';
+          b.style.color       = b === btn ? '#7cc0ff'              : '';
+        });
+        refreshAdminResultsPanel();
+      });
+    });
+
+    // Results: select-all checkbox
+    root.querySelector('#jlpt-results-check-all')?.addEventListener('change', (e) => {
+      root.querySelectorAll('.jlpt-row-check').forEach(cb => { cb.checked = e.target.checked; });
+      updateResultsSelectionLabel(root);
+    });
+
+    // Export selected
+    root.querySelector('#jlpt-export-selected-xlsx')?.addEventListener('click', async () => {
+      const checked = Array.from(root.querySelectorAll('.jlpt-row-check:checked'))
+        .map(cb => ({ user_id: cb.dataset.userId, exam_key: cb.dataset.examKey }));
+      if (!checked.length) { toast('⚠️ Centang setidaknya satu baris dulu'); return; }
+      await exportResultsExcel(checked);
+    });
     root.querySelector('#jlpt-select-all-exams')?.addEventListener('click', () => {
       const boxes = root.querySelectorAll('.jlpt-lock-check');
       const all   = Array.from(boxes).every(b => b.checked);
@@ -1240,8 +1352,28 @@
     bindAdminActionDelegates(wrap);
     bindAdminActionDelegates(document);
 
+    // Row checkbox change → update label (delegated)
+    document.addEventListener('change', e => {
+      if (e.target.classList.contains('jlpt-row-check')) {
+        const root2 = document.getElementById('jlpt-sync-admin-wrap') || document;
+        updateResultsSelectionLabel(root2);
+        // sync select-all state
+        const all  = root2.querySelectorAll('.jlpt-row-check');
+        const chk  = root2.querySelectorAll('.jlpt-row-check:checked');
+        const allCb = root2.querySelector('#jlpt-results-check-all');
+        if (allCb) allCb.checked = all.length > 0 && chk.length === all.length;
+      }
+    });
+
     state.adminPanelReady = true;
     return wrap;
+  }
+
+  function updateResultsSelectionLabel(root) {
+    const checked = root.querySelectorAll('.jlpt-row-check:checked').length;
+    const total   = root.querySelectorAll('.jlpt-row-check').length;
+    const lbl     = root.querySelector('#jlpt-results-selected-label');
+    if (lbl) lbl.textContent = checked > 0 ? `${checked} dari ${total} dipilih` : '';
   }
 
   function renderAdminControlUI() {
@@ -1317,6 +1449,28 @@
     }
   }
 
+  // ── Index page: update exam card score after completion ────────────────────
+  function updateExamCardScore(examKey, score, percentage) {
+    if (!examKey) return;
+    const key = String(examKey).toLowerCase();
+    document.querySelectorAll('.card[data-examkey]').forEach(card => {
+      if (String(card.dataset.examkey || '').toLowerCase() !== key) return;
+      let scoreBadge = card.querySelector('.jlpt-score-badge');
+      if (!scoreBadge) {
+        scoreBadge = document.createElement('div');
+        scoreBadge.className = 'jlpt-score-badge';
+        scoreBadge.style.cssText = 'position:absolute;bottom:14px;left:14px;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:800;z-index:6;backdrop-filter:blur(4px);';
+        card.appendChild(scoreBadge);
+      }
+      const pct = Number(percentage || 0);
+      const pass = pct >= 60;
+      scoreBadge.textContent  = `Skor: ${score ?? 0} (${pct.toFixed(0)}%)`;
+      scoreBadge.style.background  = pass ? 'rgba(25,195,125,.22)' : 'rgba(255,79,109,.22)';
+      scoreBadge.style.border      = `1px solid ${pass ? 'rgba(25,195,125,.5)' : 'rgba(255,79,109,.5)'}`;
+      scoreBadge.style.color       = pass ? '#5ff0b0' : '#ff9aaa';
+    });
+  }
+
   // ── Realtime subscriptions ───────────────────────────────────────────────────
   function subscribeRealtime() {
     try {
@@ -1344,10 +1498,34 @@
       .on('postgres_changes', { event: '*', schema: 'public', table: 'exam_progress' }, async () => {
         if (state.isAdminPage) await refreshAdminLivePanel();
       })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'exam_sessions' }, async () => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'exam_sessions' }, async (payload) => {
         if (state.isAdminPage) await refreshAdminResultsPanel();
+        // Index page: update score badge if this is our own session finishing
+        if (state.isIndexPage && state.session) {
+          const row = payload.new || {};
+          if (row.user_id === state.session.user.id && row.completed) {
+            updateExamCardScore(row.exam_key, row.score, row.percentage);
+          }
+        }
       })
       .subscribe();
+
+    // Index page: subscribe to notifications channel for this user
+    if (state.isIndexPage && state.session) {
+      const userId = state.session.user.id;
+      client
+        .channel('jlpt-user-notifs-' + userId)
+        .on('postgres_changes', {
+          event: 'INSERT', schema: 'public', table: 'notifications',
+          filter: `user_id=eq.${userId}`
+        }, payload => {
+          // Dispatch to the page's own notification system
+          if (typeof window.__jlptInjectNotif === 'function') {
+            window.__jlptInjectNotif(payload.new);
+          }
+        })
+        .subscribe();
+    }
   }
 
   // ── XLSX export ──────────────────────────────────────────────────────────────
@@ -1431,13 +1609,20 @@ async function deleteExamSession(rowOrUserId, maybeExamKey) {
   }
 }
 
-  async function exportResultsExcel() {
+  async function exportResultsExcel(selectedRows = null) {
     try {
       await loadUserMap();
-      const rows = Array.isArray(state.resultsCache) && state.resultsCache.length
+      let rows = Array.isArray(state.resultsCache) && state.resultsCache.length
         ? state.resultsCache
         : (await client.from('exam_sessions').select('*').order('updated_at', { ascending: false }).limit(1000)).data || [];
       if (!rows.length) { toast('Belum ada data untuk diekspor'); return; }
+
+      // If selectedRows provided, filter to only those user+exam combos
+      if (Array.isArray(selectedRows) && selectedRows.length > 0) {
+        const selSet = new Set(selectedRows.map(r => `${r.user_id}::${r.exam_key}`));
+        rows = rows.filter(r => selSet.has(`${r.user_id}::${r.exam_key}`));
+        if (!rows.length) { toast('⚠️ Data terpilih tidak ditemukan di cache'); return; }
+      }
 
       const XLSX = await loadXLSX();
       const wb   = XLSX.utils.book_new();

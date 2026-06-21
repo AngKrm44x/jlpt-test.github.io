@@ -1256,6 +1256,21 @@ window.goto = function(pane){
     examlock:'Exam Lock Manager', livemonitor:'Live Exam Monitor', examresults:'Exam Results'
   };
   document.getElementById('pageTitle').textContent = titles[pane]||pane;
+  // Track panel navigation
+  const panelDesc = {
+    examlock:'Membuka panel Exam Lock Manager',
+    livemonitor:'Membuka Live Exam Monitor',
+    examresults:'Membuka Exam Results',
+    upload:'Membuka halaman Upload Soal',
+    reports:'Membuka Laporan Error Soal',
+    requests:'Membuka Request Soal',
+    users:'Membuka daftar Semua User',
+    pending:'Membuka User Pending Approval',
+    github:'Membuka GitHub & Telegram Config',
+  };
+  if (panelDesc[pane] && typeof pushActivity === 'function') {
+    pushActivity('system', panelDesc[pane], titles[pane] || pane);
+  }
   if(typeof window.closeSidebar==='function') window.closeSidebar();
 };
 window.toggleSidebar = ()=>{ document.getElementById('sidebar').classList.toggle('open'); document.getElementById('sidebarOverlay').classList.toggle('show'); };
@@ -1784,8 +1799,25 @@ CREATE TABLE exam_reports (
 };
 
 window.resolveReport = async(id)=>{
-  await getSupabase().from('exam_reports').update({status:'resolved'}).eq('id',id);
+  const sb = getSupabase();
+  // Fetch report details first to get reporter's user_id and exam info
+  const { data: report } = await sb.from('exam_reports').select('*').eq('id', id).maybeSingle();
+  await sb.from('exam_reports').update({status:'resolved'}).eq('id',id);
   showToast('✅ Laporan ditandai resolved','success');
+  if (typeof pushActivity === 'function') {
+    pushActivity('edit', 'Laporan error diselesaikan', report?.exam_title || report?.exam_key || id, { id });
+  }
+  // Send notification to the user who reported
+  if (report?.user_id) {
+    await sb.from('notifications').insert({
+      user_id: report.user_id,
+      type: 'report_resolved',
+      title: '✅ Laporan Error Diselesaikan',
+      message: `Laporan kamu untuk "${report.exam_title || report.exam_key || 'soal ini'}" sudah diselesaikan admin. Terima kasih atas laporannya!`,
+      is_read: false,
+      created_at: new Date().toISOString(),
+    }).catch(() => {});
+  }
   await loadReports();
 };
 
@@ -1797,6 +1829,8 @@ window.deleteReport = async(id)=>{
 
 window.setRequestStatus = async(id, status) => {
   const sb = getSupabase();
+  // Fetch request first
+  const { data: req } = await sb.from('exam_requests').select('*').eq('id', id).maybeSingle();
   const { error } = await sb.from('exam_requests').update({
     status,
     updated_at: new Date().toISOString()
@@ -1805,7 +1839,29 @@ window.setRequestStatus = async(id, status) => {
     showToast('❌ Gagal update request: ' + error.message, 'error');
     return;
   }
-  showToast('✅ Status request diperbarui', 'success');
+  const statusLabel = { pending:'Menunggu', on_progress:'Sedang Diproses', done:'Selesai', rejected:'Ditolak' };
+  const statusIcon  = { pending:'⏳', on_progress:'🔄', done:'✅', rejected:'❌' };
+  showToast(`✅ Status request diperbarui → ${statusLabel[status] || status}`, 'success');
+  if (typeof pushActivity === 'function') {
+    pushActivity('edit', `Request soal diperbarui: ${statusLabel[status] || status}`,
+      `${req?.level || ''} ${req?.types || ''}`.trim() || id, { id, status });
+  }
+  // Send notification to the user who made the request
+  if (req?.uid || req?.user_id) {
+    const userId = req.uid || req.user_id;
+    await sb.from('notifications').insert({
+      user_id: userId,
+      type: 'request_status',
+      title: `${statusIcon[status] || '📩'} Request Soal JLPT ${req?.level || ''} — ${statusLabel[status] || status}`,
+      message: status === 'done'
+        ? `Request kamu untuk soal JLPT ${req?.level || ''} sudah selesai! Cek soal terbaru di halaman utama.`
+        : status === 'rejected'
+          ? `Request kamu untuk soal JLPT ${req?.level || ''} tidak dapat dipenuhi saat ini.`
+          : `Status request soal JLPT ${req?.level || ''} kamu: ${statusLabel[status] || status}.`,
+      is_read: false,
+      created_at: new Date().toISOString(),
+    }).catch(() => {});
+  }
   await loadRequests();
   if (typeof refreshAllAdminViews === 'function') refreshAllAdminViews('request-status');
 };
@@ -2525,6 +2581,26 @@ window.togglePwd = window.toggleFieldPwd = function(id, btn){
         });
       }
       pushActivity('upload', 'Soal baru di-upload', `${level} ${year}-${month}`, { key });
+
+      // ── Broadcast notification to all active users ──
+      try {
+        const sb = typeof getSupabase === 'function' ? getSupabase() : window._supabase;
+        if (sb) {
+          const { data: activeUsers } = await sb.from('users').select('id').eq('status', 'active');
+          const monthName = month === '07' ? 'Juli' : 'Desember';
+          const notifRows = (activeUsers || []).map(u => ({
+            user_id: u.id,
+            type: 'new_exam',
+            title: `📝 Soal Baru: JLPT ${level} ${monthName} ${year}`,
+            message: `Soal simulasi JLPT ${level} ${monthName} ${year} sudah tersedia! Yuk coba sekarang.`,
+            is_read: false,
+            created_at: new Date().toISOString(),
+          }));
+          if (notifRows.length) {
+            await sb.from('notifications').insert(notifRows).catch(() => {});
+          }
+        }
+      } catch (e) { console.warn('[admin] Broadcast notif failed:', e?.message || e); }
     }
 
     if (editOnly) {
@@ -2539,7 +2615,7 @@ window.togglePwd = window.toggleFieldPwd = function(id, btn){
     renderExamList();
     if (typeof loadDashboard === 'function') await loadDashboard();
 
-    if (editOnly) pushActivity('edit', 'Soal diperbarui', 'Judul / tahun / deskripsi / status NEW telah diubah');
+    if (editOnly) pushActivity('edit', 'Soal diperbarui', `${newLevel ? String(newLevel).toUpperCase() : ''} ${newPath || ''}`.trim() || 'Judul / tahun / deskripsi / status NEW telah diubah');
   };
 
   async function apiJson(url, fallback = null) {
@@ -2720,7 +2796,19 @@ window.togglePwd = window.toggleFieldPwd = function(id, btn){
           loadIndexExamsFromGithub().catch(() => {}),
           refreshAdminActivity().catch(() => {}),
         ]);
-        if (reason) pushActivity('system', 'Panel diperbarui', `Sync realtime: ${reason}`);
+        // Only log meaningful realtime events, not generic refreshes
+        const meaningfulReasons = ['users:INSERT','users:DELETE','reports:INSERT','requests:INSERT'];
+        if (reason && meaningfulReasons.some(r => reason.startsWith(r.split(':')[0]))) {
+          const desc = {
+            'users:INSERT': 'User baru mendaftar',
+            'users:UPDATE': 'Data user diperbarui',
+            'users:DELETE': 'User dihapus dari sistem',
+            'reports:INSERT': 'Laporan error baru masuk',
+            'requests:INSERT': 'Request soal baru masuk',
+          };
+          const label = desc[reason] || null;
+          if (label) pushActivity('system', label, `Perubahan realtime terdeteksi`);
+        }
       } catch {}
     }, 250);
   }
@@ -2928,31 +3016,41 @@ window.togglePwd = window.toggleFieldPwd = function(id, btn){
       realtimeChannel = sb.channel('admin-realtime-v3')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, payload => {
           const row = payload.new || payload.old || {};
-          const title = payload.eventType === 'INSERT' ? 'User baru masuk' :
-                        payload.eventType === 'UPDATE' ? 'User diperbarui' : 'User dihapus';
-          pushActivity('user', title, row.full_name || row.display_name || row.email || '—', { table: 'users', id: row.id, event: payload.eventType });
+          const name = row.full_name || row.display_name || row.email || '—';
+          const title = payload.eventType === 'INSERT' ? `User baru mendaftar: ${name}` :
+                        payload.eventType === 'UPDATE' ? `Status/data user berubah: ${name}` :
+                        `User dihapus: ${name}`;
+          pushActivity('user', title, row.email || row.id || '', { table: 'users', id: row.id, event: payload.eventType });
           refreshAllAdminViews(`users:${payload.eventType}`);
         })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'exam_reports' }, payload => {
           const row = payload.new || payload.old || {};
-          const title = payload.eventType === 'INSERT' ? 'Laporan baru masuk' :
-                        payload.eventType === 'UPDATE' ? 'Laporan diperbarui' : 'Laporan dihapus';
-          pushActivity('report', title, row.exam_title || row.exam_key || row.description || '—', { table: 'exam_reports', id: row.id, event: payload.eventType });
+          const examLabel = row.exam_title || row.exam_key || '—';
+          const title = payload.eventType === 'INSERT' ? `Laporan error masuk: ${examLabel}` :
+                        payload.eventType === 'UPDATE' ? `Laporan diperbarui: ${examLabel}` :
+                        `Laporan dihapus: ${examLabel}`;
+          pushActivity('report', title, row.description || '', { table: 'exam_reports', id: row.id, event: payload.eventType });
           refreshAllAdminViews(`reports:${payload.eventType}`);
         })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'exam_requests' }, payload => {
           const row = payload.new || payload.old || {};
-          const title = payload.eventType === 'INSERT' ? 'Request soal baru' : 'Request soal berubah';
-          pushActivity('report', title, `${row.level || ''} ${row.types || ''}`.trim() || '—', { table: 'exam_requests', id: row.id, event: payload.eventType });
+          const who = row.name || row.email || '—';
+          const title = payload.eventType === 'INSERT'
+            ? `Request soal baru: JLPT ${row.level || '?'} dari ${who}`
+            : `Status request diperbarui: JLPT ${row.level || '?'} → ${row.status || '?'}`;
+          pushActivity('report', title, `${row.types || 'All'} · ${who}`, { table: 'exam_requests', id: row.id, event: payload.eventType });
           refreshAllAdminViews(`requests:${payload.eventType}`);
         })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, payload => {
-          const row = payload.new || payload.old || {};
-          pushActivity('system', 'Notifikasi user berubah', row.title || row.message || '—', { table: 'notifications', id: row.id, event: payload.eventType });
+          // Only log when admin manually sends a notif — skip auto-generated ones (report resolved, etc.)
+          const row = payload.new || {};
+          if (payload.eventType === 'INSERT' && row.type === 'new_exam') {
+            pushActivity('system', `Notifikasi ujian baru dikirim ke user`, row.title || '', { table: 'notifications', id: row.id });
+          }
         })
         .subscribe(status => {
           if (status === 'SUBSCRIBED') {
-            pushActivity('system', 'Realtime aktif', 'Panel admin sedang memantau perubahan user, laporan, dan request');
+            console.log('[admin] Realtime subscribed ✓');
           }
         });
 
@@ -2976,13 +3074,20 @@ window.togglePwd = window.toggleFieldPwd = function(id, btn){
   // ----- Wrap action handlers to log history
   const originalSaveEditUser = window.saveEditUser;
   window.saveEditUser = async function() {
+    const name = document.getElementById('euName')?.value?.trim() || document.getElementById('euDisplayName')?.value?.trim() || 'User';
+    const status = document.getElementById('euStatus')?.value || '';
     await originalSaveEditUser?.();
+    pushActivity('edit', `Edit data user: ${name}`, `Status: ${status}`, { name, status });
     refreshAllAdminViews('saveEditUser');
   };
 
   const originalChangeUserStatus = window.changeUserStatus;
   window.changeUserStatus = async function(id, status) {
+    const user = (window._allUsers || []).find(u => u.id === id);
+    const name = user ? (user.full_name || user.display_name || user.email || id) : id;
+    const statusLabel = { active:'Aktif', pending:'Pending', rejected:'Ditolak', banned:'Banned' };
     await originalChangeUserStatus?.(id, status);
+    pushActivity('user', `Status user diubah → ${statusLabel[status] || status}`, name, { id, status });
     refreshAllAdminViews('changeUserStatus');
   };
 
@@ -2994,6 +3099,7 @@ window.togglePwd = window.toggleFieldPwd = function(id, btn){
       const prev = okBtn.onclick;
       okBtn.onclick = async (...args) => {
         await prev?.apply(this, args);
+        pushActivity('delete', `User dihapus: ${name || id}`, id, { id, name });
         refreshAllAdminViews('deleteUser');
       };
     }
@@ -3001,9 +3107,11 @@ window.togglePwd = window.toggleFieldPwd = function(id, btn){
 
   const originalSaveExamInfo = window.saveExamInfo;
   window.saveExamInfo = async function() {
+    const key   = document.getElementById('eeKey')?.value   || '';
+    const title = document.getElementById('eeTitle')?.value || '';
+    const year  = document.getElementById('eeYear')?.value  || '';
     await originalSaveExamInfo?.();
-    const key = document.getElementById('eeKey')?.value || '';
-    pushActivity('edit', 'Info soal diperbarui', key, { key });
+    pushActivity('edit', `Info soal diperbarui: ${title || key}`, `Tahun: ${year} · Key: ${key}`, { key, title, year });
     refreshAllAdminViews('saveExamInfo');
   };
 
@@ -3015,7 +3123,7 @@ window.togglePwd = window.toggleFieldPwd = function(id, btn){
       const prev = okBtn.onclick;
       okBtn.onclick = async (...args) => {
         await prev?.apply(this, args);
-        pushActivity('delete', 'Soal dihapus', title || key, { key, title });
+        pushActivity('delete', `Soal dihapus: ${title || key}`, `Key: ${key}`, { key, title });
         refreshAllAdminViews('deleteExam');
       };
     }
@@ -3029,6 +3137,7 @@ window.togglePwd = window.toggleFieldPwd = function(id, btn){
 
   const originalDeleteReport = window.deleteReport;
   window.deleteReport = async function(id) {
+    if (typeof pushActivity === 'function') pushActivity('delete', `Laporan error dihapus`, `ID: ${id}`, { id });
     await originalDeleteReport?.(id);
     refreshAllAdminViews('deleteReport');
   };
