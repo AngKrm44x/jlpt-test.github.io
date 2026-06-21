@@ -60,6 +60,10 @@
     isExamPage: false,
     examMeta: null,
     examRunning: false,
+    gateChecked: false,
+    examAccessGranted: null,
+    fullscreenRequested: false,
+    fullscreenWatchTimer: null,
     lastProgressHash: '',
     lastProgressSentAt: 0,
     syncTimer: null,
@@ -70,9 +74,6 @@
     adminPanelReady: false,
     userMap: new Map(),
     resultsCache: [],
-    examAccessGranted: false,
-    fullscreenRequested: false,
-    gateChecked: false,
   };
   state.client = client;
 
@@ -272,42 +273,14 @@
     }
   }
 
-
-function currentExamLockState() {
-  const meta = examMetaFromPath();
-  const rowLocked = !!state.examLocks.get(String(meta.key || '').toLowerCase())?.locked;
-  return !!state.settings.exam_locked || rowLocked;
-}
-
-async function preflightExamGate() {
-  if (!state.isExamPage) return true;
-  try {
-    document.documentElement.style.visibility = 'hidden';
-  } catch {}
-
-  // Refresh lock state before any exam UI or session logic is allowed to run.
-  await loadSystemSettings();
-  await loadExamLocks(true);
-
-  const lockRow = await loadCurrentExamLock();
-  const locked  = !!state.settings.exam_locked || !!lockRow?.locked;
-  const reason  = state.settings.exam_lock_reason || lockRow?.lock_reason || '';
-
-  state.gateChecked = true;
-  if (locked && !state.isAdmin) {
-    state.examAccessGranted = false;
-    state.examRunning = false;
-    try { document.documentElement.style.visibility = 'visible'; } catch {}
-    showExamLockShield(reason);
-    return false;
+  async function loadCurrentExamLock() {
+    const meta = examMetaFromPath();
+    if (!meta.key) return null;
+    const map  = await loadExamLocks(true);
+    return map.get(meta.key) || null;
   }
 
-  state.examAccessGranted = true;
-  try { document.documentElement.style.visibility = 'visible'; } catch {}
-  return true;
-}
-
-// ── Write helpers ────────────────────────────────────────────────────────────
+  // ── Write helpers ────────────────────────────────────────────────────────────
   async function setSystemSetting(key, value) {
     const ctx = await getContext();
     if (!ctx?.isAdmin) { toast('⛔ Admin only'); return false; }
@@ -502,7 +475,7 @@ async function preflightExamGate() {
 
   async function ensureServerSession() {
     const ctx = await getContext();
-    if (!ctx || ctx.isAdmin || !state.isExamPage || currentExamLockState()) return null;
+    if (!ctx || ctx.isAdmin || !state.isExamPage) return null;
     const snapshot = buildSnapshot('prime', false);
     try {
       const { data, error } = await client
@@ -533,7 +506,6 @@ async function preflightExamGate() {
   async function syncSession(eventName = 'heartbeat', done = false, force = false) {
     const ctx = await getContext();
     if (!ctx || ctx.isAdmin || !state.settings.exam_live_enabled) return false;
-    if (state.isExamPage && currentExamLockState() && !state.isAdmin) return false;
 
     const snapshot = buildSnapshot(eventName, done);
     const hash = JSON.stringify({
@@ -648,30 +620,298 @@ async function preflightExamGate() {
     const isLocked  = (locked || rowLocked) && !state.isAdmin;
     if (isLocked) {
       state.examRunning = false;
-      hideFullscreenPrompt();
-      exitExamFullscreen();
       showExamLockShield(state.settings.exam_lock_reason || state.examLocks.get(examMetaFromPath().key)?.lock_reason || '');
     } else {
       hideExamLockShield();
     }
   }
 
+
+function currentExamLockState() {
+  const meta = examMetaFromPath();
+  const rowLocked = !!state.examLocks.get(meta.key)?.locked;
+  return !!state.settings.exam_locked || rowLocked;
+}
+
+async function bootstrapExamAccessGate() {
+  if (!state.isExamPage) return true;
+
+  document.documentElement.style.visibility = 'hidden';
+  try {
+    await loadSystemSettings();
+    await loadExamLocks(true);
+
+    const locked = currentExamLockState() && !state.isAdmin;
+    state.gateChecked = true;
+    state.examAccessGranted = !locked;
+
+    if (locked) {
+      state.examRunning = false;
+      showExamLockShield(
+        state.settings.exam_lock_reason ||
+        state.examLocks.get(examMetaFromPath().key)?.lock_reason ||
+        'Admin belum membuka akses ujian ini.'
+      );
+      return false;
+    }
+
+    hideExamLockShield();
+    return true;
+  } finally {
+    document.documentElement.style.visibility = 'visible';
+  }
+}
+
+  // ── Fullscreen enforcement ───────────────────────────────────────────────────
+async function requestExamFullscreen() {
+  try {
+    if (!state.isExamPage || state.isAdmin) return true;
+    if (document.fullscreenElement) return true;
+    if (!document.fullscreenEnabled) {
+      console.warn('[jlpt-sync] Fullscreen not enabled by browser');
+      return false;
+    }
+
+    const el = document.documentElement || document.body;
+    if (!el) return false;
+
+    if (el.requestFullscreen)            await el.requestFullscreen({ navigationUI: 'hide' });
+    else if (el.webkitRequestFullscreen) await el.webkitRequestFullscreen();
+    else if (el.msRequestFullscreen)     await el.msRequestFullscreen();
+    return true;
+  } catch (err) {
+    console.warn('[jlpt-sync] Fullscreen request failed:', err?.message || err);
+    return false;
+  }
+}
+
+async function exitExamFullscreen() {
+  try {
+    if (!document.fullscreenElement) return;
+    if (document.exitFullscreen)            await document.exitFullscreen();
+    else if (document.webkitExitFullscreen) await document.webkitExitFullscreen();
+    else if (document.msExitFullscreen)     await document.msExitFullscreen();
+  } catch (err) {
+    console.warn('[jlpt-sync] Fullscreen exit failed:', err?.message || err);
+  }
+}
+
+function showFullscreenPrompt() {
+  if (!state.isExamPage || state.isAdmin) return;
+  state.fullscreenRequested = false;
+
+  let prompt = document.getElementById('jlpt-fullscreen-prompt');
+  if (!prompt) {
+    prompt = document.createElement('div');
+    prompt.id = 'jlpt-fullscreen-prompt';
+    prompt.style.cssText = 'position:fixed;inset:0;z-index:999998;background:rgba(5,9,16,.92);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:18px;text-align:center;';
+    prompt.innerHTML = `
+      <div style="max-width:480px;background:#111a2f;border:1px solid rgba(255,181,71,.3);border-radius:24px;padding:28px 24px;box-shadow:0 25px 80px rgba(0,0,0,.6);">
+        <div style="font-size:42px;margin-bottom:10px;">🖥️</div>
+        <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;margin-bottom:8px;color:#ffd18a;">Mode layar penuh diperlukan</div>
+        <div style="font-size:14px;color:#aab8d8;line-height:1.8;margin-bottom:18px;">Ujian harus dikerjakan dalam mode layar penuh. Klik tombol di bawah untuk melanjutkan.</div>
+        <button id="jlpt-fullscreen-resume-btn" style="padding:12px 22px;border-radius:14px;border:none;background:linear-gradient(135deg,#4a9eff,#6c3fff);color:#fff;font-weight:800;font-size:14px;cursor:pointer;font-family:inherit;">Lanjutkan Layar Penuh</button>
+      </div>`;
+    document.body.appendChild(prompt);
+    prompt.querySelector('#jlpt-fullscreen-resume-btn')?.addEventListener('click', async () => {
+      const ok = await requestExamFullscreen();
+      if (ok) hideFullscreenPrompt();
+    });
+  }
+  prompt.style.display = 'flex';
+}
+
+function hideFullscreenPrompt() {
+  const el = document.getElementById('jlpt-fullscreen-prompt');
+  if (el) el.style.display = 'none';
+}
+
+function startFullscreenWatch() {
+  if (!state.isExamPage || state.isAdmin) return;
+  if (state.fullscreenWatchTimer) clearInterval(state.fullscreenWatchTimer);
+  state.fullscreenWatchTimer = setInterval(() => {
+    if (!state.examRunning || state.isAdmin) return;
+    if (!document.fullscreenElement) showFullscreenPrompt();
+  }, 700);
+}
+
+function installFullscreenGuard() {
+  if (!state.isExamPage) return;
+
+  document.addEventListener('fullscreenchange', () => {
+    if (!document.fullscreenElement && state.examRunning && !state.isAdmin) {
+      state.fullscreenRequested = false;
+      showFullscreenPrompt();
+      syncSession('fullscreen_exit', false, true);
+    } else if (document.fullscreenElement) {
+      state.fullscreenRequested = true;
+      hideFullscreenPrompt();
+    }
+  });
+
+  document.addEventListener('fullscreenerror', () => {
+    if (!state.isExamPage || state.isAdmin) return;
+    state.fullscreenRequested = false;
+    if (state.examRunning) showFullscreenPrompt();
+  });
+}
+
+function installFullscreenGestureHook() {
+  if (!state.isExamPage || state.isAdmin) return;
+
+  const handler = async (e) => {
+    if (state.examAccessGranted === false) return;
+    if (!state.gateChecked) return;
+    if (document.fullscreenElement || state.fullscreenRequested) return;
+
+    const target = e.target?.closest?.(
+      '.mode-btn, .start-exam-btn, .begin-exam-btn, [data-start-exam], button[onclick*="startMode"], button[onclick*="startExam"]'
+    );
+    if (e.type !== 'keydown' && !target) return;
+
+    if (e.type === 'keydown') {
+      const key = String(e.key || '');
+      if (!['Enter', ' ', 'Spacebar'].includes(key)) return;
+    }
+
+    state.fullscreenRequested = true;
+    const ok = await requestExamFullscreen();
+    if (ok) {
+      hideFullscreenPrompt();
+    } else {
+      state.fullscreenRequested = false;
+      if (state.examRunning || target) showFullscreenPrompt();
+    }
+  };
+
+  ['pointerdown', 'click', 'keydown'].forEach((evt) => {
+    document.addEventListener(evt, handler, true);
+  });
+}
+
+function installExamGuards() {
+  if (!state.isExamPage) return;
+  document.addEventListener('keydown', blockExamShortcuts, true);
+  document.addEventListener('contextmenu', e => { if (state.examRunning) e.preventDefault(); }, true);
+  window.addEventListener('blur', () => { if (state.examRunning) syncSession('blur', false, true); });
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden' && state.examRunning) syncSession('hidden', false, true);
+    if (document.visibilityState === 'visible' && state.examRunning) syncSession('visible', false, true);
+    if (state.examRunning && !document.fullscreenElement && !state.isAdmin) showFullscreenPrompt();
+  });
+  window.addEventListener('beforeunload', e => {
+    if (!state.examRunning) return;
+    try { syncSession('beforeunload', false, true); } catch {}
+    e.preventDefault(); e.returnValue = ''; return '';
+  });
+  installFullscreenGuard();
+  installFullscreenGestureHook();
+  startFullscreenWatch();
+}
+
+  // ── Keyboard / tab guard ─────────────────────────────────────────────────────
+  function blockExamShortcuts(e) {
+    if (!state.isExamPage || !state.examRunning) return;
+    const blocked     = new Set(['F5','F6','F7','F11','F12','PrintScreen']);
+    const ctrlBlocked = new Set(['l','n','t','w','r','u','s','p','f','j','k','h','d','g']);
+    if (
+      blocked.has(e.key) ||
+      ((e.ctrlKey || e.metaKey) && ctrlBlocked.has((e.key || '').toLowerCase())) ||
+      ((e.ctrlKey || e.metaKey) && e.shiftKey) ||
+      (e.altKey && ['ArrowLeft', 'ArrowRight'].includes(e.key))
+    ) {
+      e.preventDefault(); e.stopPropagation();
+      toast('⛔ Navigasi diblokir saat ujian');
+      return false;
+    }
+  }
+
+  // ── Lock shield (shown to users when admin locks an exam) ────────────────────
+  function showExamLockShield(reason = '') {
+    if (!state.isExamPage) return;
+    let shield = document.getElementById('jlpt-exam-lock-shield');
+    if (!shield) {
+      shield = document.createElement('div');
+      shield.id = 'jlpt-exam-lock-shield';
+      shield.style.cssText = 'position:fixed;inset:0;z-index:999999;background:rgba(5,9,16,.95);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:18px;text-align:center;';
+      shield.innerHTML = `
+        <div style="max-width:560px;background:#111a2f;border:1px solid rgba(255,95,115,.3);border-radius:24px;padding:28px 24px;box-shadow:0 25px 80px rgba(0,0,0,.6);">
+          <div style="font-size:46px;margin-bottom:10px;">🔒</div>
+          <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;margin-bottom:8px;color:#ff9aaa;">Ujian sedang dikunci</div>
+          <div id="jlpt-lock-shield-text" style="font-size:14px;color:#aab8d8;line-height:1.8;">Admin belum membuka akses ujian ini.</div>
+        </div>`;
+      document.body.appendChild(shield);
+    }
+    const txt = shield.querySelector('#jlpt-lock-shield-text');
+    if (txt) txt.textContent = reason || 'Admin belum membuka akses ujian ini.';
+    shield.style.display = 'flex';
+  }
+
+  function hideExamLockShield() {
+    const el = document.getElementById('jlpt-exam-lock-shield');
+    if (el) el.remove();
+  }
+
+  function enforceLockState() {
+    if (!state.isExamPage) return;
+    const locked    = !!state.settings.exam_locked;
+    const rowLocked = !!state.examLocks.get(examMetaFromPath().key)?.locked;
+    const isLocked  = (locked || rowLocked) && !state.isAdmin;
+    if (isLocked) {
+      state.examRunning = false;
+      showExamLockShield(state.settings.exam_lock_reason || state.examLocks.get(examMetaFromPath().key)?.lock_reason || '');
+    } else {
+      hideExamLockShield();
+    }
+  }
+
+
+function currentExamLockState() {
+  const meta = examMetaFromPath();
+  const rowLocked = !!state.examLocks.get(meta.key)?.locked;
+  return !!state.settings.exam_locked || rowLocked;
+}
+
+async function bootstrapExamAccessGate() {
+  if (!state.isExamPage) return true;
+
+  document.documentElement.style.visibility = 'hidden';
+  try {
+    await loadSystemSettings();
+    await loadExamLocks(true);
+
+    const locked = currentExamLockState() && !state.isAdmin;
+    state.gateChecked = true;
+    state.examAccessGranted = !locked;
+
+    if (locked) {
+      state.examRunning = false;
+      showExamLockShield(
+        state.settings.exam_lock_reason ||
+        state.examLocks.get(examMetaFromPath().key)?.lock_reason ||
+        'Admin belum membuka akses ujian ini.'
+      );
+      return false;
+    }
+
+    hideExamLockShield();
+    return true;
+  } finally {
+    document.documentElement.style.visibility = 'visible';
+  }
+}
+
   // ── Fullscreen enforcement ───────────────────────────────────────────────────
   async function requestExamFullscreen() {
     try {
-      if (!state.isExamPage || state.isAdmin) return true;
+      const el = document.documentElement;
       if (document.fullscreenElement) return true;
-      if (!document.fullscreenEnabled) {
-        console.warn('[jlpt-sync] Fullscreen not enabled by browser');
-        return false;
-      }
-      const el = document.documentElement || document.body;
-      if (el?.requestFullscreen)           await el.requestFullscreen({ navigationUI: 'hide' });
-      else if (el?.webkitRequestFullscreen) await el.webkitRequestFullscreen();
-      else if (el?.msRequestFullscreen)     await el.msRequestFullscreen();
+      if (el.requestFullscreen)           await el.requestFullscreen();
+      else if (el.webkitRequestFullscreen) await el.webkitRequestFullscreen();
+      else if (el.msRequestFullscreen)     await el.msRequestFullscreen();
       return true;
     } catch (err) {
-      console.warn('[jlpt-sync] Fullscreen request failed:', err?.message || err);
+      console.warn('[jlpt-sync] Fullscreen request failed:', err?.message);
       return false;
     }
   }
@@ -721,35 +961,6 @@ async function preflightExamGate() {
         hideFullscreenPrompt();
       }
     });
-    document.addEventListener('fullscreenerror', () => {
-      if (state.isExamPage && state.examRunning) showFullscreenPrompt();
-    });
-  }
-
-  function installFullscreenGestureHook() {
-    if (!state.isExamPage || state.isAdmin) return;
-
-    const handler = async (e) => {
-      if (!state.gateChecked || state.examAccessGranted === false) return;
-      if (currentExamLockState()) return;
-      if (document.fullscreenElement || state.fullscreenRequested) return;
-
-      if (e.type === 'keydown') {
-        const key = String(e.key || '');
-        if (!['Enter', ' ', 'Spacebar'].includes(key)) return;
-      }
-
-      state.fullscreenRequested = true;
-      const ok = await requestExamFullscreen();
-      if (!ok) {
-        state.fullscreenRequested = false;
-        if (state.examRunning) showFullscreenPrompt();
-      }
-    };
-
-    ['pointerdown', 'click', 'keydown'].forEach(evt =>
-      document.addEventListener(evt, handler, true)
-    );
   }
 
   function installExamGuards() {
@@ -796,10 +1007,26 @@ async function preflightExamGate() {
             return;
           }
           state.examRunning = true;
-          window.__JLPT_EXAM_FINISHED__         = false;
-          window.__JLPT_SESSION_STARTED_AT__ = window.__JLPT_SESSION_STARTED_AT__ || new Date().toISOString();
           state.fullscreenRequested = true;
-          requestExamFullscreen().catch?.(() => {});
+          state.gateChecked = true;
+          state.examAccessGranted = true;
+          window.__JLPT_EXAM_FINISHED__ = false;
+          window.__JLPT_SESSION_STARTED_AT__ = window.__JLPT_SESSION_STARTED_AT__ || new Date().toISOString();
+
+          ensureServerSession().catch(err => {
+            console.warn('[jlpt-sync] ensureServerSession on start failed:', err?.message || err);
+          });
+
+          requestExamFullscreen().then(ok => {
+            if (!ok) {
+              state.fullscreenRequested = false;
+              if (state.examRunning) showFullscreenPrompt();
+            }
+          }).catch(() => {
+            state.fullscreenRequested = false;
+            if (state.examRunning) showFullscreenPrompt();
+          });
+
           const result = original.apply(this, args);
           setTimeout(() => syncSession('start', false, true), 150);
           return result;
@@ -1605,13 +1832,17 @@ function bindAdminActionDelegates(root = document) {
     }
 
     if (state.isExamPage) {
-      const allowed = await preflightExamGate();
-      if (!allowed) return;
-
       installExamGuards();
-      installFullscreenGestureHook();
-      await ensureServerSession();
       observeExamFunctions();
+
+      const accessOk = await bootstrapExamAccessGate();
+      if (!accessOk) {
+        // Keep realtime listeners alive so the page can auto-unlock when admin opens it.
+        enforceLockState();
+        return;
+      }
+
+      await ensureServerSession();
       enforceLockState();
       state.heartbeatTimer = setInterval(() => {
         if (state.examRunning) syncSession('heartbeat', false, false);
@@ -1637,7 +1868,6 @@ function bindAdminActionDelegates(root = document) {
     renderIndexLockUI, renderAdminControlUI,
     refreshAdminLivePanel, refreshAdminResultsPanel, refreshAdminPanels,
     syncSession, exportResultsExcel, deleteExamSession,
-    requestExamFullscreen, exitExamFullscreen, preflightExamGate,
     examMeta: examMetaFromPath,
   };
 })();
