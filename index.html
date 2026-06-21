@@ -2620,20 +2620,5 @@ updateVisibleCount();
 })();
 </script>
 
-  <script type="module" src="./jlpt-sync.js?v=8"></script>
-
-<script>
-(function(){
-  const run = async () => {
-    try {
-      if (window.__JLPT_SYNC__ && window.JLPT_SYNC?.refreshAdminDevicesPanel) {
-        // noop
-      }
-    } catch {}
-  };
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run);
-  else run();
-})();
-</script>
-
+  <script type="module" src="./jlpt-sync.js?v=3"></script>
 </body></html>

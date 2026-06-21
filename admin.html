@@ -906,19 +906,19 @@ select.form-input option{background:#0b1120;color:var(--text);}
     </div>
 
     <!-- ===== EXAM LOCK MANAGER ===== -->
-    <!-- Filled dynamically by jlpt-sync.js?v=8 (global lock + per-exam lock list) -->
+    <!-- Filled dynamically by jlpt-sync.js (global lock + per-exam lock list) -->
     <div class="pane" id="pane-examlock">
       <div id="jlpt-examlock-mount"></div>
     </div>
 
     <!-- ===== LIVE EXAM MONITOR ===== -->
-    <!-- Filled dynamically by jlpt-sync.js?v=8 (realtime exam_progress table) -->
+    <!-- Filled dynamically by jlpt-sync.js (realtime exam_progress table) -->
     <div class="pane" id="pane-livemonitor">
       <div id="jlpt-livemonitor-mount"></div>
     </div>
 
     <!-- ===== EXAM RESULTS ===== -->
-    <!-- Filled dynamically by jlpt-sync.js?v=8 (exam_sessions table + Export Excel) -->
+    <!-- Filled dynamically by jlpt-sync.js (exam_sessions table + Export Excel) -->
     <div class="pane" id="pane-examresults">
       <div id="jlpt-examresults-mount"></div>
     </div>
@@ -4005,31 +4005,6 @@ window.togglePwd = window.toggleFieldPwd = function(id, btn){
 })();
 </script>
 
-  <script type="module" src="./jlpt-sync.js?v=8?v=2"></script>
-
-<script>
-(function(){
-  const ensureExtraNavTitle = () => {
-    if (window.__JLPT_ADMIN_EXTRA_UI__) return;
-    window.__JLPT_ADMIN_EXTRA_UI__ = true;
-    if (window.__JLPT_SYNC__ && window.JLPT_SYNC) {
-      const reload = () => {
-        if (window.JLPT_SYNC.refreshAdminLivePanel) window.JLPT_SYNC.refreshAdminLivePanel();
-        if (window.JLPT_SYNC.refreshAdminResultsPanel) window.JLPT_SYNC.refreshAdminResultsPanel();
-      };
-      setInterval(() => {
-        if (window.JLPT_SYNC?.refreshAdminDevicesPanel) window.JLPT_SYNC.refreshAdminDevicesPanel();
-      }, 60000);
-      document.addEventListener('click', (e) => {
-        const btn = e.target.closest?.('.nav-item[onclick*="devices"], .nav-item[onclick*="examlock"], .nav-item[onclick*="livemonitor"], .nav-item[onclick*="examresults"]');
-        if (btn) setTimeout(reload, 100);
-      }, true);
-    }
-  };
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', ensureExtraNavTitle);
-  else ensureExtraNavTitle();
-})();
-</script>
-
+  <script type="module" src="./jlpt-sync.js?v=3"></script>
 </body>
 </html>
