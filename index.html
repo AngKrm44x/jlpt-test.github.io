@@ -2843,11 +2843,7 @@ updateVisibleCount();
     const showBanner = globalLocked || lockedCount > 0;
 
     banner.style.display = showBanner ? 'block' : 'none';
-    if (bannerText) {
-      bannerText.textContent = globalLocked
-        ? (reason || 'Semua ujian sedang dikunci admin.')
-        : `${lockedCount} ujian sedang dikunci admin. Ujian lain tetap dapat dibuka.`;
-    }
+    
 
     document.querySelectorAll('.card[data-examkey]').forEach((card) => {
       const key = String(card.dataset.examkey || '').toLowerCase();
