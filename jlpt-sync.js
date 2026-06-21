@@ -298,281 +298,6 @@
     return ok > 0;
   }
 
-// ── Admin panel helpers ─────────────────────────────────────────────────────
-function timeRangeCutoff(range) {
-  const now = Date.now();
-  switch (String(range || 'all')) {
-    case '15m': return now - 15 * 60 * 1000;
-    case '30m': return now - 30 * 60 * 1000;
-    case '1h':   return now - 60 * 60 * 1000;
-    case 'today': { const d = new Date(); d.setHours(0,0,0,0); return d.getTime(); }
-    case 'week':  return now - 7 * 24 * 60 * 60 * 1000;
-    case 'month': return now - 30 * 24 * 60 * 60 * 1000;
-    default:      return null;
-  }
-}
-
-function matchesTimeRange(ts, range) {
-  const cutoff = timeRangeCutoff(range);
-  if (!cutoff) return true;
-  const value = ts ? new Date(ts).getTime() : 0;
-  return value >= cutoff;
-}
-
-function bucketLabel(range) {
-  switch (String(range || 'all')) {
-    case '15m': return '15 minutes ago';
-    case '30m': return '30 minutes ago';
-    case '1h':   return '1 hour ago';
-    case 'today': return 'Today';
-    case 'week': return 'Last week';
-    case 'month': return 'Last month';
-    default: return 'All time';
-  }
-}
-
-function bucketFromTimestamp(ts) {
-  if (!ts) return '—';
-  const diff = Date.now() - new Date(ts).getTime();
-  if (diff <= 15 * 60 * 1000) return '15 minutes ago';
-  if (diff <= 30 * 60 * 1000) return '30 minutes ago';
-  if (diff <= 60 * 60 * 1000) return '1 hour ago';
-  if (diff <= 24 * 60 * 60 * 1000) return 'Today';
-  if (diff <= 7 * 24 * 60 * 60 * 1000) return 'Last week';
-  if (diff <= 30 * 24 * 60 * 60 * 1000) return 'Last month';
-  return 'Older';
-}
-
-function getAdminFilters(panel, kind) {
-  const p = panel || document;
-  return {
-    range: String(p.querySelector(`#jlpt-${kind}-range`)?.value || 'all'),
-    search: String(p.querySelector(`#jlpt-${kind}-search`)?.value || '').trim().toLowerCase(),
-    status: String(p.querySelector(`#jlpt-${kind}-status`)?.value || '').trim().toLowerCase(),
-    user: String(p.querySelector(`#jlpt-${kind}-user`)?.value || '').trim(),
-  };
-}
-
-function filterLiveRows(rows, filters) {
-  const f = filters || getAdminFilters(document, 'live');
-  return (rows || []).filter((row) => {
-    const user = state.userMap.get(row.user_id) || {};
-    const label = `${user.display_name || user.full_name || user.email || ''} ${row.exam_title || ''} ${row.exam_key || ''} ${row.level || ''} ${row.mode || ''}`.toLowerCase();
-    const userMatch = !f.user || String(row.user_id || '') === f.user;
-    const textMatch = !f.search || label.includes(f.search);
-    const statusMatch = !f.status || String(row.status || 'active').toLowerCase() === f.status;
-    const rangeMatch = matchesTimeRange(row.updated_at || row.last_seen_at || row.client_time, f.range);
-    return userMatch && textMatch && statusMatch && rangeMatch;
-  });
-}
-
-function filterResultRows(rows, filters) {
-  const f = filters || getAdminFilters(document, 'results');
-  return (rows || []).filter((row) => {
-    const user = state.userMap.get(row.user_id) || {};
-    const label = `${user.display_name || user.full_name || user.email || ''} ${row.exam_title || ''} ${row.exam_key || ''} ${row.level || ''} ${row.mode || ''}`.toLowerCase();
-    const userMatch = !f.user || String(row.user_id || '') === f.user;
-    const textMatch = !f.search || label.includes(f.search);
-    const rangeMatch = matchesTimeRange(row.completed_at || row.updated_at || row.started_at, f.range);
-    return userMatch && textMatch && rangeMatch;
-  });
-}
-
-function sectionSummaryFromRow(row) {
-  const sec = row?.section_scores || {};
-  const get = (k) => (sec[k] && typeof sec[k].percentage !== 'undefined') ? sec[k].percentage : null;
-  return {
-    moji_pct: get('moji'),
-    bunpou_pct: get('bunpou'),
-    dokkai_pct: get('dokkai'),
-    moji_correct: sec.moji?.correct ?? null,
-    bunpou_correct: sec.bunpou?.correct ?? null,
-    dokkai_correct: sec.dokkai?.correct ?? null,
-    moji_total: sec.moji?.total ?? null,
-    bunpou_total: sec.bunpou?.total ?? null,
-    dokkai_total: sec.dokkai?.total ?? null,
-  };
-}
-
-async function deleteExamSession(rowOrId, maybeExamKey) {
-  const row = typeof rowOrId === 'object' ? rowOrId : { user_id: rowOrId, exam_key: maybeExamKey };
-  const userId = row?.user_id;
-  const examKey = row?.exam_key;
-  if (!userId || !examKey) {
-    toast('⚠️ Data session tidak lengkap');
-    return false;
-  }
-  if (!confirm(`Hapus session user ini?\n\nUser: ${userId}\nExam: ${examKey}\n\nAksi ini akan menghapus live progress dan hasil akhir.`)) return false;
-
-  try {
-    const [a, b] = await Promise.all([
-      client.from('exam_progress').delete().eq('user_id', userId).eq('exam_key', examKey),
-      client.from('exam_sessions').delete().eq('user_id', userId).eq('exam_key', examKey),
-    ]);
-    if (a?.error) throw a.error;
-    if (b?.error) throw b.error;
-    state.resultsCache = (state.resultsCache || []).filter(r => !(String(r.user_id) === String(userId) && String(r.exam_key) === String(examKey)));
-    await refreshAdminLivePanel();
-    await refreshAdminResultsPanel();
-    toast('🗑️ Session user dihapus');
-    return true;
-  } catch (err) {
-    console.error('[jlpt-sync] deleteExamSession failed:', err?.message || err);
-    toast('❌ Gagal hapus session: ' + (err?.message || err));
-    return false;
-  }
-}
-
-function updateLockSummary(panel) {
-  if (!panel) return;
-  const rows = Array.from(state.examLocks.values());
-  const lockedCount = rows.filter(r => r?.locked).length;
-  const openCount = Math.max(rows.length - lockedCount, 0);
-  const totalCount = rows.length;
-  const active = !!state.settings.exam_locked;
-  const pill = panel.querySelector('#jlpt-lock-pill');
-  const stateText = panel.querySelector('#jlpt-lock-state');
-  const updatedText = panel.querySelector('#jlpt-lock-updated');
-  const totalEl = panel.querySelector('#jlpt-lock-total');
-  const openEl = panel.querySelector('#jlpt-lock-open');
-  const lockedEl = panel.querySelector('#jlpt-lock-locked');
-  if (pill) {
-    pill.textContent = active ? 'LOCKED' : 'UNLOCKED';
-    pill.style.color = active ? '#ff9aaa' : '#5ff0b0';
-    pill.style.borderColor = active ? 'rgba(255,95,115,.35)' : 'rgba(25,195,125,.35)';
-    pill.style.background = active ? 'rgba(255,95,115,.1)' : 'rgba(25,195,125,.08)';
-  }
-  if (stateText) stateText.textContent = active ? 'Semua ujian terkunci' : 'Semua ujian terbuka';
-  if (updatedText) updatedText.textContent = state.settings.updated_at ? fmtTime(state.settings.updated_at) : '—';
-  if (totalEl) totalEl.textContent = `${totalCount} exam`;
-  if (openEl) openEl.textContent = `${openCount} open`;
-  if (lockedEl) lockedEl.textContent = `${lockedCount} locked`;
-}
-
-function applyUserOptions(selectEl, rows, currentValue = '') {
-  if (!selectEl) return;
-  const unique = [];
-  const seen = new Set();
-  (rows || []).forEach((row) => {
-    const user = state.userMap.get(row.user_id) || {};
-    const label = user.display_name || user.full_name || user.email || row.user_id || '—';
-    const id = String(row.user_id || '');
-    if (!id || seen.has(id)) return;
-    seen.add(id);
-    unique.push({ id, label });
-  });
-  const html = ['<option value="">Semua User</option>']
-    .concat(unique.map((u) => `<option value="${esc(u.id)}">${esc(u.label)}</option>`))
-    .join('');
-  selectEl.innerHTML = html;
-  if (currentValue) selectEl.value = currentValue;
-}
-
-async function loadXLSX() {
-  if (window.XLSX) return window.XLSX;
-  await new Promise((resolve, reject) => {
-    const s = document.createElement('script');
-    s.src = 'https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js';
-    s.onload = () => resolve();
-    s.onerror = () => reject(new Error('Failed to load XLSX library'));
-    document.head.appendChild(s);
-  });
-  return window.XLSX;
-}
-
-async function exportResultsExcel() {
-  try {
-    await loadUserMap();
-    const panel = document.getElementById('jlpt-sync-admin-wrap') || document;
-    const f = getAdminFilters(panel, 'results');
-    const sourceRows = Array.isArray(state.resultsCache) && state.resultsCache.length
-      ? state.resultsCache
-      : (await client.from('exam_sessions').select('*').order('updated_at', { ascending: false }).limit(1000)).data || [];
-    const rows = filterResultRows(sourceRows, f);
-    if (!rows.length) { toast('Belum ada data untuk diekspor'); return; }
-
-    const XLSX = await loadXLSX();
-    const wb = XLSX.utils.book_new();
-    const summary = rows.map((row) => {
-      const user = state.userMap.get(row.user_id) || {};
-      const sec = sectionSummaryFromRow(row);
-      const start = row.started_at ? new Date(row.started_at) : null;
-      const end = row.completed_at ? new Date(row.completed_at) : (row.updated_at ? new Date(row.updated_at) : null);
-      const durationMin = start && end ? Math.max((end - start) / 60000, 0) : null;
-      return {
-        user_name: user.display_name || user.full_name || user.email || row.user_id,
-        user_email: user.email || '',
-        user_id: row.user_id,
-        exam_key: row.exam_key,
-        exam_title: row.exam_title,
-        level: row.level,
-        mode: row.mode,
-        score: row.score,
-        percentage: Number(row.percentage || 0),
-        correct_count: row.correct_count,
-        wrong_count: row.wrong_count,
-        total_questions: row.total_questions,
-        completed: row.completed ? 'yes' : 'no',
-        started_at: row.started_at,
-        completed_at: row.completed_at,
-        duration_minutes: durationMin == null ? null : Number(durationMin.toFixed(2)),
-        moji_pct: sec.moji_pct,
-        bunpou_pct: sec.bunpou_pct,
-        dokkai_pct: sec.dokkai_pct,
-        moji_correct: sec.moji_correct,
-        bunpou_correct: sec.bunpou_correct,
-        dokkai_correct: sec.dokkai_correct,
-        moji_total: sec.moji_total,
-        bunpou_total: sec.bunpou_total,
-        dokkai_total: sec.dokkai_total,
-        last_event: row.last_event,
-        status: row.status,
-      };
-    });
-    const live = filterLiveRows((await client.from('exam_progress').select('*').order('updated_at', { ascending: false }).limit(1000)).data || [], f).map((row) => {
-      const user = state.userMap.get(row.user_id) || {};
-      return {
-        user_name: user.display_name || user.full_name || user.email || row.user_id,
-        user_email: user.email || '',
-        user_id: row.user_id,
-        exam_key: row.exam_key,
-        exam_title: row.exam_title,
-        level: row.level,
-        mode: row.mode,
-        status: row.status,
-        current_q: row.current_q,
-        total_q: row.total_q,
-        answered_count: row.answered_count,
-        correct_count: row.correct_count,
-        wrong_count: row.wrong_count,
-        percentage: row.percentage,
-        remaining_seconds: row.remaining_seconds,
-        last_event: row.last_event,
-        updated_at: row.updated_at,
-      };
-    });
-
-    const overview = [
-      ['Generated at', new Date().toISOString()],
-      ['Range', bucketLabel(f.range)],
-      ['User filter', f.user || 'All'],
-      ['Summary rows', summary.length],
-      ['Live progress rows', live.length],
-    ];
-    const ovWs = XLSX.utils.aoa_to_sheet([['JLPT Export'], ...overview, []]);
-    ovWs['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 1 } }];
-    ovWs['!cols'] = [{ wch: 24 }, { wch: 40 }];
-    XLSX.utils.book_append_sheet(wb, ovWs, 'Overview');
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summary), 'Summary');
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(live), 'Live Progress');
-    XLSX.writeFile(wb, `jlpt_results_${new Date().toISOString().slice(0, 10)}.xlsx`);
-    toast('✅ Excel berhasil diekspor');
-  } catch (err) {
-    console.error('exportResultsExcel failed:', err);
-    toast('❌ Gagal export Excel');
-  }
-}
-
   function questionGroups() {
     const groups = [
       { label: '文字・語彙', key: 'moji', aliases: ['文字・語彙', '文字', '語彙'] },
@@ -1064,123 +789,112 @@ async function exportResultsExcel() {
     return catalog.filter((x, idx, arr) => x.key && arr.findIndex((y) => y.key === x.key) === idx);
   }
 
-async function refreshAdminLivePanel() {
-  if (!state.isAdminPage) return;
-  await loadUserMap();
-  try {
-    const { data, error } = await client.from('exam_progress').select('*').order('updated_at', { ascending: false }).limit(1000);
-    if (error) throw error;
+  async function refreshAdminLivePanel() {
+    if (!state.isAdminPage) return;
+    await loadUserMap();
+    try {
+      const { data, error } = await client
+        .from('exam_progress')
+        .select('*')
+        .order('updated_at', { ascending: false })
+        .limit(100);
+      if (error) throw error;
 
-    const rows = Array.isArray(data) ? data : [];
-    const panel = document.getElementById('jlpt-sync-admin-wrap') || document;
-    const filtered = filterLiveRows(rows, getAdminFilters(panel, 'live'));
-    const tbody = document.getElementById('jlpt-live-table');
-    const count = document.getElementById('jlpt-live-count');
-    const summary = document.getElementById('jlpt-live-summary');
-    if (count) count.textContent = `${filtered.length} / ${rows.length} session`;
-    if (summary) {
-      const active = filtered.filter(r => String(r.status || 'active').toLowerCase() === 'active').length;
-      const done = filtered.filter(r => String(r.status || '').toLowerCase() === 'done').length;
-      summary.textContent = `${active} active · ${done} done · ${bucketLabel(getAdminFilters(panel, 'live').range)}`;
+      const rows = Array.isArray(data) ? data : [];
+      const tbody = document.getElementById('jlpt-live-table');
+      const count = document.getElementById('jlpt-live-count');
+      if (count) count.textContent = `${rows.length} session`;
+
+      if (!tbody) return;
+      if (!rows.length) {
+        tbody.innerHTML = '<tr><td colspan="5" style="padding:16px;color:var(--muted);">Belum ada sesi yang tersinkron.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = rows.map((row) => {
+        const user = state.userMap.get(row.user_id) || {};
+        const userLabel = user.display_name || user.full_name || user.email || row.user_id || '—';
+        const when = fmtTime(row.updated_at);
+        const rem = fmtSec(row.remaining_seconds);
+        const progress = `${Number(row.current_q || 0)}/${Number(row.total_q || 0) || '—'} • ${Number(row.correct_count || 0)} benar • ${Number(row.percentage || 0).toFixed ? Number(row.percentage || 0).toFixed(2) : row.percentage || 0}%`;
+        const status = String(row.status || 'active');
+        const badgeColor = status === 'done' ? '#5ff0b0' : status === 'active' ? '#7cc0ff' : '#ffd18a';
+
+        return `
+          <tr>
+            <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);">
+              <div style="font-weight:700;">${esc(userLabel)}</div>
+              <div style="font-size:11px;color:var(--muted);">${esc(row.user_id || '')}</div>
+            </td>
+            <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);">
+              <div style="font-weight:700;">${esc(row.exam_title || row.exam_key || '—')}</div>
+              <div style="font-size:11px;color:var(--muted);">${esc(`${row.level || ''} ${row.mode || ''}`.trim())}</div>
+            </td>
+            <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);">
+              <span style="padding:4px 10px;border-radius:999px;font-size:11px;font-weight:800;border:1px solid rgba(255,255,255,.12);color:${badgeColor};background:rgba(255,255,255,.04);text-transform:uppercase;">${esc(status)}</span>
+              <div style="font-size:12px;color:var(--muted);margin-top:6px;">${esc(progress)}</div>
+            </td>
+            <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);font-weight:700;">${esc(rem)}</td>
+            <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);font-size:12px;color:var(--muted);">${esc(when)}</td>
+          </tr>
+        `;
+      }).join('');
+    } catch (err) {
+      console.warn('refreshAdminLivePanel failed:', err?.message || err);
+      const tbody = document.getElementById('jlpt-live-table');
+      if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="padding:16px;color:#ff9aaa;">Gagal memuat live view.</td></tr>';
     }
-
-    if (!tbody) return;
-    if (!filtered.length) {
-      tbody.innerHTML = '<tr><td colspan="6" style="padding:16px;color:var(--muted);">Belum ada sesi yang sesuai filter.</td></tr>';
-      return;
-    }
-
-    tbody.innerHTML = filtered.map((row) => {
-      const user = state.userMap.get(row.user_id) || {};
-      const userLabel = user.display_name || user.full_name || user.email || row.user_id || '—';
-      const rem = fmtSec(row.remaining_seconds);
-      const progress = `${Number(row.current_q || 0)}/${Number(row.total_q || 0) || '—'} • ${Number(row.correct_count || 0)} benar • ${Number(row.percentage || 0).toFixed ? Number(row.percentage || 0).toFixed(2) : row.percentage || 0}%`;
-      const status = String(row.status || 'active');
-      const badgeColor = status === 'done' ? '#5ff0b0' : status === 'active' ? '#7cc0ff' : '#ffd18a';
-      return `
-        <tr>
-          <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);">
-            <div style="font-weight:700;">${esc(userLabel)}</div>
-            <div style="font-size:11px;color:var(--muted);">${esc(row.user_id || '')}</div>
-          </td>
-          <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);">
-            <div style="font-weight:700;">${esc(row.exam_title || row.exam_key || '—')}</div>
-            <div style="font-size:11px;color:var(--muted);">${esc(`${row.level || ''} ${row.mode || ''}`.trim())}</div>
-          </td>
-          <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);">
-            <span style="padding:4px 10px;border-radius:999px;font-size:11px;font-weight:800;border:1px solid rgba(255,255,255,.12);color:${badgeColor};background:rgba(255,255,255,.04);text-transform:uppercase;">${esc(status)}</span>
-            <div style="font-size:12px;color:var(--muted);margin-top:6px;">${esc(progress)}</div>
-            <div style="font-size:11px;color:var(--muted);margin-top:4px;">${esc(bucketFromTimestamp(row.updated_at || row.last_seen_at || row.client_time))}</div>
-          </td>
-          <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);font-weight:700;">${esc(rem)}</td>
-          <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);font-size:12px;color:var(--muted);">${esc(fmtTime(row.updated_at || row.last_seen_at || row.client_time))}</td>
-          <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);">
-            <button type="button" class="act-btn delete" data-session-delete="1" data-user-id="${esc(row.user_id)}" data-exam-key="${esc(row.exam_key)}">🗑 Delete</button>
-          </td>
-        </tr>
-      `;
-    }).join('');
-  } catch (err) {
-    console.warn('refreshAdminLivePanel failed:', err?.message || err);
-    const tbody = document.getElementById('jlpt-live-table');
-    if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="padding:16px;color:#ff9aaa;">Gagal memuat live view.</td></tr>';
   }
-}
 
-async function refreshAdminResultsPanel() {
-  if (!state.isAdminPage) return;
-  await loadUserMap();
-  try {
-    const { data, error } = await client.from('exam_sessions').select('*').order('updated_at', { ascending: false }).limit(1000);
-    if (error) throw error;
+  async function refreshAdminResultsPanel() {
+    if (!state.isAdminPage) return;
+    await loadUserMap();
+    try {
+      const { data, error } = await client
+        .from('exam_sessions')
+        .select('*')
+        .order('updated_at', { ascending: false })
+        .limit(100);
+      if (error) throw error;
+      const rows = Array.isArray(data) ? data : [];
+      state.resultsCache = rows;
 
-    const rows = Array.isArray(data) ? data : [];
-    state.resultsCache = rows;
-    const panel = document.getElementById('jlpt-sync-admin-wrap') || document;
-    const filtered = filterResultRows(rows, getAdminFilters(panel, 'results'));
-    const tbody = document.getElementById('jlpt-results-table');
-    const count = document.getElementById('jlpt-results-count');
-    const summary = document.getElementById('jlpt-results-summary');
-    const userSelect = document.getElementById('jlpt-results-user');
-    if (count) count.textContent = `${filtered.length} / ${rows.length} session`;
-    if (summary) summary.textContent = `${bucketLabel(getAdminFilters(panel, 'results').range)} · ${getAdminFilters(panel, 'results').user ? 'Selected user' : 'All users'}`;
-    applyUserOptions(userSelect, rows, getAdminFilters(panel, 'results').user);
+      const tbody = document.getElementById('jlpt-results-table');
+      const count = document.getElementById('jlpt-results-count');
+      if (count) count.textContent = `${rows.length} session`;
 
-    if (!tbody) return;
-    if (!filtered.length) {
-      tbody.innerHTML = '<tr><td colspan="8" style="padding:16px;color:var(--muted);">Belum ada hasil ujian yang sesuai filter.</td></tr>';
-      return;
+      if (!tbody) return;
+      if (!rows.length) {
+        tbody.innerHTML = '<tr><td colspan="7" style="padding:16px;color:var(--muted);">Belum ada hasil ujian.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = rows.map((row) => {
+        const user = state.userMap.get(row.user_id) || {};
+        const userLabel = user.display_name || user.full_name || user.email || row.user_id || '—';
+        const pct = Number(row.percentage || 0);
+        const sec = row.section_scores || {};
+        const moji = sec.moji?.percentage ?? '—';
+        const bun = sec.bunpou?.percentage ?? '—';
+        const dok = sec.dokkai?.percentage ?? '—';
+        return `
+          <tr>
+            <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);font-weight:700;">${esc(userLabel)}</td>
+            <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);">${esc(row.exam_title || row.exam_key || '—')}</td>
+            <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);font-family:'JetBrains Mono',monospace;">${esc(row.score ?? 0)}</td>
+            <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);font-weight:700;">${esc(String(pct.toFixed ? pct.toFixed(2) : pct))}%</td>
+            <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);">${esc(`${moji}% / ${bun}% / ${dok}%`)}</td>
+            <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);font-size:12px;color:var(--muted);">${esc(fmtTime(row.started_at))}</td>
+            <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);font-size:12px;color:var(--muted);">${esc(fmtTime(row.completed_at || row.updated_at))}</td>
+          </tr>
+        `;
+      }).join('');
+    } catch (err) {
+      console.warn('refreshAdminResultsPanel failed:', err?.message || err);
+      const tbody = document.getElementById('jlpt-results-table');
+      if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="padding:16px;color:#ff9aaa;">Gagal memuat hasil ujian.</td></tr>';
     }
-
-    tbody.innerHTML = filtered.map((row) => {
-      const user = state.userMap.get(row.user_id) || {};
-      const userLabel = user.display_name || user.full_name || user.email || row.user_id || '—';
-      const pct = Number(row.percentage || 0);
-      const sec = row.section_scores || {};
-      const moji = sec.moji?.percentage ?? '—';
-      const bun = sec.bunpou?.percentage ?? '—';
-      const dok = sec.dokkai?.percentage ?? '—';
-      return `
-        <tr>
-          <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);font-weight:700;">${esc(userLabel)}</td>
-          <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);">${esc(row.exam_title || row.exam_key || '—')}</td>
-          <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);font-family:'JetBrains Mono',monospace;">${esc(row.score ?? 0)}</td>
-          <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);font-weight:700;">${esc(String(pct.toFixed ? pct.toFixed(2) : pct))}%</td>
-          <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);">${esc(`${moji}% / ${bun}% / ${dok}%`)}</td>
-          <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);font-size:12px;color:var(--muted);">${esc(fmtTime(row.started_at))}</td>
-          <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);font-size:12px;color:var(--muted);">${esc(fmtTime(row.completed_at || row.updated_at))}</td>
-          <td style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.04);">
-            <button type="button" class="act-btn delete" data-session-delete="1" data-user-id="${esc(row.user_id)}" data-exam-key="${esc(row.exam_key)}">🗑 Delete</button>
-          </td>
-        </tr>
-      `;
-    }).join('');
-  } catch (err) {
-    console.warn('refreshAdminResultsPanel failed:', err?.message || err);
-    const tbody = document.getElementById('jlpt-results-table');
-    if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="padding:16px;color:#ff9aaa;">Gagal memuat hasil ujian.</td></tr>';
   }
-}
 
   async function refreshAdminPanels() {
     if (!state.isAdminPage) return;
@@ -1191,276 +905,228 @@ async function refreshAdminResultsPanel() {
     renderAdminControlUI();
   }
 
-function ensureAdminPanel() {
-  const existing = document.getElementById('jlpt-sync-admin-wrap');
-  if (existing) return existing;
-  const mount = document.getElementById('pane-dashboard') || document.querySelector('.content') || document.body;
-  const wrap = document.createElement('div');
-  wrap.id = 'jlpt-sync-admin-wrap';
-  wrap.style.cssText = 'margin:18px 0 28px;display:grid;gap:16px;';
-  wrap.innerHTML = `
-    <div id="jlpt-admin-global-card" style="background:var(--card);border:1px solid var(--border);border-radius:20px;padding:20px;box-shadow:0 8px 25px rgba(0,0,0,.18);">
-      <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:14px;">
-        <div>
-          <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;margin-bottom:4px;">🔐 Kontrol Ujian Global</div>
-          <div style="font-size:13px;color:var(--muted);line-height:1.6;">Lock / unlock semua exam dari sini. Status akan sinkron ke halaman user dan exam page secara realtime.</div>
-        </div>
-        <div id="jlpt-lock-pill" style="padding:8px 12px;border-radius:999px;font-size:12px;font-weight:800;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);">Memuat...</div>
-      </div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
-        <button id="jlpt-lock-btn" class="topbar-btn" style="border-color:rgba(255,95,115,.35);color:#ff9aaa;background:rgba(255,95,115,.08);">🔒 Lock All Exam</button>
-        <button id="jlpt-unlock-btn" class="topbar-btn primary">🔓 Unlock All Exam</button>
-        <button id="jlpt-refresh-btn" class="topbar-btn">🔄 Refresh</button>
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
-        <div style="padding:12px 14px;border:1px solid var(--border);border-radius:14px;background:rgba(255,255,255,.03);">
-          <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Status Global</div>
-          <div id="jlpt-lock-state" style="font-size:15px;font-weight:800;">—</div>
-        </div>
-        <div style="padding:12px 14px;border:1px solid var(--border);border-radius:14px;background:rgba(255,255,255,.03);">
-          <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Di-update</div>
-          <div id="jlpt-lock-updated" style="font-size:15px;font-weight:800;">—</div>
-        </div>
-        <div style="padding:12px 14px;border:1px solid var(--border);border-radius:14px;background:rgba(255,255,255,.03);">
-          <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Exam Total</div>
-          <div id="jlpt-lock-total" style="font-size:15px;font-weight:800;">—</div>
-        </div>
-        <div style="padding:12px 14px;border:1px solid var(--border);border-radius:14px;background:rgba(255,255,255,.03);">
-          <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Open / Locked</div>
-          <div style="font-size:15px;font-weight:800;"><span id="jlpt-lock-open">—</span> · <span id="jlpt-lock-locked">—</span></div>
-        </div>
-      </div>
-    </div>
-
-    <div id="jlpt-exam-lock-card" style="background:var(--card);border:1px solid var(--border);border-radius:20px;padding:20px;box-shadow:0 8px 25px rgba(0,0,0,.18);">
-      <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:14px;">
-        <div>
-          <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;margin-bottom:4px;">🧩 Lock / Unlock Per Exam</div>
-          <div style="font-size:13px;color:var(--muted);line-height:1.6;">Centang satu atau beberapa ujian lalu pilih Lock/Unlock. Bisa custom satu, dua, atau semuanya.</div>
-        </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button id="jlpt-lock-selected" class="topbar-btn" style="border-color:rgba(255,95,115,.35);color:#ff9aaa;background:rgba(255,95,115,.08);">🔒 Lock Selected</button>
-          <button id="jlpt-unlock-selected" class="topbar-btn primary">🔓 Unlock Selected</button>
-          <button id="jlpt-refresh-locks" class="topbar-btn">🔄 Reload List</button>
-        </div>
-      </div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
-        <input id="jlpt-exam-search" placeholder="Cari exam..." style="flex:1;min-width:220px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;padding:11px 14px;color:var(--text);font-family:inherit;font-size:14px;outline:none;">
-        <select id="jlpt-exam-level" style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;padding:11px 14px;color:var(--text);font-family:inherit;font-size:14px;outline:none;">
-          <option value="">All Levels</option>
-          <option value="N1">N1</option>
-          <option value="N2">N2</option>
-          <option value="N3">N3</option>
-          <option value="N4">N4</option>
-          <option value="N5">N5</option>
-        </select>
-      </div>
-      <div id="jlpt-exam-lock-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;"></div>
-    </div>
-
-    <div id="jlpt-admin-live-card" style="background:var(--card);border:1px solid var(--border);border-radius:20px;overflow:hidden;box-shadow:0 8px 25px rgba(0,0,0,.18);">
-      <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;padding:18px 20px;border-bottom:1px solid var(--border);">
-        <div>
-          <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;margin-bottom:4px;">🟢 Live Exam Monitor</div>
-          <div style="font-size:13px;color:var(--muted);line-height:1.6;">Lihat user yang sedang ujian, progress, dan sisa waktu secara realtime.</div>
-        </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-          <span style="padding:8px 12px;border-radius:999px;border:1px solid var(--border);background:rgba(255,255,255,.04);font-size:12px;font-weight:800;" id="jlpt-live-count">—</span>
-          <button id="jlpt-refresh-live" class="topbar-btn">🔄 Refresh Live</button>
-        </div>
-      </div>
-      <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
-        <input id="jlpt-live-search" placeholder="Cari user / exam..." style="flex:1;min-width:220px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;padding:11px 14px;color:var(--text);font-family:inherit;font-size:14px;outline:none;">
-        <select id="jlpt-live-status" style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;padding:11px 14px;color:var(--text);font-family:inherit;font-size:14px;outline:none;">
-          <option value="">All Status</option>
-          <option value="active">Active</option>
-          <option value="done">Done</option>
-          <option value="opened">Opened</option>
-        </select>
-        <select id="jlpt-live-range" style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;padding:11px 14px;color:var(--text);font-family:inherit;font-size:14px;outline:none;">
-          <option value="all">All Time</option>
-          <option value="15m">15 minutes ago</option>
-          <option value="30m">30 minutes ago</option>
-          <option value="1h">1 hour ago</option>
-          <option value="today">Today</option>
-          <option value="week">Last week</option>
-          <option value="month">Last month</option>
-        </select>
-        <button id="jlpt-live-clear" class="topbar-btn">🧹 Clear</button>
-        <span id="jlpt-live-summary" style="font-size:12px;color:var(--muted);font-weight:700;"></span>
-      </div>
-      <div style="overflow:auto;">
-        <table style="width:100%;border-collapse:collapse;">
-          <thead style="background:rgba(255,255,255,.02);">
-            <tr>
-              <th style="text-align:left;padding:12px 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">User</th>
-              <th style="text-align:left;padding:12px 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Exam</th>
-              <th style="text-align:left;padding:12px 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Progress</th>
-              <th style="text-align:left;padding:12px 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Remaining</th>
-              <th style="text-align:left;padding:12px 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Updated</th>
-              <th style="text-align:left;padding:12px 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Action</th>
-            </tr>
-          </thead>
-          <tbody id="jlpt-live-table">
-            <tr><td colspan="6" style="padding:16px;color:var(--muted);">Memuat...</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <div id="jlpt-admin-results-card" style="background:var(--card);border:1px solid var(--border);border-radius:20px;overflow:hidden;box-shadow:0 8px 25px rgba(0,0,0,.18);">
-      <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;padding:18px 20px;border-bottom:1px solid var(--border);">
-        <div>
-          <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;margin-bottom:4px;">📈 Exam Results</div>
-          <div style="font-size:13px;color:var(--muted);line-height:1.6;">Hasil akhir user tampil di sini dan bisa diekspor ke Excel dengan detail persentase per section.</div>
-        </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-          <span style="padding:8px 12px;border-radius:999px;border:1px solid var(--border);background:rgba(255,255,255,.04);font-size:12px;font-weight:800;" id="jlpt-results-count">—</span>
-          <button id="jlpt-export-xlsx" class="topbar-btn primary">📥 Export Excel</button>
-          <button id="jlpt-refresh-results" class="topbar-btn">🔄 Refresh Results</button>
-        </div>
-      </div>
-      <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
-        <input id="jlpt-results-search" placeholder="Cari user / exam..." style="flex:1;min-width:220px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;padding:11px 14px;color:var(--text);font-family:inherit;font-size:14px;outline:none;">
-        <select id="jlpt-results-user" style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;padding:11px 14px;color:var(--text);font-family:inherit;font-size:14px;outline:none;min-width:220px;">
-          <option value="">Semua User</option>
-        </select>
-        <select id="jlpt-results-range" style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;padding:11px 14px;color:var(--text);font-family:inherit;font-size:14px;outline:none;">
-          <option value="all">All Time</option>
-          <option value="15m">15 minutes ago</option>
-          <option value="30m">30 minutes ago</option>
-          <option value="1h">1 hour ago</option>
-          <option value="today">Today</option>
-          <option value="week">Last week</option>
-          <option value="month">Last month</option>
-        </select>
-        <button id="jlpt-results-clear" class="topbar-btn">🧹 Clear</button>
-        <span id="jlpt-results-summary" style="font-size:12px;color:var(--muted);font-weight:700;"></span>
-      </div>
-      <div style="overflow:auto;">
-        <table style="width:100%;border-collapse:collapse;">
-          <thead style="background:rgba(255,255,255,.02);">
-            <tr>
-              <th style="text-align:left;padding:12px 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">User</th>
-              <th style="text-align:left;padding:12px 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Exam</th>
-              <th style="text-align:left;padding:12px 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Score</th>
-              <th style="text-align:left;padding:12px 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Percent</th>
-              <th style="text-align:left;padding:12px 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Sections</th>
-              <th style="text-align:left;padding:12px 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Started</th>
-              <th style="text-align:left;padding:12px 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Completed</th>
-              <th style="text-align:left;padding:12px 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Action</th>
-            </tr>
-          </thead>
-          <tbody id="jlpt-results-table">
-            <tr><td colspan="8" style="padding:16px;color:var(--muted);">Memuat...</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  `;
-  mount.prepend(wrap);
-
-  wrap.querySelector('#jlpt-lock-btn')?.addEventListener('click', async () => {
-    const reasonInput = prompt('Alasan lock semua ujian (opsional):', state.settings.exam_lock_reason || '');
-    const reason = (reasonInput ?? state.settings.exam_lock_reason) || '';
-    await setGlobalLock(true, reason);
-  });
-  wrap.querySelector('#jlpt-unlock-btn')?.addEventListener('click', async () => {
-    const reasonInput = prompt('Catatan unlock semua ujian (opsional):', state.settings.exam_lock_reason || '');
-    const reason = (reasonInput ?? '');
-    await setGlobalLock(false, reason);
-  });
-  wrap.querySelector('#jlpt-refresh-btn')?.addEventListener('click', () => refreshAdminPanels());
-  wrap.querySelector('#jlpt-refresh-live')?.addEventListener('click', () => refreshAdminLivePanel());
-  wrap.querySelector('#jlpt-refresh-results')?.addEventListener('click', () => refreshAdminResultsPanel());
-  wrap.querySelector('#jlpt-refresh-locks')?.addEventListener('click', () => renderAdminControlUI());
-  wrap.querySelector('#jlpt-lock-selected')?.addEventListener('click', async () => {
-    const keys = Array.from(wrap.querySelectorAll('.jlpt-lock-check:checked')).map((el) => el.dataset.examKey);
-    const reason = prompt('Alasan lock selected (opsional):', '') ?? '';
-    await setMultipleExamLocks(keys, true, reason);
-  });
-  wrap.querySelector('#jlpt-unlock-selected')?.addEventListener('click', async () => {
-    const keys = Array.from(wrap.querySelectorAll('.jlpt-lock-check:checked')).map((el) => el.dataset.examKey);
-    const reason = prompt('Catatan unlock selected (opsional):', '') ?? '';
-    await setMultipleExamLocks(keys, false, reason);
-  });
-  wrap.querySelector('#jlpt-exam-search')?.addEventListener('input', () => renderAdminControlUI());
-  wrap.querySelector('#jlpt-exam-level')?.addEventListener('change', () => renderAdminControlUI());
-
-  const liveRefresh = () => refreshAdminLivePanel();
-  const resultsRefresh = () => refreshAdminResultsPanel();
-  wrap.querySelector('#jlpt-live-search')?.addEventListener('input', liveRefresh);
-  wrap.querySelector('#jlpt-live-status')?.addEventListener('change', liveRefresh);
-  wrap.querySelector('#jlpt-live-range')?.addEventListener('change', liveRefresh);
-  wrap.querySelector('#jlpt-live-clear')?.addEventListener('click', () => {
-    wrap.querySelector('#jlpt-live-search').value = '';
-    wrap.querySelector('#jlpt-live-status').value = '';
-    wrap.querySelector('#jlpt-live-range').value = 'all';
-    liveRefresh();
-  });
-
-  wrap.querySelector('#jlpt-results-search')?.addEventListener('input', resultsRefresh);
-  wrap.querySelector('#jlpt-results-user')?.addEventListener('change', resultsRefresh);
-  wrap.querySelector('#jlpt-results-range')?.addEventListener('change', resultsRefresh);
-  wrap.querySelector('#jlpt-results-clear')?.addEventListener('click', () => {
-    wrap.querySelector('#jlpt-results-search').value = '';
-    wrap.querySelector('#jlpt-results-user').value = '';
-    wrap.querySelector('#jlpt-results-range').value = 'all';
-    resultsRefresh();
-  });
-
-  wrap.querySelector('#jlpt-export-xlsx')?.addEventListener('click', () => exportResultsExcel());
-
-  state.adminPanelReady = true;
-  return wrap;
-}
-
-function renderAdminControlUI() {
-  if (!state.isAdminPage) return;
-  const panel = ensureAdminPanel();
-  updateLockSummary(panel);
-
-  const search = String(panel.querySelector('#jlpt-exam-search')?.value || '').trim().toLowerCase();
-  const level = String(panel.querySelector('#jlpt-exam-level')?.value || '').trim().toUpperCase();
-  const catalog = getExamCatalog();
-  const filtered = catalog.filter((e) => {
-    const matchSearch = !search || `${e.key} ${e.title} ${e.level} ${e.year} ${e.href}`.toLowerCase().includes(search);
-    const matchLevel = !level || String(e.level || '').toUpperCase() === level;
-    return matchSearch && matchLevel;
-  });
-
-  const list = panel.querySelector('#jlpt-exam-lock-list');
-  if (list) {
-    if (!filtered.length) {
-      list.innerHTML = '<div style="grid-column:1/-1;padding:18px;color:var(--muted);border:1px dashed var(--border);border-radius:16px;">Tidak ada exam yang cocok.</div>';
-    } else {
-      list.innerHTML = filtered.map((e) => {
-        const row = state.examLocks.get(String(e.key).toLowerCase());
-        const rowLocked = !!row?.locked;
-        const updated = row?.updated_at ? fmtTime(row.updated_at) : '—';
-        return `
-          <div style="background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:16px;padding:14px 14px 12px;position:relative;">
-            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px;">
-              <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer;">
-                <input type="checkbox" class="jlpt-lock-check" data-exam-key="${esc(e.key)}" style="margin-top:3px;">
-                <div>
-                  <div style="font-weight:800;font-size:14px;margin-bottom:4px;">${esc(e.title || e.key)}</div>
-                  <div style="font-size:12px;color:var(--muted);">${esc(e.level || '')} · ${esc(e.year || '')} · ${esc(e.key)}</div>
-                </div>
-              </label>
-              <span style="padding:4px 10px;border-radius:999px;font-size:10px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;border:1px solid ${rowLocked ? 'rgba(255,95,115,.3)' : 'rgba(25,195,125,.3)'};color:${rowLocked ? '#ff9aaa' : '#5ff0b0'};background:${rowLocked ? 'rgba(255,95,115,.12)' : 'rgba(25,195,125,.08)'};">${rowLocked ? 'LOCKED' : 'OPEN'}</span>
-            </div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap;">
-              <button type="button" class="act-btn ban" onclick="window.JLPT_SYNC?.setExamLock('${esc(e.key)}', true)">Lock</button>
-              <button type="button" class="act-btn approve" onclick="window.JLPT_SYNC?.setExamLock('${esc(e.key)}', false)">Unlock</button>
-            </div>
-            <div style="font-size:11px;color:var(--muted);margin-top:10px;">Updated: ${esc(updated)}</div>
+  function ensureAdminPanel() {
+    const existing = document.getElementById('jlpt-sync-admin-wrap');
+    if (existing) return existing;
+    const mount = document.getElementById('pane-dashboard') || document.querySelector('.content') || document.body;
+    const wrap = document.createElement('div');
+    wrap.id = 'jlpt-sync-admin-wrap';
+    wrap.style.cssText = 'margin:18px 0 28px;display:grid;gap:16px;';
+    wrap.innerHTML = `
+      <div id="jlpt-admin-global-card" style="background:var(--card);border:1px solid var(--border);border-radius:20px;padding:20px;box-shadow:0 8px 25px rgba(0,0,0,.18);">
+        <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:14px;">
+          <div>
+            <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;margin-bottom:4px;">🔐 Kontrol Ujian Global</div>
+            <div style="font-size:13px;color:var(--muted);line-height:1.6;">Lock / unlock semua exam dari sini. Status akan sinkron ke halaman user dan exam page secara realtime.</div>
           </div>
-        `;
-      }).join('');
-    }
+          <div id="jlpt-lock-pill" style="padding:8px 12px;border-radius:999px;font-size:12px;font-weight:800;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);">Memuat...</div>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+          <button id="jlpt-lock-btn" class="topbar-btn" style="border-color:rgba(255,95,115,.35);color:#ff9aaa;background:rgba(255,95,115,.08);">🔒 Lock All Exam</button>
+          <button id="jlpt-unlock-btn" class="topbar-btn primary">🔓 Unlock All Exam</button>
+          <button id="jlpt-refresh-btn" class="topbar-btn">🔄 Refresh</button>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;">
+          <div style="padding:12px 14px;border:1px solid var(--border);border-radius:14px;background:rgba(255,255,255,.03);">
+            <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Status Global</div>
+            <div id="jlpt-lock-state" style="font-size:15px;font-weight:800;">—</div>
+          </div>
+          <div style="padding:12px 14px;border:1px solid var(--border);border-radius:14px;background:rgba(255,255,255,.03);">
+            <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Di-update</div>
+            <div id="jlpt-lock-updated" style="font-size:15px;font-weight:800;">—</div>
+          </div>
+          <div style="padding:12px 14px;border:1px solid var(--border);border-radius:14px;background:rgba(255,255,255,.03);">
+            <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Active Sessions</div>
+            <div id="jlpt-live-count" style="font-size:15px;font-weight:800;">—</div>
+          </div>
+          <div style="padding:12px 14px;border:1px solid var(--border);border-radius:14px;background:rgba(255,255,255,.03);">
+            <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Finished Results</div>
+            <div id="jlpt-results-count" style="font-size:15px;font-weight:800;">—</div>
+          </div>
+        </div>
+      </div>
+
+      <div id="jlpt-exam-lock-card" style="background:var(--card);border:1px solid var(--border);border-radius:20px;padding:20px;box-shadow:0 8px 25px rgba(0,0,0,.18);">
+        <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:14px;">
+          <div>
+            <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;margin-bottom:4px;">🧩 Lock / Unlock Per Exam</div>
+            <div style="font-size:13px;color:var(--muted);line-height:1.6;">Centang satu atau beberapa ujian lalu pilih Lock/Unlock. Bisa custom satu, dua, atau semuanya.</div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button id="jlpt-lock-selected" class="topbar-btn" style="border-color:rgba(255,95,115,.35);color:#ff9aaa;background:rgba(255,95,115,.08);">🔒 Lock Selected</button>
+            <button id="jlpt-unlock-selected" class="topbar-btn primary">🔓 Unlock Selected</button>
+            <button id="jlpt-refresh-locks" class="topbar-btn">🔄 Reload List</button>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+          <input id="jlpt-exam-search" placeholder="Cari exam..." style="flex:1;min-width:220px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;padding:11px 14px;color:var(--text);font-family:inherit;font-size:14px;outline:none;">
+          <select id="jlpt-exam-level" style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;padding:11px 14px;color:var(--text);font-family:inherit;font-size:14px;outline:none;">
+            <option value="">All Levels</option>
+            <option value="N1">N1</option>
+            <option value="N2">N2</option>
+            <option value="N3">N3</option>
+            <option value="N4">N4</option>
+            <option value="N5">N5</option>
+          </select>
+        </div>
+        <div id="jlpt-exam-lock-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;"></div>
+      </div>
+
+      <div id="jlpt-admin-live-card" style="background:var(--card);border:1px solid var(--border);border-radius:20px;overflow:hidden;box-shadow:0 8px 25px rgba(0,0,0,.18);">
+        <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;padding:18px 20px;border-bottom:1px solid var(--border);">
+          <div>
+            <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;margin-bottom:4px;">🟢 Live Exam Monitor</div>
+            <div style="font-size:13px;color:var(--muted);line-height:1.6;">Lihat user yang sedang ujian, progress, dan sisa waktu secara realtime.</div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button id="jlpt-refresh-live" class="topbar-btn">🔄 Refresh Live</button>
+          </div>
+        </div>
+        <div style="overflow:auto;">
+          <table style="width:100%;border-collapse:collapse;">
+            <thead style="background:rgba(255,255,255,.02);">
+              <tr>
+                <th style="text-align:left;padding:12px 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">User</th>
+                <th style="text-align:left;padding:12px 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Exam</th>
+                <th style="text-align:left;padding:12px 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Progress</th>
+                <th style="text-align:left;padding:12px 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Remaining</th>
+                <th style="text-align:left;padding:12px 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Updated</th>
+              </tr>
+            </thead>
+            <tbody id="jlpt-live-table">
+              <tr><td colspan="5" style="padding:16px;color:var(--muted);">Memuat...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="jlpt-admin-results-card" style="background:var(--card);border:1px solid var(--border);border-radius:20px;overflow:hidden;box-shadow:0 8px 25px rgba(0,0,0,.18);">
+        <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;padding:18px 20px;border-bottom:1px solid var(--border);">
+          <div>
+            <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;margin-bottom:4px;">📈 Exam Results</div>
+            <div style="font-size:13px;color:var(--muted);line-height:1.6;">Hasil akhir user tampil di sini dan bisa diekspor ke Excel dengan detail persentase per section.</div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button id="jlpt-export-xlsx" class="topbar-btn primary">📥 Export Excel</button>
+            <button id="jlpt-refresh-results" class="topbar-btn">🔄 Refresh Results</button>
+          </div>
+        </div>
+        <div style="overflow:auto;">
+          <table style="width:100%;border-collapse:collapse;">
+            <thead style="background:rgba(255,255,255,.02);">
+              <tr>
+                <th style="text-align:left;padding:12px 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">User</th>
+                <th style="text-align:left;padding:12px 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Exam</th>
+                <th style="text-align:left;padding:12px 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Score</th>
+                <th style="text-align:left;padding:12px 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Percent</th>
+                <th style="text-align:left;padding:12px 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Sections</th>
+                <th style="text-align:left;padding:12px 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Started</th>
+                <th style="text-align:left;padding:12px 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Completed</th>
+              </tr>
+            </thead>
+            <tbody id="jlpt-results-table">
+              <tr><td colspan="7" style="padding:16px;color:var(--muted);">Memuat...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+
+    mount.prepend(wrap);
+
+    wrap.querySelector('#jlpt-lock-btn')?.addEventListener('click', async () => {
+      const reasonInput = prompt('Alasan lock semua ujian (opsional):', state.settings.exam_lock_reason || '');
+      const reason = (reasonInput ?? state.settings.exam_lock_reason) || '';
+      await setGlobalLock(true, reason);
+    });
+    wrap.querySelector('#jlpt-unlock-btn')?.addEventListener('click', async () => {
+      const reasonInput = prompt('Catatan unlock semua ujian (opsional):', state.settings.exam_lock_reason || '');
+      const reason = (reasonInput ?? '');
+      await setGlobalLock(false, reason);
+    });
+    wrap.querySelector('#jlpt-refresh-btn')?.addEventListener('click', () => refreshAdminPanels());
+    wrap.querySelector('#jlpt-refresh-live')?.addEventListener('click', () => refreshAdminLivePanel());
+    wrap.querySelector('#jlpt-refresh-results')?.addEventListener('click', () => refreshAdminResultsPanel());
+    wrap.querySelector('#jlpt-refresh-locks')?.addEventListener('click', () => renderAdminControlUI());
+    wrap.querySelector('#jlpt-lock-selected')?.addEventListener('click', async () => {
+      const keys = Array.from(wrap.querySelectorAll('.jlpt-lock-check:checked')).map((el) => el.dataset.examKey);
+      const reason = prompt('Alasan lock selected (opsional):', '') ?? '';
+      await setMultipleExamLocks(keys, true, reason);
+    });
+    wrap.querySelector('#jlpt-unlock-selected')?.addEventListener('click', async () => {
+      const keys = Array.from(wrap.querySelectorAll('.jlpt-lock-check:checked')).map((el) => el.dataset.examKey);
+      const reason = prompt('Catatan unlock selected (opsional):', '') ?? '';
+      await setMultipleExamLocks(keys, false, reason);
+    });
+    wrap.querySelector('#jlpt-exam-search')?.addEventListener('input', () => renderAdminControlUI());
+    wrap.querySelector('#jlpt-exam-level')?.addEventListener('change', () => renderAdminControlUI());
+    wrap.querySelector('#jlpt-export-xlsx')?.addEventListener('click', () => exportResultsExcel());
+
+    state.adminPanelReady = true;
+    return wrap;
   }
-}
+
+  function renderAdminControlUI() {
+    if (!state.isAdminPage) return;
+    const panel = ensureAdminPanel();
+    const locked = !!state.settings.exam_locked;
+
+    const pill = panel.querySelector('#jlpt-lock-pill');
+    const stateText = panel.querySelector('#jlpt-lock-state');
+    const updatedText = panel.querySelector('#jlpt-lock-updated');
+    if (pill) {
+      pill.textContent = locked ? 'LOCKED' : 'UNLOCKED';
+      pill.style.color = locked ? '#ff9aaa' : '#5ff0b0';
+      pill.style.borderColor = locked ? 'rgba(255,95,115,.35)' : 'rgba(25,195,125,.35)';
+      pill.style.background = locked ? 'rgba(255,95,115,.1)' : 'rgba(25,195,125,.08)';
+    }
+    if (stateText) stateText.textContent = locked ? 'Semua ujian terkunci' : 'Semua ujian terbuka';
+    if (updatedText) updatedText.textContent = state.settings.updated_at ? fmtTime(state.settings.updated_at) : '—';
+
+    const search = String(panel.querySelector('#jlpt-exam-search')?.value || '').trim().toLowerCase();
+    const level = String(panel.querySelector('#jlpt-exam-level')?.value || '').trim().toUpperCase();
+    const catalog = getExamCatalog();
+    const filtered = catalog.filter((e) => {
+      const matchSearch = !search || `${e.key} ${e.title} ${e.level} ${e.year} ${e.href}`.toLowerCase().includes(search);
+      const matchLevel = !level || String(e.level || '').toUpperCase() === level;
+      return matchSearch && matchLevel;
+    });
+
+    const list = panel.querySelector('#jlpt-exam-lock-list');
+    if (list) {
+      if (!filtered.length) {
+        list.innerHTML = '<div style="grid-column:1/-1;padding:18px;color:var(--muted);border:1px dashed var(--border);border-radius:16px;">Tidak ada exam yang cocok.</div>';
+      } else {
+        list.innerHTML = filtered.map((e) => {
+          const row = state.examLocks.get(String(e.key).toLowerCase());
+          const rowLocked = !!row?.locked;
+          const updated = row?.updated_at ? fmtTime(row.updated_at) : '—';
+          return `
+            <div style="background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:16px;padding:14px 14px 12px;position:relative;">
+              <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px;">
+                <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer;">
+                  <input type="checkbox" class="jlpt-lock-check" data-exam-key="${esc(e.key)}" style="margin-top:3px;">
+                  <div>
+                    <div style="font-weight:800;font-size:14px;margin-bottom:4px;">${esc(e.title || e.key)}</div>
+                    <div style="font-size:12px;color:var(--muted);">${esc(e.level || '')} · ${esc(e.year || '')} · ${esc(e.key)}</div>
+                  </div>
+                </label>
+                <span style="padding:4px 10px;border-radius:999px;font-size:10px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;border:1px solid ${rowLocked ? 'rgba(255,95,115,.3)' : 'rgba(25,195,125,.3)'};color:${rowLocked ? '#ff9aaa' : '#5ff0b0'};background:${rowLocked ? 'rgba(255,95,115,.12)' : 'rgba(25,195,125,.08)'};">${rowLocked ? 'LOCKED' : 'OPEN'}</span>
+              </div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <button class="act-btn ban" onclick="window.JLPT_SYNC?.setExamLock('${esc(e.key)}', true)">Lock</button>
+                <button class="act-btn approve" onclick="window.JLPT_SYNC?.setExamLock('${esc(e.key)}', false)">Unlock</button>
+              </div>
+              <div style="font-size:11px;color:var(--muted);margin-top:10px;">Updated: ${esc(updated)}</div>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+
+    const globalCards = panel.querySelectorAll('#jlpt-admin-global-card, #jlpt-exam-lock-card, #jlpt-admin-live-card, #jlpt-admin-results-card');
+    globalCards.forEach((card) => { if (card) card.style.display = ''; });
+  }
 
   async function loadXLSX() {
     if (window.XLSX) return window.XLSX;
@@ -1682,8 +1348,6 @@ function renderAdminControlUI() {
 
   document.addEventListener('DOMContentLoaded', initPage);
 
-  window.deleteExamSession = (...args) => window.JLPT_SYNC?.deleteExamSession?.(...args);
-  window.exportResultsExcel = (...args) => window.JLPT_SYNC?.exportResultsExcel?.(...args);
   window.JLPT_SYNC = {
     setGlobalLock,
     setExamLock,
@@ -1697,7 +1361,6 @@ function renderAdminControlUI() {
     refreshAdminPanels,
     syncSession,
     exportResultsExcel,
-    deleteExamSession,
     examMeta: examMetaFromPath,
   };
 })();
