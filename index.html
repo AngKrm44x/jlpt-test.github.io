@@ -115,6 +115,15 @@ h1{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;letter-spacing:-
   animation:fadeInBadge .4s ease;
 }
 .done-stamp.show{display:flex;}
+.score-stamp{
+  position:absolute;bottom:76px;left:16px;
+  background:rgba(90,169,255,.14);border:1.5px solid rgba(90,169,255,.35);
+  color:#9fd0ff;font-size:10px;font-weight:800;padding:4px 10px;border-radius:999px;
+  letter-spacing:.4px;text-transform:uppercase;display:none;
+  align-items:center;gap:4px;
+  animation:fadeInBadge .4s ease;
+}
+.score-stamp.show{display:flex;}
 @keyframes fadeInBadge{from{opacity:0;transform:scale(.8);}to{opacity:1;transform:scale(1);}}
 
 /* STATS */
@@ -203,6 +212,7 @@ h1{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;letter-spacing:-
 .request-btn:hover{transform:translateY(-2px);filter:brightness(1.1);box-shadow:0 8px 25px rgba(196,77,255,.4);}
 .logout-btn-sm{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--muted);padding:10px 16px;border-radius:14px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:600;transition:.2s;white-space:nowrap;flex-shrink:0;}
 .logout-btn-sm:hover{border-color:var(--danger);color:var(--danger);}
+.account-btn-sm:hover{border-color:#5aa9ff;color:#5aa9ff;background:rgba(90,169,255,.08);}
 
 /* MODAL */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);z-index:10000;display:none;align-items:center;justify-content:center;}
@@ -215,6 +225,8 @@ h1{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;letter-spacing:-
 .modal-field label{display:block;font-size:13px;color:var(--muted);margin-bottom:8px;font-weight:600;}
 .modal-field input{width:100%;background:#0d1626;border:1.5px solid #2a3d60;border-radius:14px;padding:13px 16px;color:var(--text);font-family:inherit;font-size:15px;outline:none;transition:border-color .2s;}
 .modal-field input:focus{border-color:#5aa9ff;}
+.modal-field select{width:100%;background:#0d1626;border:1.5px solid #2a3d60;border-radius:14px;padding:13px 16px;color:var(--text);font-family:inherit;font-size:15px;outline:none;transition:border-color .2s;}
+.modal-field select:focus{border-color:#5aa9ff;}
 .modal-actions{display:flex;gap:10px;margin-top:20px;}
 .modal-save{flex:1;padding:13px;border:none;border-radius:14px;background:linear-gradient(135deg,#3558a8,#6c3fff);color:white;font-family:inherit;font-weight:700;font-size:15px;cursor:pointer;transition:.2s;}
 .modal-save:hover{filter:brightness(1.1);}
@@ -244,6 +256,18 @@ h1{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;letter-spacing:-
 .req-type:hover,.req-type.sel{color:white;border-color:#5aa9ff;background:rgba(90,169,255,.12);}
 .req-note{width:100%;background:#0d1626;border:1.5px solid #2a3d60;border-radius:14px;padding:13px 16px;color:var(--text);font-family:inherit;font-size:14px;outline:none;resize:vertical;min-height:80px;transition:border-color .2s;}
 .req-note:focus{border-color:#5aa9ff;}
+
+/* ACCOUNT SECURITY */
+.account-grid{display:grid;gap:14px;}
+.account-section{border:1px solid rgba(255,255,255,.07);background:rgba(13,22,38,.5);border-radius:16px;padding:16px;}
+.account-section-title{font-size:13px;font-weight:800;color:var(--text);margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.account-list{display:grid;gap:8px;max-height:220px;overflow:auto;padding-right:2px;}
+.account-row{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;border:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.03);border-radius:14px;padding:12px;}
+.account-row-main{min-width:0;}
+.account-row-title{font-size:13px;font-weight:800;color:var(--text);line-height:1.35;word-break:break-word;}
+.account-row-sub{font-size:11px;color:var(--muted);line-height:1.55;margin-top:3px;word-break:break-word;}
+.account-pill{font-size:10px;font-weight:800;border-radius:999px;padding:3px 8px;border:1px solid rgba(90,169,255,.3);background:rgba(90,169,255,.1);color:#9fd0ff;white-space:nowrap;}
+.danger-zone{border-color:rgba(255,95,115,.22);background:rgba(255,95,115,.06);}
 
 /* =============================================
    LANGUAGE SELECTOR
@@ -708,6 +732,7 @@ body.sidebar-open .menu-fab{
       <div class="sidebar-links">
         <button class="sidebar-link-btn" onclick="toggleNotifPanel();closeSidebar()"><span data-i18n="navNotifications">Notifikasi</span><small data-i18n="navNotificationsSub">Lihat pesan terbaru</small></button>
         <button class="sidebar-link-btn" onclick="openHistoryModal();closeSidebar()"><span data-i18n="navHistory">Riwayat Ujian</span><small data-i18n="navHistorySub">Lihat progres kamu</small></button>
+        <button class="sidebar-link-btn" onclick="openAccountModal();closeSidebar()"><span data-i18n="navAccount">Keamanan Akun</span><small data-i18n="navAccountSub">Login, device, password</small></button>
         <button class="sidebar-link-btn" onclick="doLogout();closeSidebar()"><span data-i18n="navLogout">Keluar</span><small data-i18n="navLogoutSub">Akhiri sesi</small></button>
       </div>
     </details>
@@ -807,6 +832,9 @@ body.sidebar-open .menu-fab{
     </button>
     <button class="history-btn" onclick="openHistoryModal()">
       📋 <span data-i18n="examHistory">Exam History</span>
+    </button>
+    <button class="logout-btn-sm account-btn-sm" onclick="openAccountModal()">
+      🔐 <span data-i18n="accountSecurity">Account Security</span>
     </button>
     <button class="logout-btn-sm" onclick="doLogout()">
       🚪 <span data-i18n="logout">Logout</span>
@@ -1373,6 +1401,76 @@ body.sidebar-open .menu-fab{
   </div>
 </div>
 
+<!-- ======== ACCOUNT SECURITY MODAL ======== -->
+<div class="modal-overlay" id="accountModal">
+  <div class="modal modal-wide">
+    <div class="modal-title">🔐 <span data-i18n="accountSecurity">Account Security</span></div>
+    <div class="account-grid">
+      <div class="account-section">
+        <div class="account-section-title">
+          <span data-i18n="activeDevices">Active Devices</span>
+          <span class="account-pill" id="currentDevicePill">—</span>
+        </div>
+        <div class="account-list" id="deviceList"></div>
+        <div class="modal-actions" style="margin-top:12px;">
+          <button class="modal-cancel" style="flex:1;" onclick="logoutOtherDevices()" data-i18n="logoutOtherDevices">Logout other devices</button>
+          <button class="modal-cancel" style="flex:1;" onclick="refreshAccountSecurity()" data-i18n="refresh">Refresh</button>
+        </div>
+      </div>
+      <div class="account-section">
+        <div class="account-section-title"><span data-i18n="loginHistory">Login History</span></div>
+        <div class="account-list" id="loginHistoryList"></div>
+      </div>
+      <div class="account-section danger-zone">
+        <div class="account-section-title"><span data-i18n="accountActions">Account Actions</span></div>
+        <div class="modal-actions" style="margin-top:0;flex-wrap:wrap;">
+          <button class="modal-save" onclick="openPasswordModal()" data-i18n="changePassword">Change Password</button>
+          <button class="modal-cancel" onclick="logoutAllDevices()" data-i18n="logoutAllDevices">Logout all devices</button>
+          <button class="modal-cancel" style="border-color:rgba(255,95,115,.45);color:#ff9aaa;" onclick="openDeleteAccountModal()" data-i18n="deleteAccount">Delete Account</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-cancel" style="flex:1;" onclick="closeModal('accountModal')" data-i18n="close">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======== CHANGE PASSWORD MODAL ======== -->
+<div class="modal-overlay" id="passwordModal">
+  <div class="modal">
+    <div class="modal-title">🔑 <span data-i18n="changePassword">Change Password</span></div>
+    <div class="modal-field">
+      <label data-i18n="newPassword">New Password</label>
+      <input type="password" id="newPasswordInput" minlength="6" autocomplete="new-password">
+    </div>
+    <div class="modal-field">
+      <label data-i18n="confirmPassword">Confirm Password</label>
+      <input type="password" id="confirmPasswordInput" minlength="6" autocomplete="new-password">
+    </div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeModal('passwordModal')" data-i18n="cancel">Cancel</button>
+      <button class="modal-save" onclick="saveNewPassword()" data-i18n="saveChanges">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======== DELETE ACCOUNT MODAL ======== -->
+<div class="modal-overlay" id="deleteAccountModal">
+  <div class="modal">
+    <div class="modal-title" style="color:#ff9aaa;">⚠️ <span data-i18n="deleteAccount">Delete Account</span></div>
+    <p style="color:var(--muted);font-size:13px;line-height:1.7;margin-bottom:16px;" data-i18n="deleteAccountDesc">Type DELETE to confirm account deletion.</p>
+    <div class="modal-field">
+      <label>DELETE</label>
+      <input type="text" id="deleteAccountConfirm" autocomplete="off">
+    </div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeModal('deleteAccountModal')" data-i18n="cancel">Cancel</button>
+      <button class="modal-save" style="background:rgba(255,95,115,.22);border:1px solid rgba(255,95,115,.45);color:#ff9aaa;" onclick="deleteMyAccount()" data-i18n="deleteAccount">Delete Account</button>
+    </div>
+  </div>
+</div>
+
 <!-- ======== LANG OPTION STYLES ======== -->
 <style>
 .lang-opt{
@@ -1415,6 +1513,12 @@ const TRANSLATIONS = {
     sidebarResources:'Resource',navResourceHub:'Buka Resource Hub',navResourceHubSub:'JLPT, SSW, NAT, JFT, Marugoto',
     sidebarOfficial:'Situs resmi',sidebarAccount:'Akun',
     navHistory:'Riwayat Ujian',navHistorySub:'Lihat progres kamu',
+    navAccount:'Keamanan Akun',navAccountSub:'Login, device, password',
+    accountSecurity:'Keamanan Akun',activeDevices:'Device Aktif',loginHistory:'Login History',
+    accountActions:'Aksi Akun',changePassword:'Ganti Password',deleteAccount:'Hapus Akun',
+    logoutOtherDevices:'Logout device lain',logoutAllDevices:'Logout semua device',refresh:'Refresh',
+    newPassword:'Password Baru',confirmPassword:'Konfirmasi Password',
+    deleteAccountDesc:'Ketik DELETE untuk konfirmasi hapus akun.',
     navLogout:'Keluar',navLogoutSub:'Akhiri sesi',
   },
   en: {
@@ -1443,6 +1547,12 @@ const TRANSLATIONS = {
     sidebarResources:'Resources',navResourceHub:'Open Resource Hub',navResourceHubSub:'JLPT, SSW, NAT, JFT, Marugoto',
     sidebarOfficial:'Official sites',sidebarAccount:'Account',
     navHistory:'Exam History',navHistorySub:'View your progress',
+    navAccount:'Account Security',navAccountSub:'Login, devices, password',
+    accountSecurity:'Account Security',activeDevices:'Active Devices',loginHistory:'Login History',
+    accountActions:'Account Actions',changePassword:'Change Password',deleteAccount:'Delete Account',
+    logoutOtherDevices:'Logout other devices',logoutAllDevices:'Logout all devices',refresh:'Refresh',
+    newPassword:'New Password',confirmPassword:'Confirm Password',
+    deleteAccountDesc:'Type DELETE to confirm account deletion.',
     navLogout:'Logout',navLogoutSub:'End session',
   },
   ja: {
@@ -1471,6 +1581,12 @@ const TRANSLATIONS = {
     sidebarResources:'リソース',navResourceHub:'リソースハブを開く',navResourceHubSub:'JLPT、SSW、NAT、JFT、Marugoto',
     sidebarOfficial:'公式サイト',sidebarAccount:'アカウント',
     navHistory:'受験履歴',navHistorySub:'進捗を確認',
+    navAccount:'アカウント保護',navAccountSub:'ログイン・端末・パスワード',
+    accountSecurity:'アカウント保護',activeDevices:'有効な端末',loginHistory:'ログイン履歴',
+    accountActions:'アカウント操作',changePassword:'パスワード変更',deleteAccount:'アカウント削除',
+    logoutOtherDevices:'他の端末からログアウト',logoutAllDevices:'すべての端末からログアウト',refresh:'更新',
+    newPassword:'新しいパスワード',confirmPassword:'パスワード確認',
+    deleteAccountDesc:'削除を確認するには DELETE と入力してください。',
     navLogout:'ログアウト',navLogoutSub:'セッションを終了',
   }
 };
@@ -1631,8 +1747,8 @@ function updateNotifBadge(){
 
 function renderNotifList(){
   const list = document.getElementById('notifList');
-  const iconClass = {new_exam:'new-exam', update:'update', system:'system', promo:'promo'};
-  const filtered = notifTabActive === 'all' ? NOTIF_DATA : NOTIF_DATA.filter(n => n.type === notifTabActive);
+  const iconClass = {new_exam:'new-exam', update:'update', system:'system', promo:'promo', request_status:'update', report_status:'update'};
+  const filtered = notifTabActive === 'all' ? NOTIF_DATA : NOTIF_DATA.filter(n => notifTabFor(n) === notifTabActive);
 
   if(!filtered.length){
     list.innerHTML = `<div class="notif-empty"><div class="notif-empty-icon">🔔</div><p style="font-size:14px;">${t('notifications')} —</p></div>`;
@@ -1651,16 +1767,36 @@ function renderNotifList(){
   }).join('');
 }
 
-function readNotif(id){
+function notifTabFor(n){
+  const type = String(n?.type || '').toLowerCase();
+  if(type === 'request_status' || type === 'report_status') return 'update';
+  if(type === 'new_exam' || type === 'system' || type === 'promo') return type;
+  return 'update';
+}
+
+async function readNotif(id){
   notifReadSet.add(id);
   localStorage.setItem('jlpt_notif_read', JSON.stringify([...notifReadSet]));
+  const item = NOTIF_DATA.find(n => n.id === id);
+  if(item) item.unread = false;
+  if(item?.dbId){
+    try{
+      const { sb } = await getSupabase();
+      await sb.from('notifications').update({ is_read:true }).eq('id', item.dbId);
+    }catch(e){}
+  }
   updateNotifBadge();
   renderNotifList();
 }
 
-function markAllRead(){
+async function markAllRead(){
   NOTIF_DATA.forEach(n => notifReadSet.add(n.id));
   localStorage.setItem('jlpt_notif_read', JSON.stringify([...notifReadSet]));
+  NOTIF_DATA.forEach(n => { n.unread = false; });
+  try{
+    const { sb, session } = await getSupabase();
+    await sb.from('notifications').update({ is_read:true }).eq('user_id', session.user.id).eq('is_read', false);
+  }catch(e){}
   updateNotifBadge();
   renderNotifList();
   showToast('✅ ' + t('markAllRead'));
@@ -1701,9 +1837,7 @@ function saveHistory(arr){
   localStorage.setItem(HISTORY_KEY, JSON.stringify(arr));
 }
 
-// Mark an exam as completed (called from exam page via postMessage OR from recordExamOpen)
-// For true "completed" tracking: exam pages should postMessage back.
-// For now we track when user returns from exam (visibility change).
+// Mark an exam as completed from real exam result rows.
 let pendingExamKey = null;
 let pendingExamName = null;
 let pendingExamLevel = null;
@@ -1729,29 +1863,46 @@ function recordExamOpen(linkEl){
 // When user returns to this tab after visiting an exam page
 document.addEventListener('visibilitychange', ()=>{
   if(document.visibilityState === 'visible'){
-    const pending = sessionStorage.getItem('jlpt_pending_exam');
-    if(!pending) return;
-    try{
-      const p = JSON.parse(pending);
-      // Mark as completed
-      completeExam(p.key, p.name, p.level, p.year);
-      sessionStorage.removeItem('jlpt_pending_exam');
-    }catch(e){}
+    syncUserExamResults(true);
   }
 });
 
-function completeExam(examKey, examName, level, year, score){
+function normalizeScoreValue(value){
+  if(value === null || value === undefined || value === '') return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : value;
+}
+
+function scoreLabel(entry){
+  if(!entry) return '';
+  const score = normalizeScoreValue(entry.score);
+  const pct = normalizeScoreValue(entry.percentage);
+  if(score !== null && pct !== null && Number(pct) > 0) return `Score ${score} (${Number(pct).toFixed(1)}%)`;
+  if(score !== null) return `Score ${score}`;
+  if(pct !== null && Number(pct) > 0) return `Score ${Number(pct).toFixed(1)}%`;
+  return '';
+}
+
+function completeExam(examKey, examName, level, year, score, extra={}){
+  if(!examKey) return;
   const history = loadHistory();
   // Prevent duplicate — update if exists, add if not
   const existing = history.findIndex(h => h.key === examKey);
+  const prev = existing >= 0 ? history[existing] : {};
+  const finalScore = normalizeScoreValue(score ?? extra.score ?? prev.score);
+  const finalPct = normalizeScoreValue(extra.percentage ?? prev.percentage);
   const entry = {
     key: examKey,
-    name: examName,
-    level,
-    year,
-    score: score || null,
-    completedAt: new Date().toISOString(),
-    count: (existing >= 0 ? (history[existing].count||1)+1 : 1)
+    name: examName || prev.name || examKey,
+    level: level || prev.level || '',
+    year: year || prev.year || '',
+    score: finalScore,
+    percentage: finalPct,
+    completedAt: extra.completedAt || extra.completed_at || prev.completedAt || new Date().toISOString(),
+    source: extra.source || prev.source || 'local',
+    count: existing >= 0
+      ? (extra.preserveCount ? (history[existing].count || 1) : (history[existing].count || 1) + 1)
+      : 1
   };
   if(existing >= 0) history[existing] = entry;
   else history.unshift(entry);
@@ -1762,13 +1913,23 @@ function completeExam(examKey, examName, level, year, score){
 
 function updateCompletedBadges(){
   const history = loadHistory();
-  const doneKeys = new Set(history.map(h => h.key));
+  const doneMap = new Map(history.map(h => [h.key, h]));
   document.querySelectorAll('.card').forEach(card=>{
     const key = card.dataset.examkey;
+    const entry = doneMap.get(key);
     const stamp = card.querySelector('.done-stamp');
     if(stamp){
-      stamp.classList.toggle('show', doneKeys.has(key));
+      stamp.classList.toggle('show', !!entry);
     }
+    let score = card.querySelector('.score-stamp');
+    if(!score){
+      score = document.createElement('div');
+      score.className = 'score-stamp';
+      card.appendChild(score);
+    }
+    const label = scoreLabel(entry);
+    score.textContent = label;
+    score.classList.toggle('show', !!label);
   });
 }
 
@@ -1832,6 +1993,90 @@ function confirmClearHistory(){
     updateCompletedStat();
     renderHistoryList();
     showToast('🗑 ' + t('clearHistory'));
+  }
+}
+
+let _examResultChannel = null;
+let _examResultSyncBusy = false;
+
+function examYearFromKey(key=''){
+  const m = String(key).match(/n[1-5]-(\d{4})-(\d{2})/i);
+  return m ? m[1] : '';
+}
+
+function mergeExamSessionResult(row, showToastOnNew=false){
+  if(!row?.exam_key) return false;
+  const completed = row.completed === true || String(row.status || '').toLowerCase() === 'done' || !!row.completed_at;
+  if(!completed) return false;
+  const before = loadHistory().some(h => h.key === row.exam_key);
+  completeExam(
+    row.exam_key,
+    row.exam_title || row.exam_key,
+    row.level || '',
+    row.year || examYearFromKey(row.exam_key),
+    row.score ?? null,
+    {
+      percentage: row.percentage ?? null,
+      completedAt: row.completed_at || row.updated_at || row.last_seen_at || new Date().toISOString(),
+      source: 'exam_sessions',
+      preserveCount: true
+    }
+  );
+  if(showToastOnNew && !before){
+    showToast('✅ Final score tersimpan di card exam');
+  }
+  return true;
+}
+
+async function syncUserExamResults(showToastOnNew=false){
+  if(_examResultSyncBusy) return;
+  _examResultSyncBusy = true;
+  try{
+    const { sb, session } = await getSupabase();
+    const { data, error } = await sb
+      .from('exam_sessions')
+      .select('*')
+      .eq('user_id', session.user.id)
+      .or('completed.eq.true,status.eq.done,completed_at.not.is.null')
+      .order('updated_at', { ascending:false })
+      .limit(100);
+    if(error) throw error;
+    let merged = false;
+    (data || []).forEach(row => { if(mergeExamSessionResult(row, showToastOnNew)) merged = true; });
+    if(merged){
+      updateCompletedBadges();
+      updateCompletedStat();
+      renderHistoryList();
+    }
+  }catch(e){
+    console.warn('[index] syncUserExamResults failed:', e?.message || e);
+  }finally{
+    _examResultSyncBusy = false;
+  }
+}
+
+async function initExamResultRealtime(){
+  try{
+    const { sb, session } = await getSupabase();
+    if(_examResultChannel) sb.removeChannel(_examResultChannel);
+    _examResultChannel = sb
+      .channel('user-exam-results-' + session.user.id)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'exam_sessions',
+        filter: `user_id=eq.${session.user.id}`
+      }, payload => {
+        const row = payload.new || {};
+        if(mergeExamSessionResult(row, true)){
+          updateCompletedBadges();
+          updateCompletedStat();
+          renderHistoryList();
+        }
+      })
+      .subscribe();
+  }catch(e){
+    console.warn('[index] initExamResultRealtime failed:', e?.message || e);
   }
 }
 
@@ -1903,11 +2148,12 @@ window.addEventListener('DOMContentLoaded', async () => {
   const pending = sessionStorage.getItem('jlpt_pending_exam');
   if(pending){
     try{
-      const p = JSON.parse(pending);
-      completeExam(p.key, p.name, p.level, p.year);
+      JSON.parse(pending);
       sessionStorage.removeItem('jlpt_pending_exam');
     }catch(e){}
   }
+
+  recordCurrentDeviceLogin(session);
 
   // Init completed UI
   updateCompletedBadges();
@@ -1915,6 +2161,8 @@ window.addEventListener('DOMContentLoaded', async () => {
 
   // Init realtime notifikasi request soal
   initRealtimeNotifications();
+  initExamResultRealtime();
+  syncUserExamResults();
 });
 
 // =============================================
@@ -2025,6 +2273,7 @@ async function submitRequest(){
 // REALTIME NOTIFIKASI REQUEST STATUS
 // =============================================
 let _realtimeChannel = null;
+let _notifPollTimer = null;
 
 async function initRealtimeNotifications(){
   let _ctx;
@@ -2032,42 +2281,63 @@ async function initRealtimeNotifications(){
   const { sb, session } = _ctx;
   const userId = session.user.id;
 
-  // Load notifikasi lama dari Supabase
-  const { data: existingNotifs } = await sb
-    .from('notifications')
-    .select('*')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false })
-    .limit(20);
-
-  if(existingNotifs?.length){
-    existingNotifs.forEach(n => {
-      if(!NOTIF_DATA.find(x => x.id === 'db_' + n.id)){
-        NOTIF_DATA.unshift(buildNotifFromDb(n));
-      }
-    });
-    updateNotifBadge();
-    renderNotifList();
-  }
+  await loadDbNotifications(sb, userId);
 
   // Subscribe realtime
   if(_realtimeChannel) sb.removeChannel(_realtimeChannel);
   _realtimeChannel = sb
     .channel('user-notifs-' + userId)
     .on('postgres_changes', {
-      event: 'INSERT',
+      event: '*',
       schema: 'public',
       table: 'notifications',
       filter: `user_id=eq.${userId}`
     }, payload => {
-      const notif = buildNotifFromDb(payload.new);
-      if(NOTIF_DATA.find(x => x.id === notif.id)) return;
-      NOTIF_DATA.unshift(notif);
+      const row = payload.new || payload.old || {};
+      const id = 'db_' + row.id;
+      if(payload.eventType === 'DELETE'){
+        const idx = NOTIF_DATA.findIndex(x => x.id === id);
+        if(idx >= 0) NOTIF_DATA.splice(idx, 1);
+        updateNotifBadge();
+        renderNotifList();
+        return;
+      }
+      const notif = buildNotifFromDb(row);
+      mergeNotif(notif);
       updateNotifBadge();
       renderNotifList();
-      showToast(notif.icon + ' ' + (notif.title[currentLang] || notif.title['id']));
+      if(payload.eventType === 'INSERT'){
+        showToast(notif.icon + ' ' + (notif.title[currentLang] || notif.title['id']));
+      }
     })
     .subscribe();
+
+  clearInterval(_notifPollTimer);
+  _notifPollTimer = setInterval(() => loadDbNotifications(sb, userId), 15000);
+}
+
+async function loadDbNotifications(sb, userId){
+  try{
+    const { data, error } = await sb
+      .from('notifications')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(50);
+    if(error) throw error;
+    (data || []).slice().reverse().forEach(n => mergeNotif(buildNotifFromDb(n)));
+    updateNotifBadge();
+    renderNotifList();
+  }catch(e){
+    console.warn('[index] loadDbNotifications failed:', e?.message || e);
+  }
+}
+
+function mergeNotif(notif){
+  if(!notif?.id) return;
+  const idx = NOTIF_DATA.findIndex(x => x.id === notif.id);
+  if(idx >= 0) NOTIF_DATA[idx] = { ...NOTIF_DATA[idx], ...notif };
+  else NOTIF_DATA.unshift(notif);
 }
 
 function buildNotifFromDb(n){
@@ -2078,8 +2348,59 @@ function buildNotifFromDb(n){
     done:        { id:'Selesai',     en:'Done',        ja:'完了' },
     rejected:    { id:'Ditolak',     en:'Rejected',    ja:'却下' },
   };
-  const icon = statusIcon[n.status] || '📩';
-  const lbl  = statusLabel[n.status] || statusLabel['pending'];
+  const rawType = String(n.type || n.category || n.status || '').toLowerCase();
+  const status = String(n.status || 'pending').toLowerCase();
+  const type = ['new_exam','system','promo','request_status','report_status','update'].includes(rawType)
+    ? rawType
+    : (status === 'new_exam' ? 'new_exam' : status === 'report_resolved' ? 'report_status' : 'request_status');
+  const iconByType = { new_exam:'📝', update:'🔄', system:'🔐', promo:'🌐', request_status:'📩', report_status:'✅' };
+  const icon = n.icon || statusIcon[status] || iconByType[type] || '📩';
+  const lbl  = statusLabel[status] || statusLabel['pending'];
+  const titleText = n.title || n.title_id || '';
+  const message = n.message || n.body || n.description || '';
+
+  if(type === 'new_exam'){
+    return {
+      id: 'db_' + n.id,
+      type: 'new_exam',
+      icon,
+      unread: !n.is_read,
+      title: {
+        id: titleText || 'Soal Baru Tersedia',
+        en: titleText || 'New Exam Available',
+        ja: titleText || '新しい試験が利用可能です',
+      },
+      desc: {
+        id: message || 'Admin menambahkan exam baru.',
+        en: message || 'Admin added a new exam.',
+        ja: message || '管理者が新しい試験を追加しました。',
+      },
+      time: formatNotifTime(n.created_at),
+      dbId: n.id,
+    };
+  }
+
+  if(type === 'report_status' || status === 'report_resolved'){
+    return {
+      id: 'db_' + n.id,
+      type: 'report_status',
+      icon,
+      unread: !n.is_read,
+      title: {
+        id: titleText || '✅ Laporan Soal Sudah Diperbaiki',
+        en: titleText || '✅ Reported Question Fixed',
+        ja: titleText || '✅ 報告された問題を修正しました',
+      },
+      desc: {
+        id: message || 'Soal yang kamu laporkan sudah diperbaiki admin.',
+        en: message || 'The question you reported has been fixed.',
+        ja: message || '報告した問題が修正されました。',
+      },
+      time: formatNotifTime(n.created_at),
+      dbId: n.id,
+    };
+  }
+
   return {
     id: 'db_' + n.id,
     type: 'request_status',
