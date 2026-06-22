@@ -404,6 +404,31 @@
     return 'other';
   }
 
+  const JLPT_SCORE_MAX = 180;
+  const JLPT_PASS_MARKS = { N5: 80, N4: 90, N3: 95, N2: 90, N1: 100 };
+  const JLPT_CEFR_BANDS = {
+    N5: [{ min: 80, label: 'A1', range: '80–180' }, { min: 0, label: 'A0', range: '0–79' }],
+    N4: [{ min: 90, label: 'A2', range: '90–180' }, { min: 80, label: 'A1', range: '80–89' }, { min: 0, label: 'A0', range: '0–79' }],
+    N3: [{ min: 104, label: 'B1', range: '104–180' }, { min: 90, label: 'A2', range: '90–103' }, { min: 0, label: 'A1', range: '0–89' }],
+    N2: [{ min: 112, label: 'B2', range: '112–180' }, { min: 90, label: 'B1', range: '90–111' }, { min: 0, label: 'A2', range: '0–89' }],
+    N1: [{ min: 142, label: 'C1', range: '142–180' }, { min: 100, label: 'B2', range: '100–141' }, { min: 90, label: 'B1', range: '90–99' }, { min: 0, label: 'A2', range: '0–89' }],
+  };
+
+  function estimateJlptScore(correct, total) {
+    const t = Number(total || 0);
+    if (!t) return 0;
+    return Math.max(0, Math.min(JLPT_SCORE_MAX, Math.round((Number(correct || 0) / t) * JLPT_SCORE_MAX)));
+  }
+
+  function inferCefr(level, score) {
+    const lvl = String(level || '').toUpperCase();
+    const bands = JLPT_CEFR_BANDS[lvl] || JLPT_CEFR_BANDS.N5;
+    const s = Number(score);
+    if (!Number.isFinite(s)) return { label: '—', range: '' };
+    const found = bands.find(b => s >= b.min);
+    return found || { label: '—', range: '' };
+  }
+
   function computeStats() {
     const qs       = Array.isArray(window.questions) ? window.questions : [];
     const ans      = window.answers && typeof window.answers === 'object' ? window.answers : {};
@@ -421,7 +446,10 @@
         percentage: items.length ? Math.round((crt / items.length) * 10000) / 100 : 0,
       };
     }
-    return { answered, correct, wrong, total, percent, sectionScores };
+    const metaLevel = String(examMetaFromPath().level || 'N5').toUpperCase();
+    const jlptScore = estimateJlptScore(correct, total);
+    const cefr = inferCefr(metaLevel, jlptScore);
+    return { answered, correct, wrong, total, percent, sectionScores, jlptScore, cefr };
   }
 
   function remainingSeconds() {
@@ -451,7 +479,9 @@
       total_questions:  Number(stats.total || 0),
       timer_remaining:  rem,
       answers:          window.answers && typeof window.answers === 'object' ? window.answers : {},
-      score:            stats.correct,
+      score:            stats.jlptScore,
+      score_max:        JLPT_SCORE_MAX,
+      cefr_level:       stats.cefr.label,
       correct_count:    stats.correct,
       wrong_count:      done ? Math.max(Number(stats.total || 0) - stats.correct, 0) : stats.wrong,
       percentage:       stats.percent,

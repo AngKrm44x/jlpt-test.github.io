@@ -810,7 +810,7 @@ body.sidebar-open .menu-fab{
       📋 <span data-i18n="examHistory">Exam History</span>
     </button>
     <button class="history-btn" onclick="openSecurityModal()" style="background:rgba(90,169,255,.12);border:1px solid rgba(90,169,255,.3);color:#7cc0ff;">
-      🔐 Keamanan Akun
+      🔐 <span data-i18n="securityAccount">Keamanan Akun</span>
     </button>
     <button class="logout-btn-sm" onclick="doLogout()">
       🚪 <span data-i18n="logout">Logout</span>
@@ -1869,6 +1869,60 @@ function saveHistory(arr){
   localStorage.setItem(HISTORY_KEY, JSON.stringify(arr));
 }
 
+const JLPT_RESULT_META = {
+  N5: { pass: 80, bands: [
+    { min: 80, label: 'A1', range: '80–180' },
+    { min: 0,  label: 'A0', range: '0–79' },
+  ]},
+  N4: { pass: 90, bands: [
+    { min: 90, label: 'A2', range: '90–180' },
+    { min: 80, label: 'A1', range: '80–89' },
+    { min: 0,  label: 'A0', range: '0–79' },
+  ]},
+  N3: { pass: 95, bands: [
+    { min: 104, label: 'B1', range: '104–180' },
+    { min: 90,  label: 'A2', range: '90–103' },
+    { min: 0,   label: 'A1', range: '0–89' },
+  ]},
+  N2: { pass: 90, bands: [
+    { min: 112, label: 'B2', range: '112–180' },
+    { min: 90,  label: 'B1', range: '90–111' },
+    { min: 0,   label: 'A2', range: '0–89' },
+  ]},
+  N1: { pass: 100, bands: [
+    { min: 142, label: 'C1', range: '142–180' },
+    { min: 100, label: 'B2', range: '100–141' },
+    { min: 90,  label: 'B1', range: '90–99' },
+    { min: 0,   label: 'A2', range: '0–89' },
+  ]},
+};
+
+function inferCefr(level, score){
+  const lvl = String(level || '').toUpperCase();
+  const meta = JLPT_RESULT_META[lvl] || JLPT_RESULT_META.N5;
+  const scoreNum = Number(score);
+  if (!Number.isFinite(scoreNum)) return { label: '—', range: '' };
+  const found = (meta.bands || []).find(b => scoreNum >= b.min);
+  return found ? { label: found.label, range: found.range } : { label: '—', range: '' };
+}
+
+function formatHistoryScore(entry){
+  const score = Number(entry?.score);
+  if (!Number.isFinite(score)) return null;
+  const max = Number(entry?.score_max);
+  if (Number.isFinite(max) && max > 0) return `${Math.round(score)}/${Math.round(max)}`;
+  if (entry?.percentage != null) return `${Math.round(Number(entry.percentage))}%`;
+  return `${Math.round(score)}`;
+}
+
+function buildScoreSummary(entry){
+  const base = formatHistoryScore(entry);
+  if (!base) return null;
+  const cefr = entry?.cefr ? String(entry.cefr) : '';
+  return cefr ? `${base} · ${cefr}` : base;
+}
+
+
 // Mark an exam as completed (called from exam page via postMessage OR from recordExamOpen)
 // For true "completed" tracking: exam pages should postMessage back.
 // For now we track when user returns from exam (visibility change).
@@ -1901,23 +1955,49 @@ document.addEventListener('visibilitychange', ()=>{
     if(!pending) return;
     try{
       const p = JSON.parse(pending);
-      // Mark as completed
-      completeExam(p.key, p.name, p.level, p.year);
+      let result = null;
+      try {
+        const rawResult = sessionStorage.getItem('jlpt_exam_result');
+        if (rawResult) {
+          const parsed = JSON.parse(rawResult);
+          if (!parsed || !parsed.key || parsed.key === p.key) result = parsed;
+        }
+      } catch (e) {}
+      // Mark as completed and keep the JLPT score if the exam page supplied it
+      if (result) {
+        completeExam(p.key, p.name, p.level, p.year, result.score, result);
+        sessionStorage.removeItem('jlpt_exam_result');
+      } else {
+        completeExam(p.key, p.name, p.level, p.year);
+      }
       sessionStorage.removeItem('jlpt_pending_exam');
     }catch(e){}
   }
 });
 
-function completeExam(examKey, examName, level, year, score){
+function completeExam(examKey, examName, level, year, score, details = {}){
+  if (score && typeof score === 'object' && !Array.isArray(score)) {
+    details = score;
+    score = details.score ?? details.jlptScore ?? details.percentage ?? null;
+  }
   const history = loadHistory();
   // Prevent duplicate — update if exists, add if not
   const existing = history.findIndex(h => h.key === examKey);
+  const normalizedScore = Number(score);
+  const inferred = inferCefr(level, normalizedScore);
+  const scoreMax = Number(details?.scoreMax ?? details?.score_max ?? 180);
   const entry = {
     key: examKey,
     name: examName,
     level,
     year,
-    score: score || null,
+    score: Number.isFinite(normalizedScore) ? Math.round(normalizedScore) : null,
+    score_max: Number.isFinite(scoreMax) && scoreMax > 0 ? Math.round(scoreMax) : 180,
+    cefr: details?.cefr || inferred.label,
+    cefr_range: details?.cefrRange || details?.cefr_range || inferred.range || '',
+    correct: details?.correct ?? null,
+    total: details?.total ?? null,
+    percentage: details?.percentage ?? null,
     completedAt: new Date().toISOString(),
     count: (existing >= 0 ? (history[existing].count||1)+1 : 1)
   };
@@ -1960,8 +2040,9 @@ function renderHistoryList(){
     const d = new Date(h.completedAt);
     const dateStr = d.toLocaleDateString(currentLang==='ja'?'ja-JP':currentLang==='id'?'id-ID':'en-GB',{year:'numeric',month:'short',day:'2-digit'});
     const timeStr = d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+    const scoreSummary = buildScoreSummary(h);
     const scoreHtml = h.score != null
-      ? `<div class="hi-score-num ${h.score>=60?'pass':'fail'}">${h.score}</div><div class="hi-score-label">pts</div>`
+      ? `<div class="hi-score-num ${Number(h.score)>= (Number(h.score_max)||180)/2 ? 'pass':'fail'}">${scoreSummary || h.score}</div><div class="hi-score-label">${scoreSummary ? `${t('estimated')} / ${Number(h.score_max)||180}` : t('completed')}</div>`
       : `<div class="hi-score-num na">—</div><div class="hi-score-label">${t('completed')}</div>`;
     const timesLabel = h.count > 1
       ? `<span style="margin-left:6px;font-size:11px;color:#5aa9ff;">×${h.count}</span>` : '';
@@ -2243,7 +2324,11 @@ function updateCompletedBadges(){
     const key    = card.dataset.examkey;
     const entry  = doneMap.get(key);
     const stamp  = card.querySelector('.done-stamp');
-    if(stamp) stamp.classList.toggle('show', !!entry);
+    const scoreText = buildScoreSummary(entry);
+    if(stamp) {
+      stamp.classList.toggle('show', !!entry);
+      if (entry) stamp.textContent = scoreText ? `✓ ${scoreText}` : '✓ Completed';
+    }
 
     // Score badge
     let badge = card.querySelector('.jlpt-score-badge');
@@ -2261,12 +2346,10 @@ function updateCompletedBadges(){
         ].join(';');
         card.appendChild(badge);
       }
-      const pct  = Number(entry.score);
-      const pass = pct >= 60;
-      badge.textContent        = `Skor: ${pct}%`;
-      badge.style.background   = pass ? 'rgba(25,195,125,.22)' : 'rgba(255,79,109,.22)';
-      badge.style.border       = `1px solid ${pass ? 'rgba(25,195,125,.5)' : 'rgba(255,79,109,.5)'}`;
-      badge.style.color        = pass ? '#5ff0b0' : '#ff9aaa';
+      badge.textContent        = scoreText || `${Math.round(Number(entry.score))}`;
+      badge.style.background   = 'rgba(90,169,255,.18)';
+      badge.style.border       = '1px solid rgba(90,169,255,.35)';
+      badge.style.color        = '#7cc0ff';
     } else if(badge){
       badge.remove();
     }
@@ -2289,13 +2372,17 @@ async function syncExamScoresFromSupabase(){
   let changed = false;
   sessions.forEach(s => {
     const idx = history.findIndex(h => h.key === s.exam_key);
-    const score = s.percentage != null ? Math.round(Number(s.percentage)) : (s.score ?? null);
-    if(idx >= 0 && history[idx].score == null && score != null){
-      history[idx].score = score; changed = true;
+    const score = s.score != null ? Number(s.score) : (s.percentage != null ? Math.round(Number(s.percentage)) : null);
+    const scoreNum = score != null ? Number(score) : null;
+    if(idx >= 0 && history[idx].score == null && scoreNum != null){
+      history[idx].score = scoreNum;
+      history[idx].score_max = history[idx].score_max || 180;
+      history[idx].cefr = history[idx].cefr || inferCefr(history[idx].level, scoreNum).label;
+      changed = true;
     } else if(idx < 0){
       history.unshift({
         key: s.exam_key, name: s.exam_key, level: (s.exam_key||'').toUpperCase().slice(0,2),
-        year: '', score, completedAt: s.completed_at || new Date().toISOString(), count: 1,
+        year: '', score: scoreNum, score_max: 180, cefr: inferCefr((s.exam_key||'').toUpperCase().slice(0,2), scoreNum).label, completedAt: s.completed_at || new Date().toISOString(), count: 1,
       });
       changed = true;
     }
