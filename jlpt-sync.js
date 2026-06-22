@@ -823,13 +823,14 @@
     if (!badge) {
       badge = document.createElement('div');
       badge.className = 'jlpt-lock-badge';
-      badge.style.cssText = 'position:absolute;top:16px;right:16px;padding:4px 10px;border-radius:999px;font-size:10px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;z-index:5;';
+      // top:42px puts it BELOW the NEW badge (which sits at top:16px) so they don't overlap
+      badge.style.cssText = 'position:absolute;top:42px;right:14px;padding:3px 9px;border-radius:999px;font-size:10px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;z-index:5;pointer-events:none;';
       card.appendChild(badge);
     }
-    badge.textContent       = text;
-    badge.style.color       = color;
-    badge.style.background  = background;
-    badge.style.border      = `1px solid ${borderColor || color}`;
+    badge.textContent      = text;
+    badge.style.color      = color;
+    badge.style.background = background;
+    badge.style.border     = `1px solid ${borderColor || color}`;
   }
 
   function setCardLockedState(card, locked) {
@@ -1192,10 +1193,13 @@
         <!-- Time Filter Bar -->
         <div style="display:flex;gap:6px;flex-wrap:wrap;padding:12px 18px;border-bottom:1px solid var(--border);background:rgba(255,255,255,.015);">
           <span style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.06em;align-self:center;margin-right:4px;">Filter:</span>
-          ${['all','15m','30m','1h','today','week','month'].map(f => {
-            const label = {all:'Semua','15m':'15 mnt','30m':'30 mnt','1h':'1 jam',today:'Hari ini',week:'Minggu ini',month:'Bulan ini'}[f];
-            return `<button class="jlpt-live-time-btn topbar-btn" data-live-filter="${f}" style="padding:6px 12px;font-size:12px;">${label}</button>`;
-          }).join('')}
+          <button class="jlpt-live-time-btn topbar-btn" data-live-filter="all"   style="padding:6px 12px;font-size:12px;">Semua</button>
+          <button class="jlpt-live-time-btn topbar-btn" data-live-filter="15m"   style="padding:6px 12px;font-size:12px;">15 mnt</button>
+          <button class="jlpt-live-time-btn topbar-btn" data-live-filter="30m"   style="padding:6px 12px;font-size:12px;">30 mnt</button>
+          <button class="jlpt-live-time-btn topbar-btn" data-live-filter="1h"    style="padding:6px 12px;font-size:12px;">1 jam</button>
+          <button class="jlpt-live-time-btn topbar-btn" data-live-filter="today" style="padding:6px 12px;font-size:12px;">Hari ini</button>
+          <button class="jlpt-live-time-btn topbar-btn" data-live-filter="week"  style="padding:6px 12px;font-size:12px;">Minggu ini</button>
+          <button class="jlpt-live-time-btn topbar-btn" data-live-filter="month" style="padding:6px 12px;font-size:12px;">Bulan ini</button>
         </div>
         <div style="overflow:auto;">
           <table style="width:100%;border-collapse:collapse;">
@@ -1233,10 +1237,13 @@
         <!-- Time Filter Bar -->
         <div style="display:flex;gap:6px;flex-wrap:wrap;padding:12px 18px;border-bottom:1px solid var(--border);background:rgba(255,255,255,.015);align-items:center;">
           <span style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-right:4px;">Filter waktu:</span>
-          ${['all','15m','30m','1h','today','week','month'].map(f => {
-            const label = {all:'Semua','15m':'15 mnt','30m':'30 mnt','1h':'1 jam',today:'Hari ini',week:'Minggu ini',month:'Bulan ini'}[f];
-            return `<button class="jlpt-results-time-btn topbar-btn" data-results-filter="${f}" style="padding:6px 12px;font-size:12px;">${label}</button>`;
-          }).join('')}
+          <button class="jlpt-results-time-btn topbar-btn" data-results-filter="all"   style="padding:6px 12px;font-size:12px;">Semua</button>
+          <button class="jlpt-results-time-btn topbar-btn" data-results-filter="15m"   style="padding:6px 12px;font-size:12px;">15 mnt</button>
+          <button class="jlpt-results-time-btn topbar-btn" data-results-filter="30m"   style="padding:6px 12px;font-size:12px;">30 mnt</button>
+          <button class="jlpt-results-time-btn topbar-btn" data-results-filter="1h"    style="padding:6px 12px;font-size:12px;">1 jam</button>
+          <button class="jlpt-results-time-btn topbar-btn" data-results-filter="today" style="padding:6px 12px;font-size:12px;">Hari ini</button>
+          <button class="jlpt-results-time-btn topbar-btn" data-results-filter="week"  style="padding:6px 12px;font-size:12px;">Minggu ini</button>
+          <button class="jlpt-results-time-btn topbar-btn" data-results-filter="month" style="padding:6px 12px;font-size:12px;">Bulan ini</button>
           <span id="jlpt-results-selected-label" style="margin-left:auto;font-size:12px;color:var(--muted);"></span>
         </div>
         <div style="overflow:auto;">
@@ -1320,13 +1327,7 @@
       updateResultsSelectionLabel(root);
     });
 
-    // Export selected
-    root.querySelector('#jlpt-export-selected-xlsx')?.addEventListener('click', async () => {
-      const checked = Array.from(root.querySelectorAll('.jlpt-row-check:checked'))
-        .map(cb => ({ user_id: cb.dataset.userId, exam_key: cb.dataset.examKey }));
-      if (!checked.length) { toast('⚠️ Centang setidaknya satu baris dulu'); return; }
-      await exportResultsExcel(checked);
-    });
+    root.querySelector('#jlpt-export-xlsx')?.addEventListener('click', () => exportResultsExcel());
     root.querySelector('#jlpt-select-all-exams')?.addEventListener('click', () => {
       const boxes = root.querySelectorAll('.jlpt-lock-check');
       const all   = Array.from(boxes).every(b => b.checked);
@@ -1344,7 +1345,6 @@
     });
     root.querySelector('#jlpt-exam-search')?.addEventListener('input',  () => renderAdminControlUI());
     root.querySelector('#jlpt-exam-level')?.addEventListener('change',  () => renderAdminControlUI());
-    root.querySelector('#jlpt-export-xlsx')?.addEventListener('click',  () => exportResultsExcel());
 
     bindAdminActionDelegates(root);
     bindAdminActionDelegates(document);
@@ -1459,7 +1459,7 @@
       if (!scoreBadge) {
         scoreBadge = document.createElement('div');
         scoreBadge.className = 'jlpt-score-badge';
-        scoreBadge.style.cssText = 'position:absolute;bottom:14px;left:14px;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:800;z-index:6;backdrop-filter:blur(4px);';
+        scoreBadge.style.cssText = 'position:absolute;bottom:80px;left:14px;padding:3px 9px;border-radius:999px;font-size:10px;font-weight:800;z-index:6;pointer-events:none;backdrop-filter:blur(4px);';
         card.appendChild(scoreBadge);
       }
       const pct = Number(percentage || 0);
@@ -1673,6 +1673,19 @@ function bindAdminActionDelegates(root = document) {
   root.__jlptActionDelegatesBound = true;
 
   root.addEventListener('click', async (e) => {
+    // ── Export SELECTED rows ────────────────────────────────────────────────
+    if (e.target?.closest?.('#jlpt-export-selected-xlsx')) {
+      e.preventDefault(); e.stopPropagation();
+      const checked = Array.from(document.querySelectorAll('.jlpt-row-check:checked'))
+        .map(cb => ({ user_id: cb.dataset.userId, exam_key: cb.dataset.examKey }))
+        .filter(r => r.user_id && r.exam_key);
+      if (!checked.length) { toast('⚠️ Centang setidaknya satu baris dulu'); return; }
+      try { await exportResultsExcel(checked); }
+      catch (err) { console.error('[jlpt-sync] export-selected failed:', err); }
+      return;
+    }
+
+    // ── Export ALL rows ─────────────────────────────────────────────────────
     const exportBtn = e.target?.closest?.('#jlpt-export-xlsx');
     if (exportBtn) {
       e.preventDefault();

@@ -107,12 +107,13 @@ h1{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;letter-spacing:-
 
 /* DONE BADGE on card */
 .done-stamp{
-  position:absolute;bottom:76px;right:16px;
+  position:absolute;bottom:80px;right:14px;
   background:rgba(25,195,125,.15);border:1.5px solid rgba(25,195,125,.4);
-  color:#5ff0b0;font-size:10px;font-weight:800;padding:4px 10px;border-radius:999px;
+  color:#5ff0b0;font-size:10px;font-weight:800;padding:3px 9px;border-radius:999px;
   letter-spacing:.5px;text-transform:uppercase;display:none;
   align-items:center;gap:4px;
   animation:fadeInBadge .4s ease;
+  pointer-events:none;
 }
 .done-stamp.show{display:flex;}
 @keyframes fadeInBadge{from{opacity:0;transform:scale(.8);}to{opacity:1;transform:scale(1);}}
@@ -1382,14 +1383,14 @@ body.sidebar-open .menu-fab{
 <div class="modal-overlay" id="securityModal">
   <div class="modal modal-wide">
     <div class="modal-title" style="background:linear-gradient(135deg,#5aa9ff,#b69cff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">
-      🔐 Keamanan Akun
+      🔐 <span data-i18n="securityAccount">Keamanan Akun</span>
     </div>
 
     <!-- Login History -->
     <div style="margin-bottom:18px;">
-      <div style="font-size:13px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">🕐 Riwayat Login &amp; Device</div>
+      <div style="font-size:13px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">🕐 <span data-i18n="loginHistory">Riwayat Login &amp; Device</span></div>
       <div id="loginHistoryList" style="display:flex;flex-direction:column;gap:8px;">
-        <div style="color:var(--muted);font-size:13px;">Memuat...</div>
+        <div style="color:var(--muted);font-size:13px;" data-i18n="loadingHistory">Memuat...</div>
       </div>
     </div>
 
@@ -1399,10 +1400,10 @@ body.sidebar-open .menu-fab{
     <!-- Action buttons -->
     <div style="display:flex;flex-direction:column;gap:10px;">
       <button onclick="openChangePasswordModal()" style="padding:13px;border-radius:12px;background:rgba(90,169,255,.12);border:1px solid rgba(90,169,255,.3);color:#7cc0ff;font-size:14px;font-weight:700;cursor:pointer;text-align:left;">
-        🔑 Ganti Password
+        🔑 <span data-i18n="changePassword">Ganti Password</span>
       </button>
       <button onclick="openDeleteAccountModal()" style="padding:13px;border-radius:12px;background:rgba(255,79,109,.08);border:1px solid rgba(255,79,109,.25);color:#ff9aaa;font-size:14px;font-weight:700;cursor:pointer;text-align:left;">
-        🗑️ Hapus Akun
+        🗑️ <span data-i18n="deleteAccount">Hapus Akun</span>
       </button>
     </div>
 
@@ -1416,22 +1417,22 @@ body.sidebar-open .menu-fab{
 <div class="modal-overlay" id="changePasswordModal">
   <div class="modal">
     <div class="modal-title" style="background:linear-gradient(135deg,#5aa9ff,#b69cff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">
-      🔑 Ganti Password
+      🔑 <span data-i18n="changePassword">Ganti Password</span>
     </div>
     <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:6px;">
       <div>
-        <label style="font-size:12px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.06em;">Password Baru</label>
+        <label style="font-size:12px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.06em;" data-i18n="newPassword">Password Baru</label>
         <div style="position:relative;margin-top:6px;">
-          <input id="newPasswordInput" type="password" placeholder="Minimal 6 karakter" autocomplete="new-password"
+          <input id="newPasswordInput" type="password" data-i18n-placeholder="pwPlaceholder" placeholder="Minimal 6 karakter" autocomplete="new-password"
             style="width:100%;padding:12px 44px 12px 14px;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:14px;box-sizing:border-box;">
           <button onclick="togglePwVis('newPasswordInput','eyeNew')" id="eyeNew"
             style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;color:var(--muted);">👁</button>
         </div>
       </div>
       <div>
-        <label style="font-size:12px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.06em;">Konfirmasi Password Baru</label>
+        <label style="font-size:12px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.06em;" data-i18n="confirmPassword">Konfirmasi Password Baru</label>
         <div style="position:relative;margin-top:6px;">
-          <input id="confirmPasswordInput" type="password" placeholder="Ulangi password baru" autocomplete="new-password"
+          <input id="confirmPasswordInput" type="password" data-i18n-placeholder="pwConfirmPlaceholder" placeholder="Ulangi password baru" autocomplete="new-password"
             style="width:100%;padding:12px 44px 12px 14px;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:14px;box-sizing:border-box;">
           <button onclick="togglePwVis('confirmPasswordInput','eyeConfirm')" id="eyeConfirm"
             style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;color:var(--muted);">👁</button>
@@ -1443,8 +1444,8 @@ body.sidebar-open .menu-fab{
       <div id="pwHint" style="font-size:12px;color:var(--muted);"></div>
     </div>
     <div class="modal-actions">
-      <button class="modal-cancel" onclick="closeModal('changePasswordModal')">Batal</button>
-      <button class="modal-save" onclick="doChangePassword()">🔑 Simpan Password</button>
+      <button class="modal-cancel" onclick="closeModal('changePasswordModal')" data-i18n="cancel">Batal</button>
+      <button class="modal-save" onclick="doChangePassword()" data-i18n="savePassword">🔑 Simpan Password</button>
     </div>
   </div>
 </div>
@@ -1452,19 +1453,19 @@ body.sidebar-open .menu-fab{
 <!-- ======== DELETE ACCOUNT MODAL ======== -->
 <div class="modal-overlay" id="deleteAccountModal">
   <div class="modal">
-    <div class="modal-title" style="color:#ff9aaa;">⚠️ Hapus Akun</div>
-    <p style="font-size:14px;line-height:1.7;color:var(--muted);margin-bottom:16px;">
+    <div class="modal-title" style="color:#ff9aaa;">⚠️ <span data-i18n="deleteAccount">Hapus Akun</span></div>
+    <p style="font-size:14px;line-height:1.7;color:var(--muted);margin-bottom:16px;" data-i18n="deleteWarning">
       Tindakan ini <strong style="color:#ff9aaa;">tidak bisa dibatalkan</strong>. Semua data progress, riwayat ujian, dan akun kamu akan dihapus permanen.
     </p>
     <div style="margin-bottom:14px;">
-      <label style="font-size:12px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.06em;">Ketik <strong style="color:#ff9aaa;">HAPUS</strong> untuk konfirmasi</label>
-      <input id="deleteConfirmInput" type="text" placeholder="HAPUS"
+      <label style="font-size:12px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.06em;" data-i18n="deleteConfirmHint">Ketik <strong style="color:#ff9aaa;">HAPUS</strong> untuk konfirmasi</label>
+      <input id="deleteConfirmInput" type="text" data-i18n-placeholder="deleteConfirmWord" placeholder="HAPUS"
         style="width:100%;margin-top:8px;padding:12px 14px;background:rgba(255,79,109,.06);border:1px solid rgba(255,79,109,.3);border-radius:10px;color:var(--text);font-size:14px;box-sizing:border-box;">
     </div>
     <div class="modal-actions">
-      <button class="modal-cancel" style="flex:1;" onclick="closeModal('deleteAccountModal')">Batal, Saya Aman</button>
+      <button class="modal-cancel" style="flex:1;" onclick="closeModal('deleteAccountModal')" data-i18n="deleteCancel">Batal, Saya Aman</button>
       <button id="deleteAccountBtn" class="modal-save" onclick="doDeleteAccount()"
-        style="background:rgba(255,79,109,.2);border:1px solid rgba(255,79,109,.4);color:#ff9aaa;" disabled>🗑️ Hapus Akun</button>
+        style="background:rgba(255,79,109,.2);border:1px solid rgba(255,79,109,.4);color:#ff9aaa;" disabled data-i18n="deleteBtn">🗑️ Hapus Akun</button>
     </div>
   </div>
 </div>
@@ -1525,6 +1526,18 @@ const TRANSLATIONS = {
     sidebarOfficial:'Situs resmi',sidebarAccount:'Akun',
     navHistory:'Riwayat Ujian',navHistorySub:'Lihat progres kamu',
     navLogout:'Keluar',navLogoutSub:'Akhiri sesi',
+    securityAccount:'Keamanan Akun',loginHistory:'Riwayat Login & Device',
+    loadingHistory:'Memuat riwayat login...', noHistory:'Belum ada riwayat login tersimpan.',
+    thisDevice:'Perangkat ini', logoutDevice:'Logout', revokeConfirm:'Logout perangkat ini? Sesi di perangkat tersebut akan berakhir.',
+    changePassword:'Ganti Password', deleteAccount:'Hapus Akun',
+    newPassword:'Password Baru', confirmPassword:'Konfirmasi Password Baru',
+    pwPlaceholder:'Minimal 6 karakter', pwConfirmPlaceholder:'Ulangi password baru',
+    pwWeak:'Lemah', pwFair:'Cukup', pwStrong:'Kuat', pwStrength:'Kekuatan',
+    savePassword:'🔑 Simpan Password', passwordMismatch:'⚠️ Konfirmasi password tidak cocok',
+    passwordTooShort:'⚠️ Password minimal 6 karakter', passwordChanged:'✅ Password berhasil diubah!',
+    deleteWarning:'Tindakan ini tidak bisa dibatalkan. Semua data progress, riwayat ujian, dan akun kamu akan dihapus permanen.',
+    deleteConfirmHint:'Ketik HAPUS untuk konfirmasi', deleteConfirmWord:'HAPUS',
+    deleteCancel:'Batal, Saya Aman', deleteBtn:'🗑️ Hapus Akun', accountDeleted:'🗑️ Akun dihapus. Sampai jumpa!',
   },
   en: {
     heroTitle:'日本語能力　模擬試験　過去問題集',
@@ -1553,6 +1566,18 @@ const TRANSLATIONS = {
     sidebarOfficial:'Official sites',sidebarAccount:'Account',
     navHistory:'Exam History',navHistorySub:'View your progress',
     navLogout:'Logout',navLogoutSub:'End session',
+    securityAccount:'Account Security',loginHistory:'Login History & Devices',
+    loadingHistory:'Loading login history...', noHistory:'No login history saved yet.',
+    thisDevice:'This device', logoutDevice:'Logout', revokeConfirm:'Log out this device? The session on that device will end.',
+    changePassword:'Change Password', deleteAccount:'Delete Account',
+    newPassword:'New Password', confirmPassword:'Confirm New Password',
+    pwPlaceholder:'Minimum 6 characters', pwConfirmPlaceholder:'Repeat new password',
+    pwWeak:'Weak', pwFair:'Fair', pwStrong:'Strong', pwStrength:'Strength',
+    savePassword:'🔑 Save Password', passwordMismatch:'⚠️ Password confirmation does not match',
+    passwordTooShort:'⚠️ Password must be at least 6 characters', passwordChanged:'✅ Password successfully changed!',
+    deleteWarning:'This action cannot be undone. All your progress data, exam history, and account will be permanently deleted.',
+    deleteConfirmHint:'Type DELETE to confirm', deleteConfirmWord:'DELETE',
+    deleteCancel:"Cancel, I'm Safe", deleteBtn:'🗑️ Delete Account', accountDeleted:'🗑️ Account deleted. Goodbye!',
   },
   ja: {
     heroTitle:'日本語能力　模擬試験　過去問題集',
@@ -1581,6 +1606,18 @@ const TRANSLATIONS = {
     sidebarOfficial:'公式サイト',sidebarAccount:'アカウント',
     navHistory:'受験履歴',navHistorySub:'進捗を確認',
     navLogout:'ログアウト',navLogoutSub:'セッションを終了',
+    securityAccount:'アカウントセキュリティ',loginHistory:'ログイン履歴・デバイス',
+    loadingHistory:'ログイン履歴を読み込み中...', noHistory:'ログイン履歴はまだありません。',
+    thisDevice:'このデバイス', logoutDevice:'ログアウト', revokeConfirm:'このデバイスからログアウトしますか？そのデバイスのセッションが終了します。',
+    changePassword:'パスワード変更', deleteAccount:'アカウント削除',
+    newPassword:'新しいパスワード', confirmPassword:'新しいパスワードを確認',
+    pwPlaceholder:'6文字以上', pwConfirmPlaceholder:'新しいパスワードを再入力',
+    pwWeak:'弱い', pwFair:'普通', pwStrong:'強い', pwStrength:'強度',
+    savePassword:'🔑 パスワードを保存', passwordMismatch:'⚠️ パスワードの確認が一致しません',
+    passwordTooShort:'⚠️ パスワードは6文字以上にしてください', passwordChanged:'✅ パスワードが正常に変更されました！',
+    deleteWarning:'この操作は取り消せません。すべての進捗データ、受験履歴、アカウントが完全に削除されます。',
+    deleteConfirmHint:'確認のために「削除」と入力してください', deleteConfirmWord:'削除',
+    deleteCancel:'キャンセル', deleteBtn:'🗑️ アカウントを削除', accountDeleted:'🗑️ アカウントが削除されました。さようなら！',
   }
 };
 
@@ -1593,6 +1630,12 @@ function applyLang(){
     const key = el.getAttribute('data-i18n');
     const val = t(key);
     if(val) el.textContent = val;
+  });
+  // Apply placeholder translations (inputs with data-i18n-placeholder)
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el=>{
+    const key = el.getAttribute('data-i18n-placeholder');
+    const val = t(key);
+    if(val) el.placeholder = val;
   });
   // update search placeholder
   updatePlaceholders();
@@ -2074,10 +2117,10 @@ async function openSecurityModal(){
 
 async function loadLoginHistory(){
   const list = document.getElementById('loginHistoryList');
-  list.innerHTML = '<div style="color:var(--muted);font-size:13px;">Memuat riwayat login...</div>';
+  list.innerHTML = `<div style="color:var(--muted);font-size:13px;">${t('loadingHistory')}</div>`;
   let _ctx;
   try { _ctx = await getSupabase(); } catch(e){
-    list.innerHTML = '<div style="color:var(--muted);font-size:13px;">Tidak dapat memuat riwayat.</div>';
+    list.innerHTML = `<div style="color:var(--muted);font-size:13px;">${t('noHistory')}</div>`;
     return;
   }
   const { sb, session } = _ctx;
@@ -2089,7 +2132,7 @@ async function loadLoginHistory(){
     .order('last_seen', { ascending: false })
     .limit(10);
   if(error || !sessions?.length){
-    list.innerHTML = '<div style="color:var(--muted);font-size:13px;">Belum ada riwayat login tersimpan.</div>';
+    list.innerHTML = `<div style="color:var(--muted);font-size:13px;">${t('noHistory')}</div>`;
     return;
   }
   list.innerHTML = sessions.map(s => {
@@ -2100,23 +2143,23 @@ async function loadLoginHistory(){
     return `<div class="lh-item${isCurrent?' current-device':''}">
       <div class="lh-icon">${icon}</div>
       <div class="lh-body">
-        <div class="lh-device">${s.device_label||'Perangkat tidak dikenal'}</div>
+        <div class="lh-device">${s.device_label||t('noHistory')}</div>
         <div class="lh-meta">Login terakhir: ${timeAgo} · ${lastSeen.toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'})}</div>
       </div>
       ${isCurrent
-        ? '<span class="lh-badge">Perangkat ini</span>'
-        : `<button class="lh-revoke" onclick="revokeDevice('${s.device_id}','${s.id}')">Logout</button>`}
+        ? `<span class="lh-badge">${t('thisDevice')}</span>`
+        : `<button class="lh-revoke" onclick="revokeDevice('${s.device_id}','${s.id}')">${t('logoutDevice')}</button>`}
     </div>`;
   }).join('');
 }
 
 async function revokeDevice(deviceId, rowId){
-  if(!confirm('Logout perangkat ini? Sesi di perangkat tersebut akan berakhir.')) return;
+  if(!confirm(t('revokeConfirm'))) return;
   let _ctx;
   try { _ctx = await getSupabase(); } catch(e){ return; }
   const { sb } = _ctx;
   await sb.from('login_sessions').delete().eq('id', rowId).catch(()=>{});
-  showToast('✅ Perangkat berhasil di-logout');
+  showToast('✅ ' + t('logoutDevice') + ' OK');
   await loadLoginHistory();
 }
 
@@ -2125,8 +2168,10 @@ function openChangePasswordModal(){
   document.getElementById('confirmPasswordInput').value = '';
   document.getElementById('pwHint').textContent         = '';
   document.getElementById('pwStrengthFill').style.width = '0';
+  // Translate placeholders
+  document.getElementById('newPasswordInput').placeholder     = t('pwPlaceholder');
+  document.getElementById('confirmPasswordInput').placeholder = t('pwConfirmPlaceholder');
   openModal('changePasswordModal');
-  // Strength meter
   const inp = document.getElementById('newPasswordInput');
   inp.oninput = () => {
     const v = inp.value;
@@ -2140,50 +2185,48 @@ function openChangePasswordModal(){
     if(/[^A-Za-z0-9]/.test(v)) score++;
     const pct   = (score/5)*100;
     const color = score<=1?'#ff4f6d':score<=3?'#ffb347':'#19c37d';
-    const label = score<=1?'Lemah':score<=3?'Cukup':'Kuat';
+    const label = score<=1?t('pwWeak'):score<=3?t('pwFair'):t('pwStrong');
     fill.style.width=pct+'%'; fill.style.background=color;
-    hint.textContent=v.length?`Kekuatan: ${label}`:''; hint.style.color=color;
+    hint.textContent=v.length?`${t('pwStrength')}: ${label}`:''; hint.style.color=color;
   };
-}
-function togglePwVis(inputId, btnId){
-  const inp = document.getElementById(inputId);
-  const btn = document.getElementById(btnId);
-  if(inp.type==='password'){ inp.type='text'; btn.textContent='🙈'; }
-  else { inp.type='password'; btn.textContent='👁'; }
 }
 async function doChangePassword(){
   const pw1 = document.getElementById('newPasswordInput').value;
   const pw2 = document.getElementById('confirmPasswordInput').value;
-  if(!pw1||pw1.length<6){ showToast('⚠️ Password minimal 6 karakter'); return; }
-  if(pw1!==pw2){ showToast('⚠️ Konfirmasi password tidak cocok'); return; }
+  if(!pw1||pw1.length<6){ showToast(t('passwordTooShort')); return; }
+  if(pw1!==pw2){ showToast(t('passwordMismatch')); return; }
   let _ctx;
   try { _ctx = await getSupabase(); } catch(e){ showToast('❌ Tidak terautentikasi'); return; }
   const { sb } = _ctx;
   const { error } = await sb.auth.updateUser({ password: pw1 });
   if(error){ showToast('❌ Gagal: '+error.message); return; }
-  showToast('✅ Password berhasil diubah!');
+  showToast(t('passwordChanged'));
   closeModal('changePasswordModal');
   closeModal('securityModal');
 }
 
 function openDeleteAccountModal(){
-  document.getElementById('deleteConfirmInput').value = '';
-  document.getElementById('deleteAccountBtn').disabled = true;
+  const confirmWord = t('deleteConfirmWord');
+  document.getElementById('deleteConfirmInput').value       = '';
+  document.getElementById('deleteAccountBtn').disabled      = true;
+  document.getElementById('deleteAccountModal').querySelector('p').textContent = t('deleteWarning');
+  document.getElementById('deleteConfirmInput').placeholder = confirmWord;
   document.getElementById('deleteConfirmInput').oninput = e => {
-    document.getElementById('deleteAccountBtn').disabled = e.target.value.trim().toUpperCase() !== 'HAPUS';
+    document.getElementById('deleteAccountBtn').disabled =
+      e.target.value.trim().toUpperCase() !== confirmWord.toUpperCase();
   };
   openModal('deleteAccountModal');
 }
 async function doDeleteAccount(){
-  if(document.getElementById('deleteConfirmInput').value.trim().toUpperCase() !== 'HAPUS') return;
+  const confirmWord = t('deleteConfirmWord');
+  if(document.getElementById('deleteConfirmInput').value.trim().toUpperCase() !== confirmWord.toUpperCase()) return;
   let _ctx;
   try { _ctx = await getSupabase(); } catch(e){ showToast('❌ Tidak terautentikasi'); return; }
   const { sb, session } = _ctx;
   const uid = session.user.id;
-  // Soft-delete: mark status = deleted + clear personal data
   await sb.from('users').update({ status:'deleted', display_name:'[Dihapus]', avatar_url:null }).eq('id', uid).catch(()=>{});
   await sb.from('login_sessions').delete().eq('user_id', uid).catch(()=>{});
-  showToast('🗑️ Akun dihapus. Sampai jumpa!');
+  showToast(t('accountDeleted'));
   setTimeout(async () => {
     await sb.auth.signOut();
     window.location.replace('./auth.html');
@@ -2208,10 +2251,11 @@ function updateCompletedBadges(){
       if(!badge){
         badge = document.createElement('div');
         badge.className = 'jlpt-score-badge';
+        // bottom:80px left:14px → same row as done-stamp (right:14px) but left side
         badge.style.cssText = [
-          'position:absolute','bottom:14px','left:14px',
-          'padding:3px 10px','border-radius:999px',
-          'font-size:11px','font-weight:800',
+          'position:absolute','bottom:80px','left:14px',
+          'padding:3px 9px','border-radius:999px',
+          'font-size:10px','font-weight:800',
           'z-index:6','pointer-events:none',
           'backdrop-filter:blur(4px)',
         ].join(';');
@@ -2772,220 +2816,5 @@ setInterval(()=>{
 updateVisibleCount();
 </script>
 
-
-
-
-
-  <script type="module">
-(() => {
-  const SUPABASE_URL  = 'https://uincqpdexdenjcmwdfsv.supabase.co';
-  const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpbmNxcGRleGRlbmpjbXdkZnN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5MjM4ODEsImV4cCI6MjA5NTQ5OTg4MX0.Lf1N_P_iiNQ2hnRJhd-Quy9MLKlZFSzbnXtXCnmRCS0';
-
-  const state = {
-    client: null,
-    system: new Map(),
-    exams: new Map(),
-    initialized: false,
-    channel: null,
-    pollTimer: null,
-    lastApplied: '',
-  };
-
-  const toBool = (v) => {
-    if (typeof v === 'boolean') return v;
-    const s = String(v ?? '').trim().toLowerCase();
-    return ['1', 'true', 'yes', 'on', 'locked'].includes(s);
-  };
-
-  const getKeyFromHref = (href = '') => {
-    const s = String(href || '').replace(/\\/g, '/');
-    const m = s.match(/(\d{4})-(\d{2})-n([1-5])/i);
-    if (m) return `n${m[3]}-${m[1]}-${m[2]}`;
-    const m2 = s.match(/n([1-5])-(\d{4})-(\d{2})/i);
-    if (m2) return `n${m2[1]}-${m2[2]}-${m2[3]}`;
-    return '';
-  };
-
-  const toast = (msg) => {
-    try {
-      if (typeof window.showToast === 'function') return window.showToast(msg);
-      if (typeof window.alert === 'function') return window.alert(msg);
-    } catch {}
-    console.log('[JLPT INDEX LOCK]', msg);
-  };
-
-  const ensureBanner = () => {
-    let banner = document.getElementById('jlpt-index-lock-banner');
-    if (banner) return banner;
-    banner = document.createElement('div');
-    banner.id = 'jlpt-index-lock-banner';
-    banner.style.cssText = [
-      'display:none',
-      'margin:0 0 16px 0',
-      'padding:14px 16px',
-      'border-radius:18px',
-      'border:1px solid rgba(255,181,71,.28)',
-      'background:rgba(255,181,71,.10)',
-      'color:#ffd18a',
-      'font-size:13px',
-      'line-height:1.65',
-      'box-shadow:0 10px 30px rgba(0,0,0,.16)'
-    ].join(';');
-    banner.innerHTML = '<strong>🔒 Ujian sedang dikunci admin.</strong><br><span id="jlpt-index-lock-banner-text">Tunggu admin membuka akses ujian.</span>';
-
-    const hero = document.querySelector('.hero');
-    if (hero?.parentNode) hero.insertAdjacentElement('afterend', banner);
-    else (document.querySelector('.container') || document.body).prepend(banner);
-    return banner;
-  };
-
-  const setCardState = (card, locked, reason = '') => {
-    if (!card) return;
-    const btn = card.querySelector('.open-btn');
-    const stamp = card.querySelector('.done-stamp');
-
-    card.dataset.jlptLocked = locked ? '1' : '';
-    card.style.opacity = locked ? '0.72' : '';
-    card.style.filter = locked ? 'saturate(0.85)' : '';
-
-    if (btn) {
-      if (!btn.dataset.originalText) btn.dataset.originalText = btn.innerHTML;
-      if (!btn.dataset.originalHref) btn.dataset.originalHref = btn.getAttribute('href') || '';
-      if (locked) {
-        btn.setAttribute('aria-disabled', 'true');
-        btn.tabIndex = -1;
-        btn.style.pointerEvents = 'none';
-        btn.style.opacity = '0.48';
-        btn.style.filter = 'grayscale(0.2)';
-        btn.style.cursor = 'not-allowed';
-        btn.title = reason || 'Ujian sedang dikunci admin';
-        btn.innerHTML = 'LOCKED <span class="open-btn-arrow">🔒</span>';
-      } else {
-        btn.removeAttribute('aria-disabled');
-        btn.tabIndex = 0;
-        btn.style.pointerEvents = '';
-        btn.style.opacity = '';
-        btn.style.filter = '';
-        btn.style.cursor = '';
-        btn.title = '';
-        btn.innerHTML = btn.dataset.originalText || 'OPEN EXAM <span class="open-btn-arrow">→</span>';
-        btn.setAttribute('href', btn.dataset.originalHref || btn.getAttribute('href') || '');
-      }
-    }
-
-    if (stamp && locked) {
-      stamp.classList.remove('show');
-    }
-  };
-
-  const applyLocks = () => {
-    const globalLocked = toBool(state.system.get('exam_locked'));
-    const reason = state.system.get('exam_lock_reason') || '';
-    const rows = [...state.exams.values()];
-    const lockedCount = rows.filter((r) => r.locked).length;
-
-    const banner = ensureBanner();
-    const bannerText = banner.querySelector('#jlpt-index-lock-banner-text');
-    const showBanner = globalLocked || lockedCount > 0;
-
-    banner.style.display = showBanner ? 'block' : 'none';
-    if (bannerText) {
-      bannerText.textContent = globalLocked
-        ? (reason || 'Semua ujian sedang dikunci admin.')
-        : `${lockedCount} ujian sedang dikunci admin. Ujian lain tetap dapat dibuka.`;
-    }
-
-    document.querySelectorAll('.card[data-examkey]').forEach((card) => {
-      const key = String(card.dataset.examkey || '').toLowerCase();
-      const row = state.exams.get(key);
-      const locked = !!globalLocked || !!row?.locked;
-      setCardState(card, locked, row?.lock_reason || reason || '');
-    });
-  };
-
-  const fetchLockState = async () => {
-    if (!state.client) return false;
-    try {
-      const [{ data: sysData, error: sysErr }, { data: exData, error: exErr }] = await Promise.all([
-        state.client.from('system_settings').select('key,value,updated_at'),
-        state.client.from('exam_settings').select('exam_key,title,level,locked,lock_reason,updated_at'),
-      ]);
-      if (sysErr) throw sysErr;
-      if (exErr) throw exErr;
-
-      state.system = new Map((sysData || []).map((r) => [String(r.key || '').toLowerCase(), String(r.value ?? '')]));
-      state.exams = new Map((exData || []).map((r) => [String(r.exam_key || '').toLowerCase(), {
-        exam_key: String(r.exam_key || '').toLowerCase(),
-        locked: !!r.locked,
-        lock_reason: String(r.lock_reason || ''),
-        title: String(r.title || ''),
-        level: String(r.level || ''),
-        updated_at: r.updated_at || null,
-      }]));
-      return true;
-    } catch (err) {
-      console.warn('[index lock sync] failed to fetch lock state:', err?.message || err);
-      return false;
-    }
-  };
-
-  const syncNow = async () => {
-    const ok = await fetchLockState();
-    if (ok) applyLocks();
-
-    // Keep jlpt-sync in the loop if it exists, but do not depend on it.
-    try {
-      if (window.JLPT_SYNC?.renderIndexLockUI) window.JLPT_SYNC.renderIndexLockUI();
-    } catch {}
-  };
-
-  const setupRealtime = () => {
-    if (!state.client || state.channel) return;
-    try {
-      state.channel = state.client
-        .channel('jlpt-index-lock-sync')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'system_settings' }, syncNow)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'exam_settings' }, syncNow)
-        .subscribe();
-    } catch (err) {
-      console.warn('[index lock sync] realtime subscription failed:', err?.message || err);
-    }
-  };
-
-  const init = async () => {
-    if (state.initialized) return;
-    state.initialized = true;
-
-    try {
-      const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm');
-      state.client = window._supabase || createClient(SUPABASE_URL, SUPABASE_ANON);
-      if (!window._supabase) window._supabase = state.client;
-    } catch (err) {
-      console.warn('[index lock sync] supabase init failed:', err?.message || err);
-      return;
-    }
-
-    await syncNow();
-    setupRealtime();
-
-    // Fallback polling in case realtime is delayed/disabled.
-    state.pollTimer = window.setInterval(syncNow, 8000);
-
-    // Re-apply after the page becomes visible again.
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') syncNow();
-    });
-  };
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init, { once: true });
-  } else {
-    init();
-  }
-
-  window.JLPT_INDEX_LOCK_SYNC = { syncNow, applyLocks };
-})();
-</script>
-
-  <script type="module" src="./jlpt-sync.js?v=5"></script>
+  <script type="module" src="./jlpt-sync.js?v=6"></script>
 </body></html>
