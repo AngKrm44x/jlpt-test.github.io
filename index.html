@@ -1922,6 +1922,70 @@ function buildScoreSummary(entry){
   return cefr ? `${base} · ${cefr}` : base;
 }
 
+function normalizeExamResult(result) {
+  if (!result || !result.key) return null;
+  const score = Number(result.score);
+  const scoreMax = Number(result.scoreMax || result.score_max || 180);
+  const level = String(result.level || 'N5').toUpperCase();
+  return {
+    key: result.key,
+    name: result.name || result.title || result.key,
+    level,
+    year: result.year || '',
+    score: Number.isFinite(score) ? score : null,
+    score_max: Number.isFinite(scoreMax) && scoreMax > 0 ? scoreMax : 180,
+    cefr: result.cefr || inferCefr(level, score).label,
+    completedAt: result.completedAt || result.completed_at || new Date().toISOString(),
+    count: Number(result.count || 1),
+  };
+}
+
+function ingestStoredExamResults(){
+  try{
+    const history = loadHistory();
+    let changed = false;
+
+    for(let i=0; i<localStorage.length; i++){
+      const key = localStorage.key(i);
+      if(!key || !key.startsWith('jlpt_exam_result_') || key === 'jlpt_exam_result_latest') continue;
+      const raw = localStorage.getItem(key);
+      if(!raw) continue;
+      try{
+        const result = normalizeExamResult(JSON.parse(raw));
+        if(!result) continue;
+        const idx = history.findIndex(h => h.key === result.key);
+        if(idx >= 0){
+          history[idx] = { ...history[idx], ...result, count: (history[idx].count || 1) + 1 };
+        } else {
+          history.unshift(result);
+        }
+        changed = true;
+      }catch(e){}
+    }
+
+    const latestRaw = localStorage.getItem('jlpt_exam_result_latest');
+    if(latestRaw){
+      try{
+        const result = normalizeExamResult(JSON.parse(latestRaw));
+        if(result){
+          const idx = history.findIndex(h => h.key === result.key);
+          if(idx >= 0){
+            history[idx] = { ...history[idx], ...result, count: (history[idx].count || 1) + 1 };
+          } else {
+            history.unshift(result);
+          }
+          changed = true;
+        }
+      }catch(e){}
+      localStorage.removeItem('jlpt_exam_result_latest');
+    }
+
+    if(changed){
+      saveHistory(history);
+    }
+  }catch(e){}
+}
+
 
 // Mark an exam as completed (called from exam page via postMessage OR from recordExamOpen)
 // For true "completed" tracking: exam pages should postMessage back.
@@ -2106,6 +2170,7 @@ window.addEventListener('DOMContentLoaded', async () => {
 
   // Set per-user history key
   HISTORY_KEY = 'jlpt_history_' + session.user.id;
+  ingestStoredExamResults();
 
   const displayName = usr.display_name || usr.full_name || session.user.user_metadata?.full_name || session.user.email;
   const email = session.user.email;
@@ -2402,6 +2467,15 @@ window.__jlptInjectNotif = function(row){
   renderNotifList();
   showToast((notif.icon||'🔔') + ' ' + (notif.title[currentLang] || notif.title['id'] || 'Notifikasi baru'));
 };
+
+window.addEventListener('storage', (e) => {
+  if (!e.key) return;
+  if (e.key.startsWith('jlpt_exam_result_')) {
+    ingestStoredExamResults();
+    updateCompletedBadges();
+    updateCompletedStat();
+  }
+});
 
 // =============================================
 // LOGOUT
