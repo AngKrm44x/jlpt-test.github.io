@@ -463,45 +463,148 @@ function restoreAnswer(q){
 }
 function nextQ(){if(currentQ<questions.length-1){currentQ++;renderQuestion();}}
 function prevQ(){if(currentQ>0){currentQ--;renderQuestion();}}
+
+function resolveExamMeta(){
+  const base = (location.pathname.split('/').pop() || document.title || 'exam').replace(/\.[^.]+$/, '');
+  const m = base.match(/(\d{4})-(\d{2})-n([1-5])/i);
+  if (m) {
+    return {
+      key: `n${m[3]}-${m[1]}-${m[2]}`,
+      level: `N${m[3]}`,
+      year: m[1],
+      month: m[2],
+      title: (document.querySelector('#home h1')?.textContent || document.title || base).trim(),
+    };
+  }
+  return {
+    key: base.toLowerCase(),
+    level: 'N5',
+    year: '',
+    month: '',
+    title: (document.querySelector('#home h1')?.textContent || document.title || base).trim(),
+  };
+}
+
+const JLPT_RESULT_META = {
+  N5: { pass: 80, bands: [
+    { min: 80, label: 'A1', range: '80–180' },
+    { min: 0,  label: 'A0', range: '0–79' },
+  ]},
+  N4: { pass: 90, bands: [
+    { min: 90, label: 'A2', range: '90–180' },
+    { min: 80, label: 'A1', range: '80–89' },
+    { min: 0,  label: 'A0', range: '0–79' },
+  ]},
+  N3: { pass: 95, bands: [
+    { min: 104, label: 'B1', range: '104–180' },
+    { min: 90,  label: 'A2', range: '90–103' },
+    { min: 0,   label: 'A1', range: '0–89' },
+  ]},
+  N2: { pass: 90, bands: [
+    { min: 112, label: 'B2', range: '112–180' },
+    { min: 90,  label: 'B1', range: '90–111' },
+    { min: 0,   label: 'A2', range: '0–89' },
+  ]},
+  N1: { pass: 100, bands: [
+    { min: 142, label: 'C1', range: '142–180' },
+    { min: 100, label: 'B2', range: '100–141' },
+    { min: 90,  label: 'B1', range: '90–99' },
+    { min: 0,   label: 'A2', range: '0–89' },
+  ]},
+};
+
+function estimateJlptScore(correct, total) {
+  if (!Number.isFinite(Number(total)) || Number(total) <= 0) return 0;
+  return Math.max(0, Math.min(180, Math.round((Number(correct) / Number(total)) * 180)));
+}
+
+function inferCefr(level, score) {
+  const lvl = String(level || '').toUpperCase();
+  const meta = JLPT_RESULT_META[lvl] || JLPT_RESULT_META.N5;
+  const scoreNum = Number(score);
+  if (!Number.isFinite(scoreNum)) return { label: '—', range: '' };
+  const found = (meta.bands || []).find(b => scoreNum >= b.min);
+  return found ? { label: found.label, range: found.range } : { label: '—', range: '' };
+}
+
+function persistExamResult(result) {
+  try {
+    sessionStorage.setItem('jlpt_exam_result', JSON.stringify(result));
+  } catch (e) {}
+}
+
 function finishQuiz(){
   clearInterval(timerInterval);
-  const elapsed=Math.floor((Date.now()-startTime)/1000);
+  const elapsed = Math.floor((Date.now() - startTime) / 1000);
   showScreen('result');
-  const total=questions.length;
-  const correct=Object.values(answers).filter(a=>a.correct).length;
-  const wrong=Object.keys(answers).length-correct;
-  const pct=Math.round(correct/total*100);
-  document.getElementById('r-correct').textContent=correct;
-  document.getElementById('r-wrong').textContent=wrong;
-  document.getElementById('r-pct').textContent=pct+'%';
-  const mm=Math.floor(elapsed/60),ss=elapsed%60;
-  document.getElementById('r-time').textContent=mm+':'+ss.toString().padStart(2,'0');
-  document.getElementById('res-date').textContent=new Date().toLocaleString('ja-JP');
-  const secs=["文字・語彙","文法","読解"];
-  const sr=document.getElementById('section-results');sr.innerHTML='';
-  secs.forEach(s=>{
-    const qs=questions.filter(q=>q.sec===s);
-    if(!qs.length)return;
-    const c=qs.filter(q=>answers[q.id]?.correct).length;
-    const div=document.createElement('div');div.className='section-result';
-    div.innerHTML='<span>'+s+'</span><span style="font-family:var(--mono)">'+c+'/'+qs.length+' ('+Math.round(c/qs.length*100)+'%)</span>';
+
+  const total = questions.length || 0;
+  const correct = Object.values(answers).filter(a => a.correct).length;
+  const wrong = Math.max(Object.keys(answers).length - correct, 0);
+  const pct = total ? Math.round((correct / total) * 100) : 0;
+  const jlptScore = estimateJlptScore(correct, total);
+  const levelMeta = JLPT_RESULT_META.N5;
+  const cefr = inferCefr('N5', jlptScore);
+  const passed = jlptScore >= levelMeta.pass;
+
+  document.getElementById('r-correct').textContent = correct;
+  document.getElementById('r-wrong').textContent = wrong;
+  document.getElementById('r-pct').textContent = pct + '%';
+
+  const mm = Math.floor(elapsed / 60), ss = elapsed % 60;
+  document.getElementById('r-time').textContent = mm + ':' + ss.toString().padStart(2, '0');
+  document.getElementById('res-date').textContent = new Date().toLocaleString('ja-JP');
+
+  const secs = ["文字・語彙", "文法", "読解"];
+  const sr = document.getElementById('section-results');
+  sr.innerHTML = '';
+  secs.forEach(s => {
+    const qs = questions.filter(q => q.sec === s);
+    if (!qs.length) return;
+    const c = qs.filter(q => answers[q.id]?.correct).length;
+    const div = document.createElement('div');
+    div.className = 'section-result';
+    div.innerHTML = '<span>' + s + '</span><span style="font-family:var(--mono)">' + c + '/' + qs.length + ' (' + Math.round(c / qs.length * 100) + '%)</span>';
     sr.appendChild(div);
   });
-  const pass=pct>=60;
-  const pb=document.getElementById('pass-banner');
-  pb.className='pass-banner '+(pass?'pass':'fail');
-  document.getElementById('pass-text').textContent = pass ? T('pass_label') : T('fail_label');
-  document.getElementById('pass-sub').textContent = correct + T('q_of') + total + ' (' + pct + '%)';
-  document.getElementById('hs-done').textContent=total;
-  document.getElementById('hs-score').textContent=pct+'%';
-  document.getElementById('hs-pred').textContent=pass?'合格':'不合格';
-  document.getElementById('res-pred-h2').textContent = T('res_pred_title') + ' JLPT N5';
-  const pd=document.getElementById('prediction-detail');
-  pd.innerHTML='<p>📊 正答率 <strong>'+pct+'%</strong> ('+correct+'/'+total+'問)</p>'
-    +'<p>JLPT N5の合格基準: 総合得点 90/180点以上 + 各セクション最低ライン通過</p>'
-    +'<p>'+(pct>=70?'✅ 合格の可能性が高いです。':pct>=60?'⚠️ 合格ラインギリギリです。引き続き練習を。':'❌ 合格には更なる学習が必要です。')+'</p>';
+
+  const banner = document.getElementById('pass-banner');
+  banner.className = 'pass-banner ' + (passed ? 'pass' : 'fail');
+  document.getElementById('pass-text').textContent = `JLPT Score: ${jlptScore}/180`;
+  document.getElementById('pass-sub').textContent = `${correct}/${total} correct · CEFR ${cefr.label}${cefr.range ? ` (${cefr.range})` : ''} · Passing mark ${levelMeta.pass}/180`;
+
+  document.getElementById('hs-done').textContent = total;
+  document.getElementById('hs-score').textContent = `${jlptScore}/180`;
+  document.getElementById('hs-pred').textContent = cefr.label;
+  document.getElementById('res-pred-h2').textContent = `JLPT N5 · CEFR ${cefr.label}`;
+
+  const pd = document.getElementById('prediction-detail');
+  pd.innerHTML =
+    '<p>📊 JLPT Score estimate: <strong>' + jlptScore + '/180</strong> (' + correct + '/' + total + ' correct)</p>' +
+    '<p>🎯 Passing mark N5: 80/180</p>' +
+    '<p>🌐 CEFR estimate: <strong>' + cefr.label + '</strong>' + (cefr.range ? ' (' + cefr.range + ')' : '') + '</p>' +
+    '<p>ℹ️ Listening is not included in this sample, so the score is an estimate based on the available questions.</p>' +
+    '<p>' + (passed ? '✅ Pass line reached.' : '⚠️ More practice is needed to reach the passing line.') + '</p>';
+
+  persistExamResult({
+    key: resolveExamMeta().key,
+    name: resolveExamMeta().title,
+    level: resolveExamMeta().level,
+    year: resolveExamMeta().year,
+    score: jlptScore,
+    scoreMax: 180,
+    correct,
+    total,
+    percentage: pct,
+    cefr: cefr.label,
+    cefrRange: cefr.range,
+    passed,
+    completedAt: new Date().toISOString(),
+  });
+
   document.getElementById('print-pdf-btn').classList.add('show');
 }
+
 function reviewAnswers(){
   answers={};showScreen('quiz');buildProgressGrid();
   currentQ=0;renderQuestion();
