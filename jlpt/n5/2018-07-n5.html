@@ -531,6 +531,27 @@ function persistExamResult(result) {
   try {
     sessionStorage.setItem('jlpt_exam_result', JSON.stringify(result));
   } catch (e) {}
+  try {
+    const meta = resolveExamMeta();
+    if (meta?.key) {
+      localStorage.setItem(`jlpt_exam_result_${meta.key}`, JSON.stringify(result));
+      localStorage.setItem('jlpt_exam_result_latest', JSON.stringify(result));
+    }
+  } catch (e) {}
+}
+
+function getLocalizedResultLabel(key) {
+  return T(key);
+}
+
+function scoreMaxForResult(result) {
+  const max = Number(result?.scoreMax || result?.score_max || 180);
+  return Number.isFinite(max) && max > 0 ? max : 180;
+}
+
+function getResultSummary(result) {
+  if (!result || !Number.isFinite(Number(result.score))) return null;
+  return `${Math.round(Number(result.score))}/${scoreMaxForResult(result)}`;
 }
 
 function finishQuiz(){
@@ -570,21 +591,21 @@ function finishQuiz(){
 
   const banner = document.getElementById('pass-banner');
   banner.className = 'pass-banner ' + (passed ? 'pass' : 'fail');
-  document.getElementById('pass-text').textContent = `JLPT Score: ${jlptScore}/180`;
-  document.getElementById('pass-sub').textContent = `${correct}/${total} correct · CEFR ${cefr.label}${cefr.range ? ` (${cefr.range})` : ''} · Passing mark ${levelMeta.pass}/180`;
+  document.getElementById('pass-text').textContent = `${T('score_estimate')}: ${jlptScore}/180`;
+  document.getElementById('pass-sub').textContent = `${correct}/${total} ${currentLang==='ja' ? '正解' : currentLang==='en' ? 'correct' : 'benar'} · ${T('cefr_estimate')} ${cefr.label}${cefr.range ? ` (${cefr.range})` : ''} · ${T('passing_mark')} ${levelMeta.pass}/180`;
 
   document.getElementById('hs-done').textContent = total;
   document.getElementById('hs-score').textContent = `${jlptScore}/180`;
   document.getElementById('hs-pred').textContent = cefr.label;
-  document.getElementById('res-pred-h2').textContent = `JLPT N5 · CEFR ${cefr.label}`;
+  document.getElementById('res-pred-h2').textContent = `JLPT ${resolveExamMeta().level} · CEFR ${cefr.label}`;
 
   const pd = document.getElementById('prediction-detail');
   pd.innerHTML =
-    '<p>📊 JLPT Score estimate: <strong>' + jlptScore + '/180</strong> (' + correct + '/' + total + ' correct)</p>' +
-    '<p>🎯 Passing mark N5: 80/180</p>' +
-    '<p>🌐 CEFR estimate: <strong>' + cefr.label + '</strong>' + (cefr.range ? ' (' + cefr.range + ')' : '') + '</p>' +
-    '<p>ℹ️ Listening is not included in this sample, so the score is an estimate based on the available questions.</p>' +
-    '<p>' + (passed ? '✅ Pass line reached.' : '⚠️ More practice is needed to reach the passing line.') + '</p>';
+    '<p>📊 ' + T('score_estimate') + ': <strong>' + jlptScore + '/180</strong> (' + correct + '/' + total + ' ' + (currentLang==='ja' ? '正解' : currentLang==='en' ? 'correct' : 'benar') + ')</p>' +
+    '<p>🎯 ' + T('passing_mark') + ' ' + resolveExamMeta().level + ': ' + levelMeta.pass + '/180</p>' +
+    '<p>🌐 ' + T('cefr_estimate') + ': <strong>' + cefr.label + '</strong>' + (cefr.range ? ' (' + cefr.range + ')' : '') + '</p>' +
+    '<p>ℹ️ ' + T('listening_note') + '</p>' +
+    '<p>' + (passed ? '✅ ' + (currentLang==='ja' ? '合格ラインに到達しました。' : currentLang==='en' ? 'Pass line reached.' : 'Batas lulus tercapai.') : '⚠️ ' + T('practice_note')) + '</p>';
 
   persistExamResult({
     key: resolveExamMeta().key,
@@ -649,6 +670,9 @@ const I18N = {
     btn_back:'← Kembali',btn_save:'💾 Simpan',btn_load:'📂 Muat',btn_next:'Lanjut →',btn_finish:'Selesai',btn_report:'🚩 Laporkan',
     res_title:'Hasil Ujian',res_correct:'benar',res_wrong:'salah',res_accuracy:'akurasi',res_time:'waktu',
     res_section:'Skor per seksi',res_pred_title:'Prediksi kelulusan',
+    score_estimate:'Perkiraan Skor JLPT',passing_mark:'Batas Lulus',cefr_estimate:'Perkiraan CEFR',
+    listening_note:'⚠️ Soal 聴解 (mendengarkan) tidak dimasukkan karena memerlukan audio.',
+    practice_note:'⚠️ Lebih banyak latihan dibutuhkan untuk mencapai batas lulus.',
     btn_review:'Tinjau Jawaban',btn_home:'Kembali ke Menu',
     pass_label:'✅ Lulus (Estimasi)',fail_label:'❌ Perlu Belajar Lagi',
     pass_sub_pass:'kemungkinan lulus!',pass_sub_fail:'Perlu belajar lebih lanjut.',
@@ -668,6 +692,9 @@ const I18N = {
     btn_back:'← Back',btn_save:'💾 Save',btn_load:'📂 Load',btn_next:'Next →',btn_finish:'Finish',btn_report:'🚩 Report',
     res_title:'Exam Results',res_correct:'correct',res_wrong:'wrong',res_accuracy:'accuracy',res_time:'time',
     res_section:'Score by section',res_pred_title:'JLPT Pass Prediction',
+    score_estimate:'Estimated JLPT Score',passing_mark:'Passing mark',cefr_estimate:'Estimated CEFR',
+    listening_note:'⚠️ Listening (聴解) questions are excluded as they require audio.',
+    practice_note:'⚠️ More practice is needed to reach the passing line.',
     btn_review:'Review Answers',btn_home:'Back to Menu',
     pass_label:'✅ Pass (Estimated)',fail_label:'❌ Need More Study',
     pass_sub_pass:'likely to pass!',pass_sub_fail:'Keep studying to improve.',
@@ -687,6 +714,9 @@ const I18N = {
     btn_back:'← 戻る',btn_save:'💾 保存',btn_load:'📂 読込',btn_next:'次へ →',btn_finish:'終了',btn_report:'🚩 報告',
     res_title:'試験結果',res_correct:'正解',res_wrong:'不正解',res_accuracy:'正答率',res_time:'時間',
     res_section:'セクション別スコア',res_pred_title:'JLPT合格予測',
+    score_estimate:'JLPT推定スコア',passing_mark:'合格ライン',cefr_estimate:'CEFR推定',
+    listening_note:'⚠️ 聴解問題は音声が必要なため含まれていません。',
+    practice_note:'⚠️ 合格ラインに達するには、さらに練習が必要です。',
     btn_review:'解答を確認',btn_home:'メニューに戻る',
     pass_label:'✅ 合格圏内 (推定)',fail_label:'❌ 要復習',
     pass_sub_pass:'合格の可能性が高い！',pass_sub_fail:'引き続き学習が必要です。',
@@ -757,6 +787,13 @@ function applyLang() {
   // Result header
   const resHeader = document.querySelector('#result .header h1');
   if(resHeader) resHeader.textContent = T('res_title');
+
+  // Result summary labels if already shown
+  const passText = document.getElementById('pass-text');
+  const passSub = document.getElementById('pass-sub');
+  if(passText && /JLPT|JLPT|試験|skor/i.test(passText.textContent || '')) {
+    // leave numeric score untouched; refresh only localized prefix after next finishQuiz
+  }
 
   // Update report modal texts
   document.getElementById('report-title').textContent = T('report_title');
@@ -865,6 +902,73 @@ document.getElementById('report-modal').addEventListener('click', function(e) {
 });
 
 // ===== INIT LANG =====
+function syncStoredResultsToHistory() {
+  try {
+    const historyKey = 'jlpt_history_' + ((window._session && window._session.user && window._session.user.id) ? window._session.user.id : 'global');
+    const historyRaw = localStorage.getItem(historyKey) || localStorage.getItem('jlpt_history_global') || '[]';
+    const history = JSON.parse(historyRaw || '[]');
+    let changed = false;
+
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (!k || !k.startsWith('jlpt_exam_result_')) continue;
+      if (k === 'jlpt_exam_result_latest') continue;
+      const raw = localStorage.getItem(k);
+      if (!raw) continue;
+      try {
+        const result = JSON.parse(raw);
+        if (!result || !result.key) continue;
+        const idx = history.findIndex(h => h.key === result.key);
+        const entry = {
+          key: result.key,
+          name: result.name || result.title || result.key,
+          level: result.level || 'N5',
+          year: result.year || '',
+          score: Number(result.score) || null,
+          score_max: Number(result.scoreMax || result.score_max || 180) || 180,
+          cefr: result.cefr || inferCefr(result.level || 'N5', result.score).label,
+          completedAt: result.completedAt || new Date().toISOString(),
+          count: (idx >= 0 ? (history[idx].count || 1) + 1 : 1)
+        };
+        if (idx >= 0) {
+          history[idx] = entry;
+        } else {
+          history.unshift(entry);
+        }
+        changed = true;
+      } catch(e) {}
+    }
+
+    const latestRaw = localStorage.getItem('jlpt_exam_result_latest');
+    if (latestRaw) {
+      try {
+        const result = JSON.parse(latestRaw);
+        if (result && result.key) {
+          const idx = history.findIndex(h => h.key === result.key);
+          const entry = {
+            key: result.key,
+            name: result.name || result.title || result.key,
+            level: result.level || 'N5',
+            year: result.year || '',
+            score: Number(result.score) || null,
+            score_max: Number(result.scoreMax || result.score_max || 180) || 180,
+            cefr: result.cefr || inferCefr(result.level || 'N5', result.score).label,
+            completedAt: result.completedAt || new Date().toISOString(),
+            count: (idx >= 0 ? (history[idx].count || 1) + 1 : 1)
+          };
+          if (idx >= 0) history[idx] = entry; else history.unshift(entry);
+          changed = true;
+        }
+      } catch(e) {}
+      localStorage.removeItem('jlpt_exam_result_latest');
+    }
+
+    if (changed) {
+      localStorage.setItem(historyKey, JSON.stringify(history));
+    }
+  } catch(e) {}
+}
+
 document.addEventListener('DOMContentLoaded', function() {
   // Apply saved language
   const saved = localStorage.getItem('jlpt_lang') || 'id';
@@ -872,6 +976,7 @@ document.addEventListener('DOMContentLoaded', function() {
   document.querySelectorAll('.lang-btn').forEach(b => {
     b.classList.toggle('active', b.getAttribute('onclick') === `setLang('${saved}')`);
   });
+  syncStoredResultsToHistory();
   applyLang();
 });
 (function(){
