@@ -1,53 +1,7 @@
 <!DOCTYPE html>
 <html lang="ja"><head>
 <!-- AUTH GUARD -->
-<script type="module">
-  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
-  const SUPABASE_URL  = 'https://uincqpdexdenjcmwdfsv.supabase.co';
-  const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpbmNxcGRleGRlbmpjbXdkZnN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5MjM4ODEsImV4cCI6MjA5NTQ5OTg4MX0.Lf1N_P_iiNQ2hnRJhd-Quy9MLKlZFSzbnXtXCnmRCS0';
-  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON);
-  document.documentElement.style.visibility = 'hidden';
 
-  try {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      window.location.replace('./auth.html');
-    } else {
-      // =============================================
-      // ADMIN EMAILS — ganti dengan email kamu
-      // =============================================
-      const SUPER_ADMIN_EMAIL = 'sidiqangga44@gmail.com'; // ← ganti
-      const ADMIN_EMAIL       = 'admin@example.com';       // ← ganti
-
-      // Kalau email admin → redirect langsung ke admin.html
-      if (session.user.email === SUPER_ADMIN_EMAIL || session.user.email === ADMIN_EMAIL) {
-        window.location.replace('./admin.html');
-      } else {
-        const { data: usr, error: usrErr } = await supabase
-          .from('users')
-          .select('status, full_name, display_name, avatar_url')
-          .eq('id', session.user.id)
-          .single();
-        if (usrErr || !usr || usr.status !== 'active') {
-          if (!usr || usr.status !== 'active') await supabase.auth.signOut();
-          window.location.replace('./auth.html');
-        } else {
-          document.documentElement.style.visibility = 'visible';
-          window._supabase = supabase;
-          window._session  = session;
-          window._userDb   = usr;
-        }
-      }
-    }
-  } catch(e) {
-    console.error('Auth guard error:', e);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) window.location.replace('./auth.html');
-      else document.documentElement.style.visibility = 'visible';
-    } catch(e2) { window.location.replace('./auth.html'); }
-  }
-</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>模擬試験　過去問題</title>
@@ -810,7 +764,7 @@ body.sidebar-open .menu-fab{
       📋 <span data-i18n="examHistory">Exam History</span>
     </button>
     <button class="history-btn" onclick="openSecurityModal()" style="background:rgba(90,169,255,.12);border:1px solid rgba(90,169,255,.3);color:#7cc0ff;">
-      🔐 Keamanan Akun
+      🔐 <span data-i18n="accountSecurity">Keamanan Akun</span>
     </button>
     <button class="logout-btn-sm" onclick="doLogout()">
       🚪 <span data-i18n="logout">Logout</span>
@@ -1505,7 +1459,7 @@ const TRANSLATIONS = {
     notifications:'Notifikasi',markAllRead:'Tandai semua dibaca',
     tabAll:'Semua',tabNewExam:'Ujian Baru',tabUpdate:'Pembaruan',tabSystem:'Sistem',
     viewHistory:'📋 Lihat Riwayat Ujian',
-    activeMember:'Anggota Aktif',requestExam:'Request Soal JLPT',examHistory:'Riwayat Ujian',logout:'Keluar',
+    activeMember:'Anggota Aktif',requestExam:'Request Soal JLPT',examHistory:'Riwayat Ujian',accountSecurity:'Keamanan Akun',logout:'Keluar',
     totalExams:'Total Ujian',jlptLevel:'Level JLPT',updated:'Diperbarui',levelAvailable:'Level Tersedia',completed:'Diselesaikan',
     all:'Semua',examList:'Daftar Ujian',
     editName:'Edit Nama Profil',displayName:'Nama Tampilan',saveChanges:'Simpan Perubahan',cancel:'Batal',close:'Tutup',
@@ -1545,7 +1499,7 @@ const TRANSLATIONS = {
     notifications:'Notifications',markAllRead:'Mark all read',
     tabAll:'All',tabNewExam:'New Exam',tabUpdate:'Update',tabSystem:'System',
     viewHistory:'📋 View Exam History',
-    activeMember:'Active Member',requestExam:'Request JLPT Exam',examHistory:'Exam History',logout:'Logout',
+    activeMember:'Active Member',requestExam:'Request JLPT Exam',examHistory:'Exam History',accountSecurity:'Account Security',logout:'Logout',
     totalExams:'Total Exams',jlptLevel:'JLPT Level',updated:'Updated',levelAvailable:'Level Available',completed:'Completed',
     all:'All',examList:'Exam List',
     editName:'Edit Profile Name',displayName:'Display Name',saveChanges:'Save Changes',cancel:'Cancel',close:'Close',
@@ -1585,7 +1539,7 @@ const TRANSLATIONS = {
     notifications:'通知',markAllRead:'すべて既読にする',
     tabAll:'すべて',tabNewExam:'新しい試験',tabUpdate:'更新',tabSystem:'システム',
     viewHistory:'📋 受験履歴を見る',
-    activeMember:'アクティブメンバー',requestExam:'JLPT問題をリクエスト',examHistory:'受験履歴',logout:'ログアウト',
+    activeMember:'アクティブメンバー',requestExam:'JLPT問題をリクエスト',examHistory:'受験履歴',accountSecurity:'アカウントのセキュリティ',logout:'ログアウト',
     totalExams:'試験総数',jlptLevel:'JLPTレベル',updated:'更新',levelAvailable:'利用可能レベル',completed:'完了',
     all:'すべて',examList:'試験一覧',
     editName:'プロフィール名を編集',displayName:'表示名',saveChanges:'変更を保存',cancel:'キャンセル',close:'閉じる',
