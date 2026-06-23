@@ -476,8 +476,18 @@ function resolveExamMeta(){
       title: (document.querySelector('#home h1')?.textContent || document.title || base).trim(),
     };
   }
+  const m2 = base.match(/n([1-5])-(\d{4})-(\d{2})/i);
+  if (m2) {
+    return {
+      key: `n${m2[1]}-${m2[2]}-${m2[3]}`,
+      level: `N${m2[1]}`,
+      year: m2[2],
+      month: m2[3],
+      title: (document.querySelector('#home h1')?.textContent || document.title || base).trim(),
+    };
+  }
   return {
-    key: base.toLowerCase(),
+    key: base.toLowerCase().replace(/_updated.*$/i, ''),
     level: 'N5',
     year: '',
     month: '',
@@ -607,21 +617,27 @@ function finishQuiz(){
     '<p>ℹ️ ' + T('listening_note') + '</p>' +
     '<p>' + (passed ? '✅ ' + (currentLang==='ja' ? '合格ラインに到達しました。' : currentLang==='en' ? 'Pass line reached.' : 'Batas lulus tercapai.') : '⚠️ ' + T('practice_note')) + '</p>';
 
-  persistExamResult({
+  const latestResult = {
     key: resolveExamMeta().key,
     name: resolveExamMeta().title,
     level: resolveExamMeta().level,
     year: resolveExamMeta().year,
     score: jlptScore,
+    jlptScore,
+    scoreEstimate: jlptScore,
     scoreMax: 180,
+    score_max: 180,
     correct,
     total,
     percentage: pct,
     cefr: cefr.label,
     cefrRange: cefr.range,
+    cefr_range: cefr.range,
     passed,
     completedAt: new Date().toISOString(),
-  });
+  };
+  window.__JLPT_LAST_RESULT__ = latestResult;
+  persistExamResult(latestResult);
 
   document.getElementById('print-pdf-btn').classList.add('show');
 }
@@ -928,7 +944,7 @@ function syncStoredResultsToHistory() {
           score_max: Number(result.scoreMax || result.score_max || 180) || 180,
           cefr: result.cefr || inferCefr(result.level || 'N5', result.score).label,
           completedAt: result.completedAt || new Date().toISOString(),
-          count: (idx >= 0 ? (history[idx].count || 1) + 1 : 1)
+          count: (idx >= 0 ? (history[idx].count || 1) : 1)
         };
         if (idx >= 0) {
           history[idx] = entry;
@@ -954,7 +970,7 @@ function syncStoredResultsToHistory() {
             score_max: Number(result.scoreMax || result.score_max || 180) || 180,
             cefr: result.cefr || inferCefr(result.level || 'N5', result.score).label,
             completedAt: result.completedAt || new Date().toISOString(),
-            count: (idx >= 0 ? (history[idx].count || 1) + 1 : 1)
+            count: (idx >= 0 ? (history[idx].count || 1) : 1)
           };
           if (idx >= 0) history[idx] = entry; else history.unshift(entry);
           changed = true;
