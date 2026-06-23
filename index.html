@@ -1930,6 +1930,117 @@ function buildScoreSummary(entry){
   return cefr ? `${base} · ${cefr}` : base;
 }
 
+function coercePositiveJlptScore(raw){
+  if (raw == null) return null;
+  if (typeof raw === 'number') return Number.isFinite(raw) && raw > 0 ? Math.round(raw) : null;
+  if (typeof raw === 'string') {
+    const n = Number(raw);
+    return Number.isFinite(n) && n > 0 ? Math.round(n) : null;
+  }
+  if (typeof raw !== 'object') return null;
+
+  const candidates = [
+    raw.score,
+    raw.jlptScore,
+    raw.score_estimate,
+    raw.scoreEstimate,
+    raw.jlpt_score,
+  ];
+  for (const cand of candidates) {
+    const n = Number(cand);
+    if (Number.isFinite(n) && n > 0) return Math.round(n);
+  }
+  const c = Number(raw.correct ?? raw.correct_count);
+  const t = Number(raw.total ?? raw.total_questions);
+  if (Number.isFinite(c) && Number.isFinite(t) && t > 0 && c > 0) return estimateJlptScore(c, t);
+  const pct = Number(raw.percentage);
+  if (Number.isFinite(pct) && pct > 0) return Math.round((pct / 100) * 180);
+  return null;
+}
+
+function readStoredExamResult(key){
+  if (!key) return null;
+  try {
+    const raw = localStorage.getItem(`jlpt_exam_result_${key}`);
+    if (raw) return JSON.parse(raw);
+  } catch (e) {}
+  try {
+    const latest = localStorage.getItem('jlpt_exam_result_latest');
+    if (latest) {
+      const parsed = JSON.parse(latest);
+      if (parsed && parsed.key === key) return parsed;
+    }
+  } catch (e) {}
+  return null;
+}
+
+function mergeResultForCard(entry, key){
+  const merged = entry ? { ...entry } : { key };
+  const live = coercePositiveJlptScore(entry);
+
+  if (live != null) return merged;
+
+  const stored = readStoredExamResult(key);
+  const storedScore = coercePositiveJlptScore(stored);
+  if (storedScore != null) {
+    if (merged.score == null || Number(merged.score) <= 0) merged.score = storedScore;
+    if (!merged.score_max && stored?.scoreMax) merged.score_max = Number(stored.scoreMax) || 180;
+    if (!merged.correct && stored?.correct != null) merged.correct = stored.correct;
+    if (!merged.total && stored?.total != null) merged.total = stored.total;
+    if (!merged.percentage && stored?.percentage != null) merged.percentage = stored.percentage;
+    if (!merged.cefr) {
+      const cefr = inferCefr(merged.level, storedScore);
+      merged.cefr = stored?.cefr || cefr.label;
+      merged.cefr_range = stored?.cefrRange || stored?.cefr_range || cefr.range || '';
+    }
+  }
+
+  if ((!merged.score || Number(merged.score) <= 0) && window.__JLPT_REMOTE_SCORES__ instanceof Map) {
+    const remote = window.__JLPT_REMOTE_SCORES__.get(key);
+    const remoteScore = coercePositiveJlptScore(remote);
+    if (remoteScore != null) {
+      merged.score = remoteScore;
+      merged.score_max = Number(remote?.score_max || remote?.scoreMax || merged.score_max || 180);
+      merged.correct = merged.correct ?? remote?.correct ?? remote?.correct_count ?? null;
+      merged.total = merged.total ?? remote?.total ?? remote?.total_questions ?? null;
+      merged.percentage = merged.percentage ?? remote?.percentage ?? null;
+      if (!merged.cefr) {
+        const cefr = inferCefr(merged.level, remoteScore);
+        merged.cefr = remote?.cefr || cefr.label;
+        merged.cefr_range = remote?.cefrRange || remote?.cefr_range || cefr.range || '';
+      }
+    }
+  }
+
+  return merged;
+}
+
+function persistHistoryRepair(entry){
+  if (!entry?.key || !Number(entry.score) || Number(entry.score) <= 0) return false;
+  const history = loadHistory();
+  const idx = history.findIndex(h => h.key === entry.key);
+  const next = {
+    ...(idx >= 0 ? history[idx] : {}),
+    ...entry,
+    score: Math.round(Number(entry.score)),
+    score_max: Number(entry.score_max || 180),
+    cefr: entry.cefr || inferCefr(entry.level, entry.score).label,
+    cefr_range: entry.cefr_range || inferCefr(entry.level, entry.score).range || '',
+  };
+  if (idx >= 0) {
+    const oldScore = Number(history[idx].score);
+    if (!(Number.isFinite(oldScore) && oldScore > 0) || oldScore !== Number(next.score) || String(history[idx].cefr || '') !== String(next.cefr || '')) {
+      history[idx] = next;
+      saveHistory(history);
+      return true;
+    }
+    return false;
+  }
+  history.unshift(next);
+  saveHistory(history);
+  return true;
+}
+
 function normalizeExamResult(result) {
   if (!result || !result.key) return null;
   const scoreMax = Number(result.scoreMax || result.score_max || 180);
@@ -1937,16 +2048,20 @@ function normalizeExamResult(result) {
   const correct = Number(result.correct ?? result.correct_count);
   const total = Number(result.total ?? result.total_questions);
   const pct = Number(result.percentage);
-  let score = Number(result.score);
+  let score = Number(
+    result.score ??
+    result.jlptScore ??
+    result.score_estimate ??
+    result.scoreEstimate ??
+    result.jlpt_score
+  );
 
-  if ((!Number.isFinite(score) || (score <= 0 && Number.isFinite(correct) && Number.isFinite(total) && correct > 0 && total > 0)) ) {
-    if (Number.isFinite(correct) && Number.isFinite(total) && total > 0) {
-      score = estimateJlptScore(correct, total);
-    } else if (Number.isFinite(pct) && pct > 0) {
-      score = Math.round((pct / 100) * 180);
-    } else {
-      score = Number.isFinite(score) ? score : null;
-    }
+  if ((!Number.isFinite(score) || score <= 0) && Number.isFinite(correct) && Number.isFinite(total) && correct > 0 && total > 0) {
+    score = estimateJlptScore(correct, total);
+  } else if ((!Number.isFinite(score) || score <= 0) && Number.isFinite(pct) && pct > 0) {
+    score = Math.round((pct / 100) * 180);
+  } else if (!Number.isFinite(score) || score <= 0) {
+    score = null;
   }
 
   const normScore = Number(score);
@@ -1958,6 +2073,7 @@ function normalizeExamResult(result) {
     score: Number.isFinite(normScore) ? Math.round(normScore) : null,
     score_max: Number.isFinite(scoreMax) && scoreMax > 0 ? scoreMax : 180,
     cefr: result.cefr || inferCefr(level, normScore).label,
+    cefr_range: result.cefrRange || result.cefr_range || inferCefr(level, normScore).range || '',
     completedAt: result.completedAt || result.completed_at || new Date().toISOString(),
     count: Number(result.count || 1),
     correct: Number.isFinite(correct) ? correct : (result.correct ?? result.correct_count ?? null),
@@ -2420,23 +2536,35 @@ async function doDeleteAccount(){
 function updateCompletedBadges(){
   const history  = loadHistory();
   const doneMap  = new Map(history.map(h => [h.key, h]));
+  let repaired = false;
+
   document.querySelectorAll('.card').forEach(card => {
     const key    = card.dataset.examkey;
-    const entry  = doneMap.get(key);
+    const baseEntry = doneMap.get(key) || null;
+    const entry  = mergeResultForCard(baseEntry, key);
     const stamp  = card.querySelector('.done-stamp');
     const scoreText = buildScoreSummary(entry);
-    if(stamp) {
-      stamp.classList.toggle('show', !!entry);
-      if (entry) stamp.textContent = scoreText ? `✓ ${scoreText}` : '✓ Completed';
+
+    if (entry && Number(entry.score) > 0 && (!baseEntry || Number(baseEntry.score) !== Number(entry.score) || String(baseEntry.cefr || '') !== String(entry.cefr || ''))) {
+      repaired = persistHistoryRepair({
+        ...entry,
+        key,
+        completedAt: baseEntry?.completedAt || entry.completedAt || new Date().toISOString(),
+        count: baseEntry?.count || entry.count || 1,
+      }) || repaired;
     }
 
-    // Score badge
+    if(stamp) {
+      stamp.classList.toggle('show', !!entry && Number(entry.score) > 0);
+      if (entry && Number(entry.score) > 0) stamp.textContent = scoreText ? `✓ ${scoreText}` : '✓ Completed';
+      else stamp.textContent = '✓ Completed';
+    }
+
     let badge = card.querySelector('.jlpt-score-badge');
-    if(entry?.score != null){
+    if(entry?.score != null && Number(entry.score) > 0){
       if(!badge){
         badge = document.createElement('div');
         badge.className = 'jlpt-score-badge';
-        // bottom:80px left:14px → same row as done-stamp (right:14px) but left side
         badge.style.cssText = [
           'position:absolute','bottom:80px','left:14px',
           'padding:3px 9px','border-radius:999px',
@@ -2446,7 +2574,7 @@ function updateCompletedBadges(){
         ].join(';');
         card.appendChild(badge);
       }
-      badge.textContent        = scoreText || `${Math.round(Number(entry.score))}`;
+      badge.textContent        = scoreText || `${Math.round(Number(entry.score))}/180`;
       badge.style.background   = 'rgba(90,169,255,.18)';
       badge.style.border       = '1px solid rgba(90,169,255,.35)';
       badge.style.color        = '#7cc0ff';
@@ -2454,8 +2582,15 @@ function updateCompletedBadges(){
       badge.remove();
     }
   });
-}
 
+  if (repaired) {
+    // make sure subsequent render passes use the repaired values
+    const repairedHistory = loadHistory();
+    if (repairedHistory.length) {
+      window.__JLPT_LAST_HISTORY_RENDER__ = Date.now();
+    }
+  }
+}
 // Load scores from Supabase exam_sessions and merge into local history
 async function syncExamScoresFromSupabase(){
   let _ctx;
@@ -2467,43 +2602,77 @@ async function syncExamScoresFromSupabase(){
     .eq('user_id', session.user.id)
     .eq('completed', true)
     .order('completed_at', { ascending: false });
+
+  window.__JLPT_REMOTE_SCORES__ = new Map();
   if(!sessions?.length) return;
+
   const history = loadHistory();
   let changed = false;
+
   sessions.forEach(s => {
-    const idx = history.findIndex(h => h.key === s.exam_key);
+    const key = String(s.exam_key || '').toLowerCase();
     const correct = Number(s.correct_count);
     const total = Number(s.total_questions);
     const pct = Number(s.percentage);
     let score = s.score != null ? Number(s.score) : null;
-    if ((!Number.isFinite(score) || (score <= 0 && Number.isFinite(correct) && Number.isFinite(total) && correct > 0 && total > 0))) {
-      if (Number.isFinite(correct) && Number.isFinite(total) && total > 0) score = estimateJlptScore(correct, total);
-      else if (Number.isFinite(pct) && pct > 0) score = Math.round((pct / 100) * 180);
+
+    if ((!Number.isFinite(score) || score <= 0) && Number.isFinite(correct) && Number.isFinite(total) && total > 0 && correct > 0) {
+      score = estimateJlptScore(correct, total);
+    } else if ((!Number.isFinite(score) || score <= 0) && Number.isFinite(pct) && pct > 0) {
+      score = Math.round((pct / 100) * 180);
     }
-    const scoreNum = score != null ? Number(score) : null;
-    if(idx >= 0 && (history[idx].score == null || (history[idx].score <= 0 && scoreNum > 0)) && scoreNum != null){
-      history[idx].score = scoreNum;
-      history[idx].score_max = history[idx].score_max || 180;
-      history[idx].correct = history[idx].correct ?? (Number.isFinite(correct) ? correct : null);
-      history[idx].total = history[idx].total ?? (Number.isFinite(total) ? total : null);
-      history[idx].percentage = history[idx].percentage ?? (Number.isFinite(pct) ? pct : null);
-      history[idx].cefr = history[idx].cefr || inferCefr(history[idx].level, scoreNum).label;
-      changed = true;
-    } else if(idx < 0){
-      const level = (s.exam_key||'').toUpperCase().slice(0,2);
+
+    const remoteEntry = {
+      key,
+      score: Number.isFinite(score) ? Math.round(score) : null,
+      score_max: 180,
+      percentage: Number.isFinite(pct) ? pct : null,
+      correct: Number.isFinite(correct) ? correct : null,
+      total: Number.isFinite(total) ? total : null,
+      completedAt: s.completed_at || null,
+    };
+    window.__JLPT_REMOTE_SCORES__.set(key, remoteEntry);
+
+    const idx = history.findIndex(h => String(h.key || '').toLowerCase() === key);
+    const scoreNum = remoteEntry.score;
+    if(idx >= 0) {
+      const oldScore = Number(history[idx].score);
+      const shouldReplace = scoreNum != null && scoreNum > 0 && (!(Number.isFinite(oldScore) && oldScore > 0) || oldScore !== scoreNum);
+      if (shouldReplace) {
+        history[idx] = {
+          ...history[idx],
+          score: scoreNum,
+          score_max: history[idx].score_max || 180,
+          correct: history[idx].correct ?? remoteEntry.correct,
+          total: history[idx].total ?? remoteEntry.total,
+          percentage: history[idx].percentage ?? remoteEntry.percentage,
+          cefr: history[idx].cefr || inferCefr(history[idx].level, scoreNum).label,
+          cefr_range: history[idx].cefr_range || inferCefr(history[idx].level, scoreNum).range || '',
+          completedAt: history[idx].completedAt || remoteEntry.completedAt || new Date().toISOString(),
+        };
+        changed = true;
+      }
+    } else if(scoreNum != null && scoreNum > 0){
+      const level = (String(s.exam_key||'').match(/(^|[-_])n([1-5])($|[-_])/i)?.[2] || '5');
+      const normalizedLevel = `N${level}`;
       history.unshift({
-        key: s.exam_key, name: s.exam_key, level,
-        year: '', score: scoreNum, score_max: 180, cefr: inferCefr(level, scoreNum).label, completedAt: s.completed_at || new Date().toISOString(), count: 1,
-        correct: Number.isFinite(correct) ? correct : null,
-        total: Number.isFinite(total) ? total : null,
-        percentage: Number.isFinite(pct) ? pct : null,
+        key: s.exam_key, name: s.exam_key, level: normalizedLevel,
+        year: '', score: scoreNum, score_max: 180, cefr: inferCefr(normalizedLevel, scoreNum).label, cefr_range: inferCefr(normalizedLevel, scoreNum).range,
+        completedAt: s.completed_at || new Date().toISOString(), count: 1,
+        correct: remoteEntry.correct,
+        total: remoteEntry.total,
+        percentage: remoteEntry.percentage,
       });
       changed = true;
     }
   });
-  if(changed){ saveHistory(history); updateCompletedBadges(); updateCompletedStat(); }
-}
 
+  if(changed){
+    saveHistory(history);
+  }
+  updateCompletedBadges();
+  updateCompletedStat();
+}
 // =============================================
 // __jlptInjectNotif — bridge from jlpt-sync.js
 // =============================================
