@@ -434,10 +434,10 @@
     const ans      = window.answers && typeof window.answers === 'object' ? window.answers : {};
     const answered = Object.keys(ans).length;
     const correct  = Object.values(ans).filter(a => a?.correct).length;
-    const total    = qs.length || Number(window.totalQuestions || 0) || 0;
-    const wrong    = Math.max(answered - correct, 0);
-    const percent  = total ? Math.round((correct / total) * 10000) / 100 : 0;
-    const sectionScores = {};
+    let total      = qs.length || Number(window.totalQuestions || 0) || 0;
+    let wrong      = Math.max(answered - correct, 0);
+    let percent    = total ? Math.round((correct / total) * 10000) / 100 : 0;
+    let sectionScores = {};
     for (const g of questionGroups()) {
       const items = qs.filter(q => sectionKeyFromLabel(q.sec) === g.key);
       const crt   = items.filter(q => ans[q.id]?.correct).length;
@@ -446,8 +446,31 @@
         percentage: items.length ? Math.round((crt / items.length) * 10000) / 100 : 0,
       };
     }
+
+    const fallback = window.__JLPT_LAST_RESULT__ || null;
+    if ((!total || !qs.length) && fallback) {
+      const fCorrect = Number(fallback.correct ?? fallback.correct_count);
+      const fTotal   = Number(fallback.total ?? fallback.total_questions);
+      const fPct     = Number(fallback.percentage);
+      if (Number.isFinite(fCorrect) && Number.isFinite(fTotal) && fTotal > 0) {
+        total = fTotal;
+        wrong = Math.max(fTotal - fCorrect, 0);
+        percent = Number.isFinite(fPct) ? fPct : Math.round((fCorrect / fTotal) * 10000) / 100;
+        sectionScores = fallback.section_scores || fallback.sectionScores || sectionScores;
+      }
+    }
+
     const metaLevel = String(examMetaFromPath().level || 'N5').toUpperCase();
-    const jlptScore = estimateJlptScore(correct, total);
+    let jlptScore = estimateJlptScore(correct, total);
+    if ((!Number.isFinite(jlptScore) || jlptScore === 0) && fallback) {
+      const fScore = Number(fallback.score ?? fallback.jlptScore);
+      const fCorrect = Number(fallback.correct ?? fallback.correct_count);
+      const fTotal   = Number(fallback.total ?? fallback.total_questions);
+      if (Number.isFinite(fScore) && fScore > 0) jlptScore = fScore;
+      else if (Number.isFinite(fCorrect) && Number.isFinite(fTotal) && fCorrect > 0 && fTotal > 0) {
+        jlptScore = estimateJlptScore(fCorrect, fTotal);
+      }
+    }
     const cefr = inferCefr(metaLevel, jlptScore);
     return { answered, correct, wrong, total, percent, sectionScores, jlptScore, cefr };
   }
@@ -1480,7 +1503,7 @@
   }
 
   // ── Index page: update exam card score after completion ────────────────────
-  function updateExamCardScore(examKey, score, percentage) {
+  function updateExamCardScore(examKey, score, percentage, correctCount, totalQuestions) {
     if (!examKey) return;
     const key = String(examKey).toLowerCase();
     document.querySelectorAll('.card[data-examkey]').forEach(card => {
@@ -1492,9 +1515,19 @@
         scoreBadge.style.cssText = 'position:absolute;bottom:80px;left:14px;padding:3px 9px;border-radius:999px;font-size:10px;font-weight:800;z-index:6;pointer-events:none;backdrop-filter:blur(4px);';
         card.appendChild(scoreBadge);
       }
-      const pct = Number(percentage || 0);
+      const c = Number(correctCount);
+      const t = Number(totalQuestions);
+      let resolvedScore = Number(score);
+      if ((!Number.isFinite(resolvedScore) || (resolvedScore <= 0 && Number.isFinite(c) && Number.isFinite(t) && c > 0 && t > 0))) {
+        if (Number.isFinite(c) && Number.isFinite(t) && t > 0) resolvedScore = estimateJlptScore(c, t);
+        else {
+          const pctRaw = Number(percentage);
+          if (Number.isFinite(pctRaw) && pctRaw > 0) resolvedScore = Math.round((pctRaw / 100) * JLPT_SCORE_MAX);
+        }
+      }
+      const pct = Number.isFinite(Number(percentage)) ? Number(percentage) : (Number.isFinite(c) && Number.isFinite(t) && t > 0 ? Math.round((c / t) * 10000) / 100 : 0);
       const pass = pct >= 60;
-      scoreBadge.textContent  = `Skor: ${score ?? 0} (${pct.toFixed(0)}%)`;
+      scoreBadge.textContent  = `Skor: ${Number.isFinite(resolvedScore) ? Math.round(resolvedScore) : 0}/${JLPT_SCORE_MAX} (${pct.toFixed(0)}%)`;
       scoreBadge.style.background  = pass ? 'rgba(25,195,125,.22)' : 'rgba(255,79,109,.22)';
       scoreBadge.style.border      = `1px solid ${pass ? 'rgba(25,195,125,.5)' : 'rgba(255,79,109,.5)'}`;
       scoreBadge.style.color       = pass ? '#5ff0b0' : '#ff9aaa';
@@ -1534,7 +1567,7 @@
         if (state.isIndexPage && state.session) {
           const row = payload.new || {};
           if (row.user_id === state.session.user.id && row.completed) {
-            updateExamCardScore(row.exam_key, row.score, row.percentage);
+            updateExamCardScore(row.exam_key, row.score, row.percentage, row.correct_count, row.total_questions);
           }
         }
       })

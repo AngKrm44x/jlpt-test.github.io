@@ -1897,6 +1897,14 @@ const JLPT_RESULT_META = {
   ]},
 };
 
+
+function estimateJlptScore(correct, total) {
+  const c = Number(correct);
+  const t = Number(total);
+  if (!Number.isFinite(c) || !Number.isFinite(t) || t <= 0) return 0;
+  return Math.max(0, Math.min(180, Math.round((c / t) * 180)));
+}
+
 function inferCefr(level, score){
   const lvl = String(level || '').toUpperCase();
   const meta = JLPT_RESULT_META[lvl] || JLPT_RESULT_META.N5;
@@ -1924,19 +1932,37 @@ function buildScoreSummary(entry){
 
 function normalizeExamResult(result) {
   if (!result || !result.key) return null;
-  const score = Number(result.score);
   const scoreMax = Number(result.scoreMax || result.score_max || 180);
   const level = String(result.level || 'N5').toUpperCase();
+  const correct = Number(result.correct ?? result.correct_count);
+  const total = Number(result.total ?? result.total_questions);
+  const pct = Number(result.percentage);
+  let score = Number(result.score);
+
+  if ((!Number.isFinite(score) || (score <= 0 && Number.isFinite(correct) && Number.isFinite(total) && correct > 0 && total > 0)) ) {
+    if (Number.isFinite(correct) && Number.isFinite(total) && total > 0) {
+      score = estimateJlptScore(correct, total);
+    } else if (Number.isFinite(pct) && pct > 0) {
+      score = Math.round((pct / 100) * 180);
+    } else {
+      score = Number.isFinite(score) ? score : null;
+    }
+  }
+
+  const normScore = Number(score);
   return {
     key: result.key,
     name: result.name || result.title || result.key,
     level,
     year: result.year || '',
-    score: Number.isFinite(score) ? score : null,
+    score: Number.isFinite(normScore) ? Math.round(normScore) : null,
     score_max: Number.isFinite(scoreMax) && scoreMax > 0 ? scoreMax : 180,
-    cefr: result.cefr || inferCefr(level, score).label,
+    cefr: result.cefr || inferCefr(level, normScore).label,
     completedAt: result.completedAt || result.completed_at || new Date().toISOString(),
     count: Number(result.count || 1),
+    correct: Number.isFinite(correct) ? correct : (result.correct ?? result.correct_count ?? null),
+    total: Number.isFinite(total) ? total : (result.total ?? result.total_questions ?? null),
+    percentage: Number.isFinite(pct) ? pct : (result.percentage ?? null),
   };
 }
 
@@ -1955,7 +1981,7 @@ function ingestStoredExamResults(){
         if(!result) continue;
         const idx = history.findIndex(h => h.key === result.key);
         if(idx >= 0){
-          history[idx] = { ...history[idx], ...result, count: (history[idx].count || 1) + 1 };
+          history[idx] = { ...history[idx], ...result, count: history[idx].count || 1 };
         } else {
           history.unshift(result);
         }
@@ -1970,7 +1996,7 @@ function ingestStoredExamResults(){
         if(result){
           const idx = history.findIndex(h => h.key === result.key);
           if(idx >= 0){
-            history[idx] = { ...history[idx], ...result, count: (history[idx].count || 1) + 1 };
+            history[idx] = { ...history[idx], ...result, count: history[idx].count || 1 };
           } else {
             history.unshift(result);
           }
@@ -2019,6 +2045,15 @@ document.addEventListener('visibilitychange', ()=>{
     if(!pending) return;
     try{
       const p = JSON.parse(pending);
+      const storedRaw = localStorage.getItem(`jlpt_exam_result_${p.key}`);
+      if (storedRaw) {
+        ingestStoredExamResults();
+        updateCompletedBadges();
+        updateCompletedStat();
+        sessionStorage.removeItem('jlpt_pending_exam');
+        sessionStorage.removeItem('jlpt_exam_result');
+        return;
+      }
       let result = null;
       try {
         const rawResult = sessionStorage.getItem('jlpt_exam_result');
@@ -2428,7 +2463,7 @@ async function syncExamScoresFromSupabase(){
   const { sb, session } = _ctx;
   const { data: sessions } = await sb
     .from('exam_sessions')
-    .select('exam_key,score,percentage,completed_at')
+    .select('exam_key,score,percentage,correct_count,total_questions,completed_at')
     .eq('user_id', session.user.id)
     .eq('completed', true)
     .order('completed_at', { ascending: false });
@@ -2437,17 +2472,31 @@ async function syncExamScoresFromSupabase(){
   let changed = false;
   sessions.forEach(s => {
     const idx = history.findIndex(h => h.key === s.exam_key);
-    const score = s.score != null ? Number(s.score) : (s.percentage != null ? Math.round(Number(s.percentage)) : null);
+    const correct = Number(s.correct_count);
+    const total = Number(s.total_questions);
+    const pct = Number(s.percentage);
+    let score = s.score != null ? Number(s.score) : null;
+    if ((!Number.isFinite(score) || (score <= 0 && Number.isFinite(correct) && Number.isFinite(total) && correct > 0 && total > 0))) {
+      if (Number.isFinite(correct) && Number.isFinite(total) && total > 0) score = estimateJlptScore(correct, total);
+      else if (Number.isFinite(pct) && pct > 0) score = Math.round((pct / 100) * 180);
+    }
     const scoreNum = score != null ? Number(score) : null;
-    if(idx >= 0 && history[idx].score == null && scoreNum != null){
+    if(idx >= 0 && (history[idx].score == null || (history[idx].score <= 0 && scoreNum > 0)) && scoreNum != null){
       history[idx].score = scoreNum;
       history[idx].score_max = history[idx].score_max || 180;
+      history[idx].correct = history[idx].correct ?? (Number.isFinite(correct) ? correct : null);
+      history[idx].total = history[idx].total ?? (Number.isFinite(total) ? total : null);
+      history[idx].percentage = history[idx].percentage ?? (Number.isFinite(pct) ? pct : null);
       history[idx].cefr = history[idx].cefr || inferCefr(history[idx].level, scoreNum).label;
       changed = true;
     } else if(idx < 0){
+      const level = (s.exam_key||'').toUpperCase().slice(0,2);
       history.unshift({
-        key: s.exam_key, name: s.exam_key, level: (s.exam_key||'').toUpperCase().slice(0,2),
-        year: '', score: scoreNum, score_max: 180, cefr: inferCefr((s.exam_key||'').toUpperCase().slice(0,2), scoreNum).label, completedAt: s.completed_at || new Date().toISOString(), count: 1,
+        key: s.exam_key, name: s.exam_key, level,
+        year: '', score: scoreNum, score_max: 180, cefr: inferCefr(level, scoreNum).label, completedAt: s.completed_at || new Date().toISOString(), count: 1,
+        correct: Number.isFinite(correct) ? correct : null,
+        total: Number.isFinite(total) ? total : null,
+        percentage: Number.isFinite(pct) ? pct : null,
       });
       changed = true;
     }
