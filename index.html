@@ -691,21 +691,55 @@ body.sidebar-open .menu-fab{
   width:38px;height:38px;border:none;border-radius:12px;cursor:pointer;
   background:rgba(255,255,255,.05);color:var(--text);font-size:18px;
 }
-.ai-chat{
-  flex:1;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:12px;
+.ai-clear{
+  width:38px;height:38px;border:none;border-radius:12px;cursor:pointer;
+  background:rgba(255,255,255,.05);color:var(--muted);font-size:15px;flex-shrink:0;
 }
+.ai-clear:hover{background:rgba(255,95,115,.15);color:#ff9aaa;}
+.ai-chat{
+  flex:1;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:4px;
+}
+.ai-msg-group{
+  max-width:88%;display:flex;flex-direction:column;gap:4px;
+}
+.ai-msg-group.user{align-self:flex-end;align-items:flex-end;}
+.ai-msg-group.assistant{align-self:flex-start;align-items:flex-start;}
+.ai-msg-group{margin-bottom:8px;}
 .ai-msg{
-  max-width:88%;padding:12px 14px;border-radius:18px;line-height:1.6;
+  padding:12px 14px;border-radius:18px;line-height:1.6;
   font-size:13px;white-space:pre-wrap;word-break:break-word;
 }
 .ai-msg.user{
-  align-self:flex-end;background:linear-gradient(135deg,#3558a8,#6c3fff);color:#fff;
+  background:linear-gradient(135deg,#3558a8,#6c3fff);color:#fff;
   border-bottom-right-radius:6px;
 }
 .ai-msg.assistant{
-  align-self:flex-start;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.06);
+  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.06);
   color:var(--text);border-bottom-left-radius:6px;
 }
+.ai-msg .ai-li{display:block;margin:2px 0;}
+.ai-msg strong{color:#7cc0ff;font-weight:700;}
+.ai-msg.user strong{color:#fff;text-decoration:underline;text-decoration-color:rgba(255,255,255,.5);}
+.ai-msg.assistant.streaming::after{
+  content:'▌';display:inline-block;margin-left:2px;animation:aiBlink 1s step-start infinite;
+}
+@keyframes aiBlink{50%{opacity:0;}}
+.ai-msg-actions{display:flex;gap:6px;padding:0 4px;}
+.ai-msg-action{
+  border:none;background:transparent;color:var(--muted);cursor:pointer;
+  font-size:11px;padding:2px 6px;border-radius:8px;display:flex;align-items:center;gap:4px;
+  opacity:.0;transition:opacity .15s, color .15s, background .15s;
+}
+.ai-msg-group:hover .ai-msg-action{opacity:.85;}
+.ai-msg-action:hover{background:rgba(255,255,255,.08);color:var(--text);opacity:1;}
+.ai-msg-action.copied{color:#5ff0b0;opacity:1;}
+.ai-editing-banner{
+  display:none;align-items:center;justify-content:space-between;gap:8px;
+  background:rgba(90,169,255,.12);border:1px solid rgba(90,169,255,.35);
+  border-radius:12px;padding:8px 12px;margin:0 14px 8px;font-size:11px;color:#7cc0ff;
+}
+.ai-editing-banner.show{display:flex;}
+.ai-editing-cancel{border:none;background:transparent;color:#7cc0ff;cursor:pointer;font-weight:700;font-size:11px;text-decoration:underline;}
 .ai-foot{
   padding:14px;border-top:1px solid rgba(255,255,255,.06);
   display:flex;gap:10px;align-items:flex-end;background:#0d1626;
@@ -3277,11 +3311,17 @@ updateVisibleCount();
       <div class="ai-title">AI Assistant Jepang</div>
       <div class="ai-sub">JLPT · JFT · JLCT · SSW · NAT-Test · J.Test · EJU</div>
     </div>
+    <button class="ai-clear" id="aiClear" aria-label="Hapus riwayat chat" title="Hapus riwayat chat">🗑</button>
     <button class="ai-close" id="aiClose" aria-label="Close">✕</button>
   </div>
 
   <div class="ai-chat" id="aiChat">
     <div class="ai-msg assistant">Halo! Tanyakan apa saja seputar ujian Jepang. Saya bantu singkat, jelas, dan praktis.</div>
+  </div>
+
+  <div class="ai-editing-banner" id="aiEditingBanner">
+    <span>✏️ Mengedit pesan...</span>
+    <button class="ai-editing-cancel" id="aiEditingCancel">Batal</button>
   </div>
 
   <div class="ai-chips">
@@ -3302,25 +3342,52 @@ updateVisibleCount();
 
 <script>
 (() => {
-  // Edge Function Supabase kamu. Ganti <PROJECT_REF> dengan ref project kamu,
-  // contoh: https://uincqpdexdenjcmwdfsv.supabase.co/functions/v1/assistant
   const AI_ENDPOINT = window.AI_ASSISTANT_ENDPOINT ||
     'https://uincqpdexdenjcmwdfsv.supabase.co/functions/v1/assistant';
   const AI_MODEL = window.AI_ASSISTANT_MODEL || 'mimo-v2.5-free';
+  const STORAGE_KEY = 'ai_assistant_history_v1';
+  const WELCOME_MSG = 'Halo! Tanyakan apa saja seputar JLPT, JFT, JLCT, SSW, NAT-Test, J.Test, atau ujian Jepang lainnya.';
 
   const aiFab = document.getElementById('aiFab');
   const aiPanel = document.getElementById('aiPanel');
   const aiClose = document.getElementById('aiClose');
+  const aiClear = document.getElementById('aiClear');
   const aiChat = document.getElementById('aiChat');
   const aiInput = document.getElementById('aiInput');
   const aiSend = document.getElementById('aiSend');
   const aiStatus = document.getElementById('aiStatus');
+  const aiEditingBanner = document.getElementById('aiEditingBanner');
+  const aiEditingCancel = document.getElementById('aiEditingCancel');
 
   if (!aiFab || !aiPanel || !aiClose || !aiChat || !aiInput || !aiSend) return;
 
+  // ---------- State ----------
+  // Setiap pesan punya id unik supaya bisa di-edit/di-copy secara presisi.
+  let msgIdCounter = 0;
+  function newId() { return 'm' + Date.now() + '_' + (msgIdCounter++); }
+
+  function loadHistory() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length) return parsed;
+    } catch (_) {}
+    return null;
+  }
+
   const state = {
-    messages: [{ role: 'assistant', content: 'Halo! Tanyakan apa saja seputar JLPT, JFT, JLCT, SSW, NAT-Test, J.Test, atau ujian Jepang lainnya.' }]
+    messages: loadHistory() || [{ id: newId(), role: 'assistant', content: WELCOME_MSG }],
+    editingId: null, // id pesan user yang sedang diedit (null = mode kirim baru)
   };
+
+  function saveHistory() {
+    try {
+      // Simpan maksimal 40 pesan terakhir biar localStorage tidak membengkak.
+      const toSave = state.messages.slice(-40);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
+    } catch (_) {}
+  }
 
   function escapeHtml(str) {
     return String(str)
@@ -3331,11 +3398,50 @@ updateVisibleCount();
       .replace(/'/g, '&#39;');
   }
 
+  // Render Markdown super-ringan: **bold** dan list "- item".
+  // Selalu escape HTML DULU sebelum menyisipkan tag, jadi tetap aman dari XSS
+  // (user/AI tidak bisa menyuntikkan <script> dkk, karena < > sudah jadi &lt; &gt;).
+  function formatMessage(raw) {
+    const escaped = escapeHtml(raw);
+    const lines = escaped.split('\n');
+    const htmlLines = lines.map(line => {
+      // List item: baris yang dimulai dengan "- " atau "• "
+      const listMatch = line.match(/^(\s*)[-•]\s+(.*)$/);
+      const content = listMatch ? listMatch[2] : line;
+      // **bold** -> <strong>bold</strong> (non-greedy, tidak lintas baris)
+      const withBold = content.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+      return listMatch ? `<span class="ai-li">• ${withBold}</span>` : withBold;
+    });
+    return htmlLines.join('<br>');
+  }
+
+  // ---------- Render ----------
   function render() {
     aiChat.innerHTML = state.messages.map(m => {
       const cls = m.role === 'user' ? 'user' : 'assistant';
-      return `<div class="ai-msg ${cls}">${escapeHtml(m.content)}</div>`;
+      const streamingCls = m.streaming ? ' streaming' : '';
+      const bubble = `<div class="ai-msg ${cls}${streamingCls}" id="bubble-${m.id}">${formatMessage(m.content)}</div>`;
+
+      const actions = [`<button class="ai-msg-action" data-action="copy" data-id="${m.id}">⧉ Salin</button>`];
+      if (m.role === 'user' && !m.streaming) {
+        actions.push(`<button class="ai-msg-action" data-action="edit" data-id="${m.id}">✏️ Edit</button>`);
+      }
+
+      return `<div class="ai-msg-group ${cls}" data-id="${m.id}">
+        ${bubble}
+        <div class="ai-msg-actions">${actions.join('')}</div>
+      </div>`;
     }).join('');
+    aiChat.scrollTop = aiChat.scrollHeight;
+  }
+
+  // Update isi satu bubble saja tanpa re-render semua (dipakai saat streaming, biar smooth & cepat)
+  function updateBubble(id, content, stillStreaming) {
+    const el = document.getElementById('bubble-' + id);
+    if (el) {
+      el.innerHTML = formatMessage(content);
+      el.classList.toggle('streaming', !!stillStreaming);
+    }
     aiChat.scrollTop = aiChat.scrollHeight;
   }
 
@@ -3343,29 +3449,96 @@ updateVisibleCount();
     aiPanel.classList.add('open');
     aiInput.focus();
   }
-
   function closeAI() {
     aiPanel.classList.remove('open');
   }
 
+  function setEditing(id) {
+    const msg = state.messages.find(m => m.id === id);
+    if (!msg) return;
+    state.editingId = id;
+    aiInput.value = msg.content;
+    aiInput.focus();
+    aiEditingBanner.classList.add('show');
+  }
+
+  function cancelEditing() {
+    state.editingId = null;
+    aiEditingBanner.classList.remove('show');
+    aiInput.value = '';
+  }
+
+  function clearHistory() {
+    if (!confirm('Hapus semua riwayat chat?')) return;
+    state.messages = [{ id: newId(), role: 'assistant', content: WELCOME_MSG }];
+    cancelEditing();
+    saveHistory();
+    render();
+  }
+
+  // ---------- Copy & Edit handlers (delegasi event, satu listener untuk semua tombol) ----------
+  aiChat.addEventListener('click', (e) => {
+    const btn = e.target.closest('.ai-msg-action');
+    if (!btn) return;
+    const id = btn.dataset.id;
+    const msg = state.messages.find(m => m.id === id);
+    if (!msg) return;
+
+    if (btn.dataset.action === 'copy') {
+      navigator.clipboard?.writeText(msg.content).then(() => {
+        const original = btn.textContent;
+        btn.textContent = '✓ Disalin';
+        btn.classList.add('copied');
+        setTimeout(() => { btn.textContent = original; btn.classList.remove('copied'); }, 1500);
+      }).catch(() => {});
+    } else if (btn.dataset.action === 'edit') {
+      setEditing(id);
+    }
+  });
+
+  aiEditingCancel.addEventListener('click', cancelEditing);
+  aiClear.addEventListener('click', clearHistory);
+
+  // ---------- Streaming fetch ke Edge Function ----------
   async function sendMessage(text) {
     const prompt = String(text || '').trim();
     if (!prompt) return;
 
-    state.messages.push({ role: 'user', content: prompt });
+    const editingId = state.editingId;
+
+    if (editingId) {
+      // Mode edit: update isi pesan user, hapus semua pesan SETELAH pesan itu
+      // (karena jawaban AI lama sudah tidak relevan dengan prompt yang baru),
+      // lalu kirim ulang.
+      const idx = state.messages.findIndex(m => m.id === editingId);
+      if (idx !== -1) {
+        state.messages[idx].content = prompt;
+        state.messages = state.messages.slice(0, idx + 1);
+      }
+      cancelEditing();
+    } else {
+      state.messages.push({ id: newId(), role: 'user', content: prompt });
+    }
+
     render();
+    saveHistory();
     aiInput.value = '';
     aiSend.disabled = true;
     aiStatus.textContent = 'Sedang berpikir...';
 
+    // Siapkan bubble jawaban AI kosong yang akan diisi sedikit-sedikit (streaming)
+    const assistantMsg = { id: newId(), role: 'assistant', content: '', streaming: true };
+    state.messages.push(assistantMsg);
+    render();
+
     const payload = {
       model: AI_MODEL,
-      messages: state.messages.map(m => ({ role: m.role, content: m.content }))
+      messages: state.messages
+        .filter(m => m.id !== assistantMsg.id)
+        .map(m => ({ role: m.role, content: m.content }))
     };
 
     try {
-      // Ambil access token Supabase yang sedang login (di-set oleh AUTH GUARD di awal file).
-      // Tanpa token ini, Edge Function backend akan menolak request (401).
       let accessToken = '';
       try {
         if (window._session && window._session.access_token) {
@@ -3377,12 +3550,11 @@ updateVisibleCount();
       } catch (_) {}
 
       if (!accessToken) {
-        state.messages.push({
-          role: 'assistant',
-          content: 'Sesi login tidak ditemukan. Silakan refresh halaman dan login ulang untuk menggunakan AI Assistant.'
-        });
+        assistantMsg.content = 'Sesi login tidak ditemukan. Silakan refresh halaman dan login ulang untuk menggunakan AI Assistant.';
+        assistantMsg.streaming = false;
         aiStatus.textContent = 'Sesi tidak valid.';
         render();
+        saveHistory();
         aiSend.disabled = false;
         return;
       }
@@ -3396,25 +3568,68 @@ updateVisibleCount();
         body: JSON.stringify(payload)
       });
 
-      let data = null;
-      try { data = await res.json(); } catch (_) {}
+      const contentType = res.headers.get('content-type') || '';
 
-      const answer =
-        data?.choices?.[0]?.message?.content ||
-        data?.message?.content ||
-        data?.reply ||
-        'Maaf, respons AI belum tersedia.';
+      if (!res.ok || !contentType.includes('text/event-stream')) {
+        // Bukan stream (kemungkinan error JSON dari server) -> tampilkan errornya
+        let data = null;
+        try { data = await res.json(); } catch (_) {}
+        assistantMsg.content = data?.error || data?.choices?.[0]?.message?.content || 'Maaf, respons AI belum tersedia.';
+        assistantMsg.streaming = false;
+        aiStatus.textContent = res.ok ? 'Siap menjawab.' : 'Terjadi kendala.';
+        render();
+        saveHistory();
+        aiSend.disabled = false;
+        return;
+      }
 
-      state.messages.push({ role: 'assistant', content: answer });
+      // ---------- Baca SSE stream ----------
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder('utf-8');
+      let buffer = '';
+      let fullText = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop(); // simpan baris yang belum lengkap untuk chunk berikutnya
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed.startsWith('data:')) continue;
+          const dataStr = trimmed.slice(5).trim();
+          if (dataStr === '[DONE]') continue;
+
+          try {
+            const json = JSON.parse(dataStr);
+            const delta = json?.choices?.[0]?.delta?.content
+              ?? json?.choices?.[0]?.message?.content
+              ?? '';
+            if (delta) {
+              fullText += delta;
+              assistantMsg.content = fullText;
+              updateBubble(assistantMsg.id, fullText, true);
+            }
+          } catch (_) {
+            // baris parsial / bukan JSON valid, lewati
+          }
+        }
+      }
+
+      assistantMsg.streaming = false;
+      assistantMsg.content = fullText || 'Maaf, respons AI kosong. Coba tanyakan ulang.';
       aiStatus.textContent = 'Siap menjawab.';
       render();
+      saveHistory();
     } catch (err) {
-      state.messages.push({
-        role: 'assistant',
-        content: 'Gagal menghubungi server AI. Coba lagi sebentar, atau hubungi admin jika masalah berlanjut.'
-      });
+      assistantMsg.content = 'Gagal menghubungi server AI. Coba lagi sebentar, atau hubungi admin jika masalah berlanjut.';
+      assistantMsg.streaming = false;
       aiStatus.textContent = 'Koneksi gagal.';
       render();
+      saveHistory();
     } finally {
       aiSend.disabled = false;
     }
