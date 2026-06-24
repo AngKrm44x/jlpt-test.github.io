@@ -3302,10 +3302,11 @@ updateVisibleCount();
 
 <script>
 (() => {
-  const AI_ENDPOINT = window.AI_ASSISTANT_ENDPOINT || '/api/assistant';
-  const AI_MODEL = window.AI_ASSISTANT_MODEL || 'deepseek-3.2';
-  const SYSTEM_PROMPT = window.AI_ASSISTANT_SYSTEM_PROMPT || 
-    'Kamu adalah AI Assistant untuk website belajar Jepang. Fokus utama: JLPT, JFT-Basic, JLCT, SSW/Tokutei Ginou, NAT-Test, J.Test, EJU, dan ujian Jepang lain yang relevan. Jawab dalam bahasa Indonesia yang mudah dipahami, boleh mencampur istilah Jepang bila membantu. Berikan jawaban singkat, jelas, dan praktis. Jika di luar topik, arahkan kembali dengan sopan.';
+  // Edge Function Supabase kamu. Ganti <PROJECT_REF> dengan ref project kamu,
+  // contoh: https://uincqpdexdenjcmwdfsv.supabase.co/functions/v1/assistant
+  const AI_ENDPOINT = window.AI_ASSISTANT_ENDPOINT ||
+    'https://uincqpdexdenjcmwdfsv.supabase.co/functions/v1/assistant';
+  const AI_MODEL = window.AI_ASSISTANT_MODEL || 'mimo-v2.5-free';
 
   const aiFab = document.getElementById('aiFab');
   const aiPanel = document.getElementById('aiPanel');
@@ -3359,16 +3360,39 @@ updateVisibleCount();
 
     const payload = {
       model: AI_MODEL,
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        ...state.messages.map(m => ({ role: m.role, content: m.content }))
-      ]
+      messages: state.messages.map(m => ({ role: m.role, content: m.content }))
     };
 
     try {
+      // Ambil access token Supabase yang sedang login (di-set oleh AUTH GUARD di awal file).
+      // Tanpa token ini, Edge Function backend akan menolak request (401).
+      let accessToken = '';
+      try {
+        if (window._session && window._session.access_token) {
+          accessToken = window._session.access_token;
+        } else if (window._supabase) {
+          const { data } = await window._supabase.auth.getSession();
+          accessToken = data?.session?.access_token || '';
+        }
+      } catch (_) {}
+
+      if (!accessToken) {
+        state.messages.push({
+          role: 'assistant',
+          content: 'Sesi login tidak ditemukan. Silakan refresh halaman dan login ulang untuk menggunakan AI Assistant.'
+        });
+        aiStatus.textContent = 'Sesi tidak valid.';
+        render();
+        aiSend.disabled = false;
+        return;
+      }
+
       const res = await fetch(AI_ENDPOINT, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`
+        },
         body: JSON.stringify(payload)
       });
 
@@ -3387,7 +3411,7 @@ updateVisibleCount();
     } catch (err) {
       state.messages.push({
         role: 'assistant',
-        content: 'Gagal menghubungi server AI. Pastikan endpoint /api/assistant aktif dan API key disimpan di backend.'
+        content: 'Gagal menghubungi server AI. Coba lagi sebentar, atau hubungi admin jika masalah berlanjut.'
       });
       aiStatus.textContent = 'Koneksi gagal.';
       render();
