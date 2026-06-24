@@ -6,7 +6,7 @@ app.use(express.json());
 
 const client = new OpenAI({
   baseURL: 'https://router.bynara.id/v1',
-  apiKey: process.env.sk-nry-BbwEFYuHIrwpgvZuyGRmsQ1X-3fqZriVfmIoQNSMFOw,
+  apiKey: sk-nry-BbwEFYuHIrwpgvZuyGRmsQ1X-3fqZriVfmIoQNSMFOw,
 });
 
 const SYSTEM_PROMPT = 'Kamu adalah AI Assistant untuk website belajar Jepang. Fokus utama: JLPT, JFT-Basic, JLCT, SSW/Tokutei Ginou, NAT-Test, J.Test, EJU, dan ujian Jepang lain yang relevan. Jawab dalam bahasa Indonesia yang mudah dipahami, boleh mencampur istilah Jepang bila membantu. Berikan jawaban singkat, jelas, dan praktis. Jika di luar topik, arahkan kembali dengan sopan.';
