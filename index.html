@@ -659,6 +659,79 @@ body.sidebar-open .menu-fab{
   .menu-fab{top:12px;left:12px;width:46px;height:46px;border-radius:14px;}
 }
 
+
+/* =============================================
+   AI ASSISTANT
+   ============================================= */
+:root{ --ai-accent:#5aa9ff; --ai-accent2:#7c4dff; }
+.ai-fab{
+  position:fixed;right:20px;bottom:20px;z-index:10020;
+  width:58px;height:58px;border:none;border-radius:18px;
+  background:linear-gradient(135deg,#3558a8,#6c3fff);
+  color:#fff;font-size:22px;cursor:pointer;
+  box-shadow:0 16px 35px rgba(0,0,0,.38);
+  display:flex;align-items:center;justify-content:center;
+}
+.ai-fab:hover{transform:translateY(-2px);filter:brightness(1.08);}
+.ai-panel{
+  position:fixed;right:20px;bottom:88px;z-index:10019;
+  width:min(390px,calc(100vw - 40px));height:min(600px,calc(100vh - 120px));
+  background:#111a2f;border:1px solid var(--border);border-radius:24px;
+  box-shadow:0 20px 60px rgba(0,0,0,.55);display:none;overflow:hidden;
+  backdrop-filter:blur(10px);
+}
+.ai-panel.open{display:flex;flex-direction:column;}
+.ai-head{
+  padding:16px 18px;border-bottom:1px solid rgba(255,255,255,.06);
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+}
+.ai-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:800;}
+.ai-sub{font-size:11px;color:var(--muted);margin-top:3px;}
+.ai-close{
+  width:38px;height:38px;border:none;border-radius:12px;cursor:pointer;
+  background:rgba(255,255,255,.05);color:var(--text);font-size:18px;
+}
+.ai-chat{
+  flex:1;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:12px;
+}
+.ai-msg{
+  max-width:88%;padding:12px 14px;border-radius:18px;line-height:1.6;
+  font-size:13px;white-space:pre-wrap;word-break:break-word;
+}
+.ai-msg.user{
+  align-self:flex-end;background:linear-gradient(135deg,#3558a8,#6c3fff);color:#fff;
+  border-bottom-right-radius:6px;
+}
+.ai-msg.assistant{
+  align-self:flex-start;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.06);
+  color:var(--text);border-bottom-left-radius:6px;
+}
+.ai-foot{
+  padding:14px;border-top:1px solid rgba(255,255,255,.06);
+  display:flex;gap:10px;align-items:flex-end;background:#0d1626;
+}
+.ai-input{
+  flex:1;min-height:46px;max-height:120px;resize:none;
+  border:1px solid #2a3d60;border-radius:16px;background:#111a2f;color:var(--text);
+  padding:12px 14px;font:inherit;outline:none;
+}
+.ai-send{
+  width:52px;height:46px;border:none;border-radius:16px;cursor:pointer;
+  background:linear-gradient(135deg,#19c37d,#0da868);color:#fff;font-weight:800;
+}
+.ai-send:disabled{opacity:.6;cursor:not-allowed}
+.ai-chips{padding:0 16px 14px;display:flex;gap:8px;flex-wrap:wrap}
+.ai-chip{
+  border:1px solid var(--border);background:rgba(255,255,255,.03);color:var(--muted);
+  padding:8px 11px;border-radius:999px;font-size:12px;font-weight:700;cursor:pointer;
+}
+.ai-chip:hover{border-color:#5aa9ff;color:#5aa9ff;background:rgba(90,169,255,.08);}
+.ai-status{font-size:11px;color:var(--muted);margin-top:6px;}
+@media (max-width:768px){
+  .ai-panel{right:10px;left:10px;bottom:80px;width:auto;height:min(70vh,560px);}
+  .ai-fab{right:14px;bottom:14px;}
+}
+
 </style>
 </head>
 <body>
@@ -3193,6 +3266,159 @@ setInterval(()=>{
 },2800);
 
 updateVisibleCount();
+</script>
+
+
+<!-- AI ASSISTANT -->
+<button class="ai-fab" id="aiFab" aria-label="Open AI Assistant">✦</button>
+<section class="ai-panel" id="aiPanel" aria-label="AI Assistant">
+  <div class="ai-head">
+    <div>
+      <div class="ai-title">AI Assistant Jepang</div>
+      <div class="ai-sub">JLPT · JFT · JLCT · SSW · NAT-Test · J.Test · EJU</div>
+    </div>
+    <button class="ai-close" id="aiClose" aria-label="Close">✕</button>
+  </div>
+
+  <div class="ai-chat" id="aiChat">
+    <div class="ai-msg assistant">Halo! Tanyakan apa saja seputar ujian Jepang. Saya bantu singkat, jelas, dan praktis.</div>
+  </div>
+
+  <div class="ai-chips">
+    <button class="ai-chip" data-prompt="Jelaskan perbedaan JLPT dan JFT-Basic">JLPT vs JFT</button>
+    <button class="ai-chip" data-prompt="Apa itu SSW dan syaratnya?">SSW</button>
+    <button class="ai-chip" data-prompt="Berikan tips belajar untuk JLPT N4">Tips N4</button>
+    <button class="ai-chip" data-prompt="Apa itu NAT-Test dan J.Test?">NAT / J.Test</button>
+  </div>
+
+  <div class="ai-foot">
+    <div style="flex:1;">
+      <textarea class="ai-input" id="aiInput" placeholder="Tulis pertanyaan..." rows="1"></textarea>
+      <div class="ai-status" id="aiStatus">Siap.</div>
+    </div>
+    <button class="ai-send" id="aiSend">➤</button>
+  </div>
+</section>
+
+<script>
+(() => {
+  const AI_ENDPOINT = window.AI_ASSISTANT_ENDPOINT || '/api/assistant';
+  const AI_MODEL = window.AI_ASSISTANT_MODEL || 'deepseek-3.2';
+  const SYSTEM_PROMPT = window.AI_ASSISTANT_SYSTEM_PROMPT || 
+    'Kamu adalah AI Assistant untuk website belajar Jepang. Fokus utama: JLPT, JFT-Basic, JLCT, SSW/Tokutei Ginou, NAT-Test, J.Test, EJU, dan ujian Jepang lain yang relevan. Jawab dalam bahasa Indonesia yang mudah dipahami, boleh mencampur istilah Jepang bila membantu. Berikan jawaban singkat, jelas, dan praktis. Jika di luar topik, arahkan kembali dengan sopan.';
+
+  const aiFab = document.getElementById('aiFab');
+  const aiPanel = document.getElementById('aiPanel');
+  const aiClose = document.getElementById('aiClose');
+  const aiChat = document.getElementById('aiChat');
+  const aiInput = document.getElementById('aiInput');
+  const aiSend = document.getElementById('aiSend');
+  const aiStatus = document.getElementById('aiStatus');
+
+  if (!aiFab || !aiPanel || !aiClose || !aiChat || !aiInput || !aiSend) return;
+
+  const state = {
+    messages: [{ role: 'assistant', content: 'Halo! Tanyakan apa saja seputar JLPT, JFT, JLCT, SSW, NAT-Test, J.Test, atau ujian Jepang lainnya.' }]
+  };
+
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function render() {
+    aiChat.innerHTML = state.messages.map(m => {
+      const cls = m.role === 'user' ? 'user' : 'assistant';
+      return `<div class="ai-msg ${cls}">${escapeHtml(m.content)}</div>`;
+    }).join('');
+    aiChat.scrollTop = aiChat.scrollHeight;
+  }
+
+  function openAI() {
+    aiPanel.classList.add('open');
+    aiInput.focus();
+  }
+
+  function closeAI() {
+    aiPanel.classList.remove('open');
+  }
+
+  async function sendMessage(text) {
+    const prompt = String(text || '').trim();
+    if (!prompt) return;
+
+    state.messages.push({ role: 'user', content: prompt });
+    render();
+    aiInput.value = '';
+    aiSend.disabled = true;
+    aiStatus.textContent = 'Sedang berpikir...';
+
+    const payload = {
+      model: AI_MODEL,
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT },
+        ...state.messages.map(m => ({ role: m.role, content: m.content }))
+      ]
+    };
+
+    try {
+      const res = await fetch(AI_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      let data = null;
+      try { data = await res.json(); } catch (_) {}
+
+      const answer =
+        data?.choices?.[0]?.message?.content ||
+        data?.message?.content ||
+        data?.reply ||
+        'Maaf, respons AI belum tersedia.';
+
+      state.messages.push({ role: 'assistant', content: answer });
+      aiStatus.textContent = 'Siap menjawab.';
+      render();
+    } catch (err) {
+      state.messages.push({
+        role: 'assistant',
+        content: 'Gagal menghubungi server AI. Pastikan endpoint /api/assistant aktif dan API key disimpan di backend.'
+      });
+      aiStatus.textContent = 'Koneksi gagal.';
+      render();
+    } finally {
+      aiSend.disabled = false;
+    }
+  }
+
+  aiFab.addEventListener('click', openAI);
+  aiClose.addEventListener('click', closeAI);
+  aiSend.addEventListener('click', () => sendMessage(aiInput.value));
+  aiInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage(aiInput.value);
+    }
+  });
+  document.querySelectorAll('.ai-chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+      openAI();
+      aiInput.value = btn.dataset.prompt || btn.textContent.trim();
+      aiInput.focus();
+    });
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && aiPanel.classList.contains('open')) closeAI();
+  });
+
+  render();
+})();
 </script>
 
   <script type="module" src="./jlpt-sync.js?v=6"></script>
