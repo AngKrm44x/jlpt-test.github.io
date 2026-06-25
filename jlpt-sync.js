@@ -555,11 +555,35 @@
         window.__JLPT_SESSION_STARTED_AT__ = data.started_at || snapshot.started_at;
         return data;
       }
-      // Insert initial row
+      // Insert initial row.
+      // PENTING: jangan spread `snapshot` mentah — snapshot punya field tambahan
+      // (cefr_level, score_max) yang TIDAK ADA sebagai kolom di tabel exam_sessions.
+      // Supabase/Postgres menolak seluruh insert (400) kalau ada 1 kolom yang tidak
+      // dikenal, jadi payload di sini harus persis sama dengan kolom yang nyata ada.
       const { error: insErr } = await client.from('exam_sessions').insert({
-        user_id:         ctx.session.user.id,
-        ...snapshot,
-        timer_remaining: snapshot.timer_remaining,
+        user_id:          ctx.session.user.id,
+        exam_key:         snapshot.exam_key,
+        exam_title:       snapshot.exam_title,
+        level:            snapshot.level,
+        year:             snapshot.year,
+        month:            snapshot.month,
+        mode:             snapshot.mode,
+        started_at:       snapshot.started_at,
+        updated_at:       snapshot.updated_at,
+        last_seen_at:     snapshot.last_seen_at,
+        answers:          snapshot.answers,
+        current_question: snapshot.current_question,
+        total_questions:  snapshot.total_questions,
+        timer_remaining:  snapshot.timer_remaining,
+        score:            snapshot.score,
+        correct_count:    snapshot.correct_count,
+        wrong_count:      snapshot.wrong_count,
+        percentage:       snapshot.percentage,
+        section_scores:   snapshot.section_scores,
+        completed:        snapshot.completed,
+        completed_at:     snapshot.completed_at,
+        status:           snapshot.status,
+        last_event:       snapshot.last_event,
       });
       if (insErr) console.warn('[jlpt-sync] ensureServerSession insert error:', insErr?.message);
       return null;
