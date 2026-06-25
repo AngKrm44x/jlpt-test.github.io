@@ -26,7 +26,7 @@
   // "Multiple GoTrueClient instances detected" warning, token-refresh conflicts
   // occur, and RLS policies see a stale/wrong JWT → all reads/writes silently fail.
   const client = await (async function waitForClient() {
-    const deadline = Date.now() + 6000;       // up to 6 s
+    const deadline = Date.now() + 8000;       // up to 8 s
     while (!window._supabase && Date.now() < deadline) {
       await new Promise(r => setTimeout(r, 30));
     }
@@ -35,7 +35,8 @@
       return window._supabase;
     }
     // Fallback (auth-guard not present or timed out)
-    console.warn('[jlpt-sync] Auth-guard client not found – creating standalone client');
+    console.warn('[jlpt-sync] Auth-guard client not found after 8s – creating standalone client. ' +
+      'Check that auth-guard.js is loaded on this page and sets window._supabase.');
     const c = createClient(SUPABASE_URL, SUPABASE_ANON);
     window._supabase = c;
     return c;
@@ -860,17 +861,33 @@
       }
     }, 200);
 
-    // Tombol back/forward browser: tampilkan dialog yang sama, lalu push state
-    // balik supaya user tidak benar-benar pindah halaman sebelum konfirmasi.
-    history.pushState({ jlptGuard: true }, '');
+    // Tombol back/forward browser: HANYA pasang trap history saat ujian benar-benar
+    // mulai berjalan (bukan saat halaman baru dimuat / masih di menu pilih mode).
+    // Tanpa pengecekan ini, setiap kali halaman exam dimuat akan menambah 1 entry
+    // history yang tidak perlu, membuat tombol Back terasa aneh padahal user belum
+    // mulai mengerjakan apapun.
+    let trapArmed = false;
+    function armHistoryTrap() {
+      if (trapArmed) return;
+      trapArmed = true;
+      history.pushState({ jlptGuard: true }, '');
+    }
     window.addEventListener('popstate', () => {
       if (state.examRunning && !window.__JLPT_EXAM_FINISHED__) {
-        history.pushState({ jlptGuard: true }, '');
+        armHistoryTrap();
         showExitConfirm().then((choice) => {
-          if (choice === 'leave') history.back();
+          if (choice === 'leave') {
+            trapArmed = false;
+            history.back();
+          }
         });
       }
     });
+    // Pasang trap begitu state.examRunning berubah jadi true (dipantau dari
+    // observeExamFunctions / wrapFunction startMode di bawah).
+    const armPoll = setInterval(() => {
+      if (state.examRunning) { armHistoryTrap(); clearInterval(armPoll); }
+    }, 300);
   }
 
   function installFullscreenGuard() {
