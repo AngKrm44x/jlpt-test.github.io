@@ -742,6 +742,137 @@
     if (el) el.style.display = 'none';
   }
 
+  // ── Exit-confirm dialog (3 bahasa) ───────────────────────────────────────────
+  // Dipanggil sebelum user benar-benar pindah halaman/keluar dari ujian yang
+  // masih berjalan, supaya progress tidak hilang dan user diingatkan klik
+  // tombol "Selesai" agar hasil akhirnya tercatat di Live Exam Monitor / admin.
+  function getUiLang() {
+    try {
+      const l = (localStorage.getItem('jlpt_lang') || '').toLowerCase();
+      // File ujian menyimpan 'jp' untuk Jepang (bukan kode ISO 'ja'); kita terima keduanya.
+      if (l === 'en') return 'en';
+      if (l === 'jp' || l === 'ja') return 'ja';
+    } catch {}
+    return 'id';
+  }
+
+  const EXIT_CONFIRM_TEXT = {
+    id: {
+      title: '⚠️ Simpan progress dulu?',
+      body: 'Kamu masih mengerjakan ujian ini. Klik <strong>Simpan</strong> agar progress kamu tidak hilang. Jangan lupa klik tombol <strong>Selesai</strong> setelah semua soal terjawab, supaya hasil akhirmu tercatat dengan benar.',
+      save: '💾 Simpan & Tetap di Sini',
+      finish: '✅ Selesaikan Sekarang',
+      leave: 'Keluar Tanpa Simpan',
+    },
+    en: {
+      title: '⚠️ Save your progress first?',
+      body: "You're still working on this exam. Click <strong>Save</strong> so your progress isn't lost. Don't forget to click <strong>Finish</strong> once you've answered all questions, so your final result is recorded correctly.",
+      save: '💾 Save & Stay Here',
+      finish: '✅ Finish Now',
+      leave: 'Leave Without Saving',
+    },
+    ja: {
+      title: '⚠️ 先に保存しますか？',
+      body: 'この試験はまだ進行中です。<strong>保存</strong>をクリックして進捗を保存してください。すべての問題に答えたら、必ず<strong>終了</strong>ボタンを押して結果を記録してください。',
+      save: '💾 保存して続ける',
+      finish: '✅ 今すぐ終了する',
+      leave: '保存せずに離れる',
+    },
+  };
+
+  let exitConfirmResolver = null;
+
+  function showExitConfirm() {
+    if (!state.isExamPage || state.isAdmin) return Promise.resolve('leave');
+    const lang = getUiLang();
+    const t = EXIT_CONFIRM_TEXT[lang] || EXIT_CONFIRM_TEXT.id;
+
+    let modal = document.getElementById('jlpt-exit-confirm');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'jlpt-exit-confirm';
+      modal.style.cssText = 'position:fixed;inset:0;z-index:1000000;background:rgba(5,9,16,.92);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:18px;text-align:center;font-family:inherit;';
+      document.body.appendChild(modal);
+    }
+    modal.innerHTML = `
+      <div style="max-width:480px;background:#111a2f;border:1px solid rgba(255,181,71,.35);border-radius:24px;padding:28px 24px;box-shadow:0 25px 80px rgba(0,0,0,.6);">
+        <div style="font-size:42px;margin-bottom:10px;">💾</div>
+        <div id="jlpt-exit-title" style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;margin-bottom:10px;color:#ffd18a;">${esc(t.title)}</div>
+        <div id="jlpt-exit-body" style="font-size:13.5px;color:#aab8d8;line-height:1.8;margin-bottom:20px;">${t.body}</div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <button id="jlpt-exit-save" style="padding:13px 20px;border-radius:14px;border:none;background:linear-gradient(135deg,#4a9eff,#6c3fff);color:#fff;font-weight:800;font-size:14px;cursor:pointer;font-family:inherit;">${esc(t.save)}</button>
+          <button id="jlpt-exit-finish" style="padding:13px 20px;border-radius:14px;border:1px solid rgba(95,240,176,.4);background:rgba(95,240,176,.12);color:#5ff0b0;font-weight:800;font-size:14px;cursor:pointer;font-family:inherit;">${esc(t.finish)}</button>
+          <button id="jlpt-exit-leave" style="padding:11px 20px;border-radius:14px;border:1px solid rgba(255,255,255,.12);background:transparent;color:#8b97b8;font-weight:600;font-size:12.5px;cursor:pointer;font-family:inherit;">${esc(t.leave)}</button>
+        </div>
+      </div>`;
+    modal.style.display = 'flex';
+
+    return new Promise((resolve) => {
+      exitConfirmResolver = resolve;
+      modal.querySelector('#jlpt-exit-save').onclick = () => {
+        try { syncSession('exit_confirm_save', false, true); } catch {}
+        toast(getUiLang() === 'ja' ? '💾 保存しました' : getUiLang() === 'en' ? '💾 Saved' : '💾 Tersimpan');
+        hideExitConfirm();
+        resolve('save');
+      };
+      modal.querySelector('#jlpt-exit-finish').onclick = () => {
+        hideExitConfirm();
+        if (typeof window.finishQuiz === 'function') window.finishQuiz();
+        resolve('finish');
+      };
+      modal.querySelector('#jlpt-exit-leave').onclick = () => {
+        try { syncSession('exit_confirm_leave', false, true); } catch {}
+        hideExitConfirm();
+        resolve('leave');
+      };
+    });
+  }
+
+  function hideExitConfirm() {
+    const el = document.getElementById('jlpt-exit-confirm');
+    if (el) el.style.display = 'none';
+    exitConfirmResolver = null;
+  }
+
+  // Pasang dialog ini di tombol navigasi yang membawa keluar dari sesi ujian
+  // (goHome dipanggil dari tombol "Kembali ke Beranda" / hasil ujian di file exam).
+  function installExitGuard() {
+    if (!state.isExamPage || state.isAdmin) return;
+
+    // Intercept goHome() — biasanya dipanggil dari tombol kembali ke beranda exam.
+    const poll = setInterval(() => {
+      if (typeof window.goHome === 'function' && !window.goHome.__jlptExitGuarded) {
+        const originalGoHome = window.goHome;
+        const guarded = function (...args) {
+          if (state.examRunning && !window.__JLPT_EXAM_FINISHED__) {
+            showExitConfirm().then((choice) => {
+              if (choice === 'leave') originalGoHome.apply(this, args);
+              // 'save' dan 'finish' sengaja TIDAK lanjut navigasi — user tetap di
+              // halaman ujian supaya bisa melanjutkan/menyelesaikan dengan benar.
+            });
+            return;
+          }
+          return originalGoHome.apply(this, args);
+        };
+        guarded.__jlptExitGuarded = true;
+        window.goHome = guarded;
+        clearInterval(poll);
+      }
+    }, 200);
+
+    // Tombol back/forward browser: tampilkan dialog yang sama, lalu push state
+    // balik supaya user tidak benar-benar pindah halaman sebelum konfirmasi.
+    history.pushState({ jlptGuard: true }, '');
+    window.addEventListener('popstate', () => {
+      if (state.examRunning && !window.__JLPT_EXAM_FINISHED__) {
+        history.pushState({ jlptGuard: true }, '');
+        showExitConfirm().then((choice) => {
+          if (choice === 'leave') history.back();
+        });
+      }
+    });
+  }
+
   function installFullscreenGuard() {
     if (!state.isExamPage) return;
     document.addEventListener('fullscreenchange', () => {
@@ -768,6 +899,7 @@
       e.preventDefault(); e.returnValue = ''; return '';
     });
     installFullscreenGuard();
+    installExitGuard();
   }
 
   function wrapFunction(name, afterHook) {
@@ -985,8 +1117,25 @@
       if (sessionRes.error)  throw sessionRes.error;
 
       const mergedMap = new Map();
+      // Helper: putuskan apakah row baru boleh menimpa row yang sudah ada di map.
+      // Aturan:
+      //  1. Status 'done' TIDAK PERNAH ditimpa oleh status lain (final state, sudah pasti benar).
+      //  2. Selain itu, yang menang adalah row dengan updated_at PALING BARU
+      //     (bukan sekadar urutan insert), supaya tidak ada race condition antara
+      //     exam_progress (heartbeat sering) dan exam_sessions (event-based).
+      function upsertMerged(row) {
+        const mapKey = `${row.user_id}::${row.exam_key}`;
+        const existing = mergedMap.get(mapKey);
+        if (!existing) { mergedMap.set(mapKey, row); return; }
+        if (existing.status === 'done' && row.status !== 'done') return; // jangan timpa 'done'
+        const existingTime = new Date(existing.updated_at || 0).getTime();
+        const rowTime      = new Date(row.updated_at || 0).getTime();
+        if (row.status === 'done' || rowTime >= existingTime) {
+          mergedMap.set(mapKey, row);
+        }
+      }
       (Array.isArray(sessionRes.data) ? sessionRes.data : []).forEach(row => {
-        mergedMap.set(`${row.user_id}::${row.exam_key}`, {
+        upsertMerged({
           user_id: row.user_id, exam_key: row.exam_key,
           exam_title: row.exam_title || '', level: row.level || '', mode: row.mode || 'all',
           status: row.completed ? 'done' : (row.status || 'active'),
@@ -1000,7 +1149,7 @@
         });
       });
       (Array.isArray(progressRes.data) ? progressRes.data : []).forEach(row => {
-        mergedMap.set(`${row.user_id}::${row.exam_key}`, {
+        upsertMerged({
           user_id: row.user_id, exam_key: row.exam_key,
           exam_title: row.exam_title || '', level: row.level || '', mode: row.mode || 'all',
           status: row.status || 'active',
@@ -1802,7 +1951,7 @@ function bindAdminActionDelegates(root = document) {
       enforceLockState();
       state.heartbeatTimer = setInterval(() => {
         if (state.examRunning) syncSession('heartbeat', false, false);
-      }, 10000);
+      }, 4000);
       setInterval(async () => {
         await loadSystemSettings(); await loadCurrentExamLock(); enforceLockState();
       }, 8000);
