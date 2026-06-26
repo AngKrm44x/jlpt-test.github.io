@@ -80,8 +80,8 @@ h2{font-size:15px;font-weight:500;margin-bottom:10px;}
 .pass-banner.pass{background:rgba(25,195,125,.18);border:1px solid rgba(25,195,125,.3);}
 .pass-banner.fail{background:rgba(255,95,115,.12);border:1px solid rgba(255,95,115,.25);}
 .section-result{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:13px;}
-.section-result:last-child{border-bottom:none;}
 .section-result--untested{opacity:.55;font-style:italic;}
+.section-result:last-child{border-bottom:none;}
 .info-note{background:rgba(255,181,71,.07);border:1px solid rgba(255,181,71,.2);border-radius:12px;padding:10px 14px;font-size:12px;color:rgba(255,181,71,.8);margin-bottom:10px;}
 
 /* Language Selector */
@@ -606,139 +606,219 @@ window.showToast = window.showToast || showMiniToast;
 function prevQ(){
   if(currentQ>0){currentQ--;renderQuestion();}
 }
-
-function resolveExamMeta(){
-  const base=(location.pathname.split('/').pop()||document.title||'exam').replace(/\.[^.]+$/,'');
-  const m=base.match(/(\d{4})-(\d{2})-n([1-5])/i);
-  if(m){return{key:`n${m[3]}-${m[1]}-${m[2]}`,level:`N${m[3]}`,year:m[1],month:m[2],title:(document.querySelector('#home h1')?.textContent||document.title||base).trim()};}
-  const m2=base.match(/n([1-5])-(\d{4})-(\d{2})/i);
-  if(m2){return{key:`n${m2[1]}-${m2[2]}-${m2[3]}`,level:`N${m2[1]}`,year:m2[2],month:m2[3],title:(document.querySelector('#home h1')?.textContent||document.title||base).trim()};}
-  return{key:base.toLowerCase().replace(/_updated.*$/i,''),level:'N2',year:'',month:'',title:(document.querySelector('#home h1')?.textContent||document.title||base).trim()};
-}
-
-const JLPT_SECTION_CONFIG={
-  N5:{overallPass:80,groups:[
-    {key:'lang_read',label_id:'言語知識・読解',secs:['文字・語彙','文法','読解'],max:120,pass:38},
-    {key:'listening',label_id:'聴解',secs:['聴解'],max:60,pass:19,notTested:true},
-  ]},
-  N4:{overallPass:90,groups:[
-    {key:'lang_read',label_id:'言語知識・読解',secs:['文字・語彙','文法','読解'],max:120,pass:38},
-    {key:'listening',label_id:'聴解',secs:['聴解'],max:60,pass:19,notTested:true},
-  ]},
-  N3:{overallPass:95,groups:[
-    {key:'lang',label_id:'言語知識（文字・語彙・文法）',secs:['文字・語彙','文法'],max:60,pass:19},
-    {key:'reading',label_id:'読解',secs:['読解'],max:60,pass:19},
-    {key:'listening',label_id:'聴解',secs:['聴解'],max:60,pass:19,notTested:true},
-  ]},
-  N2:{overallPass:90,groups:[
-    {key:'lang',label_id:'言語知識（文字・語彙・文法）',secs:['文字・語彙','文法'],max:60,pass:19},
-    {key:'reading',label_id:'読解',secs:['読解'],max:60,pass:19},
-    {key:'listening',label_id:'聴解',secs:['聴解'],max:60,pass:19,notTested:true},
-  ]},
-  N1:{overallPass:100,groups:[
-    {key:'lang',label_id:'言語知識（文字・語彙・文法）',secs:['文字・語彙','文法'],max:60,pass:19},
-    {key:'reading',label_id:'読解',secs:['読解'],max:60,pass:19},
-    {key:'listening',label_id:'聴解',secs:['聴解'],max:60,pass:19,notTested:true},
-  ]},
+// ── Sistem skoring resmi JLPT ──────────────────────────────────────────────
+// Berdasarkan standar resmi JLPT (jlpt.jp/e/guideline/results.html):
+// - N5/N4: 2 scoring section -> "言語知識(文字・語彙・文法)・読解" (0-120) + "聴解" (0-60)
+// - N3/N2/N1: 3 scoring section -> "言語知識(文字・語彙・文法)" (0-60) + "読解" (0-60) + "聴解" (0-60)
+// Kelulusan butuh 2 syarat: (1) skor total >= overall pass mark, DAN
+// (2) skor SETIAP section >= sectional pass mark section itu.
+// Karena soal 聴解 tidak tersedia di sistem ini (perlu audio), section itu
+// ditandai "belum diujikan" -- tidak dihitung 0, dan tidak dipakai untuk
+// menentukan lulus/tidak. Total skor yang ditampilkan adalah skor TANPA
+// listening, dengan disclaimer yang jelas.
+const JLPT_SECTION_CONFIG = {
+  N5: {
+    overallPass: 80,
+    groups: [
+      { key: 'lang_read', label_id: '言語知識・読解', secs: ['文字・語彙', '文法', '読解'], max: 120, pass: 38 },
+      { key: 'listening', label_id: '聴解', secs: ['聴解'], max: 60, pass: 19, notTested: true },
+    ],
+  },
+  N4: {
+    overallPass: 90,
+    groups: [
+      { key: 'lang_read', label_id: '言語知識・読解', secs: ['文字・語彙', '文法', '読解'], max: 120, pass: 38 },
+      { key: 'listening', label_id: '聴解', secs: ['聴解'], max: 60, pass: 19, notTested: true },
+    ],
+  },
+  N3: {
+    overallPass: 95,
+    groups: [
+      { key: 'lang',      label_id: '言語知識（文字・語彙・文法）', secs: ['文字・語彙', '文法'], max: 60, pass: 19 },
+      { key: 'reading',   label_id: '読解',  secs: ['読解'],     max: 60, pass: 19 },
+      { key: 'listening', label_id: '聴解',  secs: ['聴解'],     max: 60, pass: 19, notTested: true },
+    ],
+  },
+  N2: {
+    overallPass: 90,
+    groups: [
+      { key: 'lang',      label_id: '言語知識（文字・語彙・文法）', secs: ['文字・語彙', '文法'], max: 60, pass: 19 },
+      { key: 'reading',   label_id: '読解',  secs: ['読解'],     max: 60, pass: 19 },
+      { key: 'listening', label_id: '聴解',  secs: ['聴解'],     max: 60, pass: 19, notTested: true },
+    ],
+  },
+  N1: {
+    overallPass: 100,
+    groups: [
+      { key: 'lang',      label_id: '言語知識（文字・語彙・文法）', secs: ['文字・語彙', '文法'], max: 60, pass: 19 },
+      { key: 'reading',   label_id: '読解',  secs: ['読解'],     max: 60, pass: 19 },
+      { key: 'listening', label_id: '聴解',  secs: ['聴解'],     max: 60, pass: 19, notTested: true },
+    ],
+  },
 };
-const JLPT_CEFR_BANDS={
-  N5:[{min:80,label:'A1',range:'80–180'},{min:0,label:'A0',range:'0–79'}],
-  N4:[{min:90,label:'A2',range:'90–180'},{min:80,label:'A1',range:'80–89'},{min:0,label:'A0',range:'0–79'}],
-  N3:[{min:104,label:'B1',range:'104–180'},{min:90,label:'A2',range:'90–103'},{min:0,label:'A1',range:'0–89'}],
-  N2:[{min:112,label:'B2',range:'112–180'},{min:90,label:'B1',range:'90–111'},{min:0,label:'A2',range:'0–89'}],
-  N1:[{min:142,label:'C1',range:'142–180'},{min:100,label:'B2',range:'100–141'},{min:90,label:'B1',range:'90–99'},{min:0,label:'A2',range:'0–89'}],
+
+const JLPT_CEFR_BANDS = {
+  N5: [{ min: 80, label: 'A1', range: '80–180' }, { min: 0, label: 'A0', range: '0–79' }],
+  N4: [{ min: 90, label: 'A2', range: '90–180' }, { min: 80, label: 'A1', range: '80–89' }, { min: 0, label: 'A0', range: '0–79' }],
+  N3: [{ min: 104, label: 'B1', range: '104–180' }, { min: 90, label: 'A2', range: '90–103' }, { min: 0, label: 'A1', range: '0–89' }],
+  N2: [{ min: 112, label: 'B2', range: '112–180' }, { min: 90, label: 'B1', range: '90–111' }, { min: 0, label: 'A2', range: '0–89' }],
+  N1: [{ min: 142, label: 'C1', range: '142–180' }, { min: 100, label: 'B2', range: '100–141' }, { min: 90, label: 'B1', range: '90–99' }, { min: 0, label: 'A2', range: '0–89' }],
 };
-function computeJlptResult(questionList,answersMap,level){
-  const lvl=String(level||'N2').toUpperCase();
-  const config=JLPT_SECTION_CONFIG[lvl]||JLPT_SECTION_CONFIG.N2;
-  const sections=config.groups.map(group=>{
-    if(group.notTested){return{key:group.key,label:group.label_id,max:group.max,pass:group.pass,score:null,correct:0,total:0,passed:null,notTested:true};}
-    const qs=questionList.filter(q=>group.secs.includes(q.sec));
-    const correct=qs.filter(q=>answersMap[q.id]?.correct).length;
-    const total=qs.length;
-    const score=total>0?Math.round((correct/total)*group.max):0;
-    return{key:group.key,label:group.label_id,max:group.max,pass:group.pass,score,correct,total,passed:total>0?score>=group.pass:null,notTested:false};
+
+function computeJlptResult(questionList, answersMap, level) {
+  const lvl = String(level || 'N5').toUpperCase();
+  const config = JLPT_SECTION_CONFIG[lvl] || JLPT_SECTION_CONFIG.N5;
+
+  const sections = config.groups.map(group => {
+    if (group.notTested) {
+      return {
+        key: group.key, label: group.label_id, max: group.max, pass: group.pass,
+        score: null, correct: 0, total: 0, passed: null, notTested: true,
+      };
+    }
+    const qs = questionList.filter(q => group.secs.includes(q.sec));
+    const correct = qs.filter(q => answersMap[q.id]?.correct).length;
+    const total = qs.length;
+    const score = total > 0 ? Math.round((correct / total) * group.max) : 0;
+    return {
+      key: group.key, label: group.label_id, max: group.max, pass: group.pass,
+      score, correct, total, passed: total > 0 ? score >= group.pass : null, notTested: false,
+    };
   });
-  const testedSections=sections.filter(s=>!s.notTested&&s.total>0);
-  const totalScore=testedSections.reduce((sum,s)=>sum+s.score,0);
-  const totalMax=testedSections.reduce((sum,s)=>sum+s.max,0);
-  const hasUntested=sections.some(s=>s.notTested);
-  const passedOverall=totalScore>=config.overallPass;
-  const passedAllTestedSections=testedSections.every(s=>s.passed!==false);
-  const cefr=inferCefr(lvl,totalScore);
-  return{totalScore,totalMax,totalTested:!hasUntested,overallPass:config.overallPass,passedOverall,sections,passedAllTestedSections,cefr,officialPassDeterminable:!hasUntested};
+
+  const testedSections = sections.filter(s => !s.notTested && s.total > 0);
+  const totalScore = testedSections.reduce((sum, s) => sum + s.score, 0);
+  const totalMax    = testedSections.reduce((sum, s) => sum + s.max, 0);
+  const hasUntested  = sections.some(s => s.notTested);
+
+  const passedOverall = totalScore >= config.overallPass;
+  const passedAllTestedSections = testedSections.every(s => s.passed !== false);
+
+  const cefr = inferCefr(lvl, totalScore);
+
+  return {
+    totalScore, totalMax, totalTested: !hasUntested,
+    overallPass: config.overallPass,
+    passedOverall, sections, passedAllTestedSections,
+    cefr,
+    officialPassDeterminable: !hasUntested,
+  };
 }
-function inferCefr(level,score){
-  const lvl=String(level||'').toUpperCase();
-  const bands=JLPT_CEFR_BANDS[lvl]||JLPT_CEFR_BANDS.N2;
-  const s=Number(score);
-  if(!Number.isFinite(s))return{label:'—',range:''};
-  return bands.find(b=>s>=b.min)||{label:'—',range:''};
+
+function inferCefr(level, score) {
+  const lvl = String(level || '').toUpperCase();
+  const bands = JLPT_CEFR_BANDS[lvl] || JLPT_CEFR_BANDS.N5;
+  const s = Number(score);
+  if (!Number.isFinite(s)) return { label: '—', range: '' };
+  const found = bands.find(b => s >= b.min);
+  return found || { label: '—', range: '' };
 }
-function persistExamResult(result){
-  try{sessionStorage.setItem('jlpt_exam_result',JSON.stringify(result));}catch(e){}
-  try{const meta=resolveExamMeta();if(meta?.key){localStorage.setItem(`jlpt_exam_result_${meta.key}`,JSON.stringify(result));localStorage.setItem('jlpt_exam_result_latest',JSON.stringify(result));}}catch(e){}
-}
-function scoreMaxForResult(result){const max=Number(result?.scoreMax||result?.score_max||180);return Number.isFinite(max)&&max>0?max:180;}
 
 function finishQuiz(){
   clearInterval(timerInterval);
-  const elapsed=Math.floor((Date.now()-startTime)/1000);
+  const elapsed = Math.floor((Date.now() - startTime) / 1000);
   showScreen('result');
-  const total=questions.length||0;
-  const correct=Object.values(answers).filter(a=>a.correct).length;
-  const wrong=Math.max(Object.keys(answers).length-correct,0);
-  const pct=total?Math.round((correct/total)*100):0;
-  document.getElementById('r-correct').textContent=correct;
-  document.getElementById('r-wrong').textContent=wrong;
-  document.getElementById('r-pct').textContent=pct+'%';
-  const mm=Math.floor(elapsed/60),ss=elapsed%60;
-  document.getElementById('r-time').textContent=mm+':'+ss.toString().padStart(2,'0');
-  document.getElementById('res-date').textContent=new Date().toLocaleString('ja-JP');
-  const levelName=resolveExamMeta().level||'N2';
-  const result=computeJlptResult(questions,answers,levelName);
-  const cefr=result.cefr;
-  const passed=result.passedOverall&&result.passedAllTestedSections;
-  const secs=['文字・語彙','文法','読解'];
-  const sr=document.getElementById('section-results');sr.innerHTML='';
-  secs.forEach(s=>{
-    const qs=questions.filter(q=>q.sec===s);
-    if(!qs.length)return;
-    const c=qs.filter(q=>answers[q.id]?.correct).length;
-    const div=document.createElement('div');div.className='section-result';
-    div.innerHTML='<span>'+s+'</span><span style="font-family:var(--mono)">'+c+'/'+qs.length+' ('+Math.round(c/qs.length*100)+'%)</span>';
+
+  const total = questions.length || 0;
+  const correct = Object.values(answers).filter(a => a.correct).length;
+  const wrong = Math.max(Object.keys(answers).length - correct, 0);
+  const pct = total ? Math.round((correct / total) * 100) : 0;
+
+  const levelName = resolveLocalExamMeta().level || 'N2';
+  const result = computeJlptResult(questions, answers, levelName);
+  const cefr = result.cefr;
+  // "passed" di sini adalah ESTIMASI (karena 聴解 belum diujikan), bukan
+  // keputusan lulus/tidak yang resmi. Lihat result.officialPassDeterminable.
+  const passed = result.passedOverall && result.passedAllTestedSections;
+
+  document.getElementById('r-correct').textContent = correct;
+  document.getElementById('r-wrong').textContent = wrong;
+  document.getElementById('r-pct').textContent = pct + '%';
+
+  const mm = Math.floor(elapsed / 60), ss = elapsed % 60;
+  document.getElementById('r-time').textContent = mm + ':' + ss.toString().padStart(2, '0');
+  document.getElementById('res-date').textContent = new Date().toLocaleString('ja-JP');
+
+  const secs = ["文字・語彙", "文法", "読解"];
+  const sr = document.getElementById('section-results');
+  sr.innerHTML = '';
+  secs.forEach(s => {
+    const qs = questions.filter(q => q.sec === s);
+    if (!qs.length) return;
+    const c = qs.filter(q => answers[q.id]?.correct).length;
+    const div = document.createElement('div');
+    div.className = 'section-result';
+    div.innerHTML = '<span>' + s + '</span><span style="font-family:var(--mono)">' + c + '/' + qs.length + ' (' + Math.round(c / qs.length * 100) + '%)</span>';
     sr.appendChild(div);
   });
-  const ssr=document.getElementById('scoring-section-results');
-  if(ssr){ssr.innerHTML=result.sections.map(s=>{
-    if(s.notTested){return`<div class="section-result section-result--untested"><span>${s.label}</span><span style="font-family:var(--mono);opacity:.6">${T('not_tested')}</span></div>`;}
-    const icon=s.passed?'✅':'⚠️';
-    return`<div class="section-result"><span>${icon} ${s.label}</span><span style="font-family:var(--mono)">${s.score}/${s.max} (${T('min_pass')} ${s.pass})</span></div>`;
-  }).join('');}
-  const banner=document.getElementById('pass-banner');
-  banner.className='pass-banner '+(passed?'pass':'fail');
-  document.getElementById('pass-text').textContent=`${T('score_estimate')}: ${result.totalScore}/${result.totalMax}${result.totalTested?'':' *'}`;
-  document.getElementById('pass-sub').textContent=`${correct}/${total} ${currentLang==='ja'?'正解':currentLang==='en'?'correct':'benar'} · ${T('cefr_estimate')} ${cefr.label}${cefr.range?` (${cefr.range})`:''} · ${T('passing_mark')} ${result.overallPass}/180`;
-  document.getElementById('hs-done').textContent=total;
-  document.getElementById('hs-score').textContent=`${result.totalScore}/${result.totalMax}`;
-  document.getElementById('hs-pred').textContent=cefr.label;
-  document.getElementById('res-pred-h2').textContent=`JLPT ${levelName} · CEFR ${cefr.label}`;
-  const pd=document.getElementById('prediction-detail');
-  pd.innerHTML='<p>📊 '+T('score_estimate')+': <strong>'+result.totalScore+'/'+result.totalMax+'</strong> ('+correct+'/'+total+' '+(currentLang==='ja'?'正解':currentLang==='en'?'correct':'benar')+')</p>'+
-    '<p>🎯 '+T('passing_mark')+' '+levelName+': '+result.overallPass+'/180 '+T('overall_label')+'</p>'+
-    '<p>🌐 '+T('cefr_estimate')+': <strong>'+cefr.label+'</strong>'+(cefr.range?' ('+cefr.range+')':'')+' </p>'+
-    '<p>ℹ️ '+T('listening_note')+'</p>'+
-    '<p>⚠️ '+T('score_no_listening_note')+'</p>'+
-    '<p>'+(passed?'✅ '+T('estimate_pass_note'):'⚠️ '+T('practice_note'))+'</p>';
-  const latestResult={
-    key:resolveExamMeta().key,name:resolveExamMeta().title,level:levelName,year:resolveExamMeta().year,
-    score:result.totalScore,jlptScore:result.totalScore,scoreEstimate:result.totalScore,
-    scoreMax:result.totalMax,score_max:result.totalMax,sections:result.sections,
-    correct,total,percentage:pct,cefr:cefr.label,cefrRange:cefr.range,cefr_range:cefr.range,
-    passed,officialPassDeterminable:result.officialPassDeterminable,completedAt:new Date().toISOString(),
+
+  const ssr = document.getElementById('scoring-section-results');
+  if (ssr) {
+    ssr.innerHTML = result.sections.map(s => {
+      if (s.notTested) {
+        return '<div class="section-result section-result--untested">' +
+          '<span>' + s.label + '</span>' +
+          '<span style="font-family:var(--mono);opacity:.6">' + T('not_tested') + '</span>' +
+          '</div>';
+      }
+      const icon = s.passed ? '✅' : '⚠️';
+      return '<div class="section-result">' +
+        '<span>' + icon + ' ' + s.label + '</span>' +
+        '<span style="font-family:var(--mono)">' + s.score + '/' + s.max + ' (' + T('min_pass') + ' ' + s.pass + ')</span>' +
+        '</div>';
+    }).join('');
+  }
+
+  const banner = document.getElementById('pass-banner');
+  banner.className = 'pass-banner ' + (passed ? 'pass' : 'fail');
+  document.getElementById('pass-text').textContent = T('score_estimate') + ': ' + result.totalScore + '/' + result.totalMax + (result.totalTested ? '' : ' *');
+  document.getElementById('pass-sub').textContent = correct + '/' + total + ' ' + (currentLang==='ja' ? '正解' : currentLang==='en' ? 'correct' : 'benar') + ' · ' + T('cefr_estimate') + ' ' + cefr.label + (cefr.range ? ' (' + cefr.range + ')' : '') + ' · ' + T('passing_mark') + ' ' + result.overallPass + '/180';
+
+  document.getElementById('hs-done').textContent = total;
+  document.getElementById('hs-score').textContent = result.totalScore + '/' + result.totalMax;
+  document.getElementById('hs-pred').textContent = cefr.label;
+  document.getElementById('res-pred-h2').textContent = 'JLPT ' + levelName + ' · CEFR ' + cefr.label;
+
+  const pd = document.getElementById('prediction-detail');
+  pd.innerHTML =
+    '<p>📊 ' + T('score_estimate') + ': <strong>' + result.totalScore + '/' + result.totalMax + '</strong> (' + correct + '/' + total + ' ' + (currentLang==='ja' ? '正解' : currentLang==='en' ? 'correct' : 'benar') + ')</p>' +
+    '<p>🎯 ' + T('passing_mark') + ' ' + levelName + ': ' + result.overallPass + '/180 ' + T('overall_label') + '</p>' +
+    '<p>🌐 ' + T('cefr_estimate') + ': <strong>' + cefr.label + '</strong>' + (cefr.range ? ' (' + cefr.range + ')' : '') + '</p>' +
+    '<p>ℹ️ ' + T('listening_note') + '</p>' +
+    '<p>⚠️ ' + T('score_no_listening_note') + '</p>' +
+    '<p>' + (passed ? '✅ ' + T('estimate_pass_note') : '⚠️ ' + T('practice_note')) + '</p>';
+
+  const latestResult = {
+    key: resolveLocalExamMeta().key,
+    name: resolveLocalExamMeta().title,
+    level: levelName,
+    year: resolveLocalExamMeta().year,
+    score: result.totalScore,
+    jlptScore: result.totalScore,
+    scoreEstimate: result.totalScore,
+    scoreMax: result.totalMax,
+    score_max: result.totalMax,
+    sections: result.sections,
+    correct,
+    total,
+    percentage: pct,
+    cefr: cefr.label,
+    cefrRange: cefr.range,
+    cefr_range: cefr.range,
+    passed,
+    officialPassDeterminable: result.officialPassDeterminable,
+    completedAt: new Date().toISOString(),
   };
-  window.__JLPT_LAST_RESULT__=latestResult;
-  persistExamResult(latestResult);
+  window.__JLPT_LAST_RESULT__ = latestResult;
+  try {
+    sessionStorage.setItem('jlpt_exam_result', JSON.stringify(latestResult));
+    const metaKey = resolveLocalExamMeta().key;
+    if (metaKey) {
+      localStorage.setItem('jlpt_exam_result_' + metaKey, JSON.stringify(latestResult));
+      localStorage.setItem('jlpt_exam_result_latest', JSON.stringify(latestResult));
+    }
+  } catch (e) {}
+
   document.getElementById('print-pdf-btn').classList.add('show');
 }
 function reviewAnswers(){
@@ -799,8 +879,12 @@ const I18N = {
     report_send:'📤 Kirim Laporan',report_cancel:'Batal',report_thinking:'📤 Mengirim laporan...',
     pred_pass_high:'✅ Kemungkinan lulus sangat tinggi.',pred_pass_mid:'⚠️ Tepat di batas lulus. Terus berlatih.',pred_fail:'❌ Perlu belajar lebih banyak untuk lulus.',
     finish_reminder:'✅ Semua soal sudah dikerjakan! Klik tombol "Selesai" agar hasilmu tercatat.',
-    fail_label:'❌ Perlu Belajar Lagi',
-    pass_label:'✅ Lulus (Estimasi)'
+    res_jlpt_section:'Skor Resmi JLPT per Seksi',
+    not_tested:'Belum diujikan',
+    min_pass:'min.',
+    overall_label:'(total, tanpa 聴解)',
+    score_no_listening_note:'Skor di atas BELUM termasuk nilai 聴解 (mendengarkan), karena bagian ini tidak diujikan dalam sistem ini. Skor resmi JLPT-mu nanti akan berbeda karena turut menyertakan nilai 聴解.',
+    estimate_pass_note:'Berdasarkan bagian yang sudah diujikan, perkiraanmu sudah mencapai batas lulus. Ini bukan kepastian lulus resmi karena 聴解 belum dihitung.'
   },
   en: {
     stat_total:'total questions',stat_done:'attempted',stat_score:'last score',stat_pred:'prediction',
@@ -820,8 +904,12 @@ const I18N = {
     report_send:'📤 Send Report',report_cancel:'Cancel',report_thinking:'📤 Sending report...',
     pred_pass_high:'✅ Very likely to pass.',pred_pass_mid:'⚠️ Right on the passing line. Keep practicing.',pred_fail:'❌ More study needed to pass.',
     finish_reminder:'✅ All questions answered! Click "Finish" so your result gets recorded.',
-    fail_label:'❌ Need More Study',
-    pass_label:'✅ Pass (Estimated)'
+    res_jlpt_section:'Official JLPT Score by Section',
+    not_tested:'Not tested yet',
+    min_pass:'min.',
+    overall_label:'(total, without 聴解)',
+    score_no_listening_note:'The score above does NOT include the 聴解 (listening) section, since it is not tested in this system. Your official JLPT score will differ because it includes the listening score as well.',
+    estimate_pass_note:'Based on the sections tested so far, your estimate has reached the passing line. This is not an official pass guarantee since 聴解 has not been counted.'
   },
   jp: {
     stat_total:'問題数',stat_done:'解答済み',stat_score:'前回スコア',stat_pred:'予測',
@@ -841,8 +929,12 @@ const I18N = {
     report_send:'📤 報告を送信',report_cancel:'キャンセル',report_thinking:'📤 送信中...',
     pred_pass_high:'✅ 合格の可能性が非常に高いです。',pred_pass_mid:'⚠️ 合格ラインギリギリです。引き続き練習を。',pred_fail:'❌ 合格には更なる学習が必要です。',
     finish_reminder:'✅ 全問解答済みです！「終了」ボタンを押して結果を記録してください。',
-    fail_label:'❌ 要復習',
-    pass_label:'✅ 合格圏内 (推定)'
+    res_jlpt_section:'JLPT公式採点セクション別スコア',
+    not_tested:'未実施',
+    min_pass:'必要最低点',
+    overall_label:'（合計、聴解を除く）',
+    score_no_listening_note:'上記のスコアには聴解の点数は含まれていません。本システムでは聴解を実施していないためです。実際のJLPTスコアは聴解の点数も含まれるため異なります。',
+    estimate_pass_note:'実施済みのセクションに基づくと、合格ラインに達している見込みです。聴解の点数が含まれていないため、これは公式な合格保証ではありません。'
   }
 };
 
