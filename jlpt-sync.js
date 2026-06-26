@@ -39,6 +39,8 @@
       'Check that auth-guard.js is loaded on this page and sets window._supabase.');
     const c = createClient(SUPABASE_URL, SUPABASE_ANON);
     window._supabase = c;
+    window.JLPT_SYNC = window.JLPT_SYNC || {};
+    window.JLPT_SYNC.client = c;
     return c;
   })();
 
@@ -592,6 +594,25 @@
       return null;
     }
   }
+
+
+  function persistLastLocalResult() {
+    try {
+      const r = window.__JLPT_LAST_RESULT__;
+      if (!r || !r.key) return false;
+      const payload = JSON.stringify(r);
+      const key = String(r.key).trim();
+      sessionStorage.setItem('jlpt_exam_result', payload);
+      localStorage.setItem('jlpt_exam_result_latest', payload);
+      localStorage.setItem(`jlpt_exam_result_${key}`, payload);
+      return true;
+    } catch (err) {
+      console.warn('[jlpt-sync] persistLastLocalResult failed:', err?.message || err);
+      return false;
+    }
+  }
+
+  window.__JLPT_PERSIST_LAST_RESULT__ = persistLastLocalResult;
 
   async function syncSession(eventName = 'heartbeat', done = false, force = false) {
     const ctx = await getContext();
