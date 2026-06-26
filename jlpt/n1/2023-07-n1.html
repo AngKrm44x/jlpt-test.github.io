@@ -3,6 +3,252 @@
 <head>
   <script type="module" src="../../auth-guard.js"></script>
 <script type="module" src="../../jlpt-sync.js?v=6"></script>
+<script>
+(function () {
+  if (window.__JLPT_INLINE_GUARD_INSTALLED__) return;
+  window.__JLPT_INLINE_GUARD_INSTALLED__ = true;
+
+  const state = {
+    started: false,
+    pendingMode: null,
+    allowLeaveOnce: false,
+    resultLocked: false,
+  };
+
+  window.__JLPT_EXAM_GUARD_STATE__ = state;
+
+  function isQuizActive() {
+    const el = document.getElementById('quiz');
+    return !!(el && el.classList.contains('active'));
+  }
+
+  function showToast(message) {
+    try {
+      if (typeof window.showToast === 'function') return window.showToast(message);
+      if (typeof window.alert === 'function') return window.alert(message);
+    } catch {}
+    console.log('[JLPT GUARD]', message);
+  }
+
+  function requestFullscreenSafe() {
+    try {
+      if (!document.fullscreenElement && document.documentElement?.requestFullscreen) {
+        const p = document.documentElement.requestFullscreen({ navigationUI: 'hide' });
+        if (p && typeof p.catch === 'function') p.catch(() => {});
+      }
+    } catch {}
+  }
+
+  function exitFullscreenSafe() {
+    try {
+      if (document.fullscreenElement && document.exitFullscreen) {
+        const p = document.exitFullscreen();
+        if (p && typeof p.catch === 'function') p.catch(() => {});
+      }
+    } catch {}
+  }
+
+  function setModalVisible(visible) {
+    const overlay = document.getElementById('jlpt-guard-modal');
+    if (!overlay) return;
+    overlay.classList.toggle('open', !!visible);
+  }
+
+  function openGuardModal(kind) {
+    const overlay = document.getElementById('jlpt-guard-modal');
+    if (!overlay) return;
+    const title = document.getElementById('jlpt-guard-title');
+    const message = document.getElementById('jlpt-guard-message');
+    const primary = document.getElementById('jlpt-guard-primary');
+    const secondary = document.getElementById('jlpt-guard-secondary');
+    const tertiary = document.getElementById('jlpt-guard-tertiary');
+    if (kind === 'fullscreen') {
+      title.textContent = 'Mode layar penuh diperlukan';
+      message.textContent = 'Ujian harus dikerjakan dalam mode layar penuh. Tekan tombol di bawah untuk melanjutkan.';
+      primary.textContent = 'Lanjutkan Layar Penuh';
+      secondary.textContent = 'Tetap di Halaman';
+      tertiary.style.display = 'none';
+      primary.onclick = async () => {
+        state.pendingMode = state.pendingMode || null;
+        requestFullscreenSafe();
+        setModalVisible(false);
+        if (state.pendingMode && typeof window.__JLPT_START_MODE_NOW__ === 'function') {
+          const m = state.pendingMode;
+          state.pendingMode = null;
+          window.__JLPT_START_MODE_NOW__(m);
+        }
+      };
+      secondary.onclick = () => {
+        setModalVisible(false);
+        showToast('Silakan masuk ke mode layar penuh untuk mulai ujian.');
+      };
+    } else {
+      title.textContent = 'Simpan progress dulu?';
+      message.textContent = 'Kamu masih mengerjakan ujian ini. Simpan progress agar tidak hilang, lalu pastikan tombol Selesai diklik agar hasil akhir tercatat dengan benar.';
+      primary.textContent = 'Simpan & Tetap di Sini';
+      secondary.textContent = 'Selesaikan Sekarang';
+      tertiary.style.display = '';
+      tertiary.textContent = 'Keluar Tanpa Simpan';
+      primary.onclick = async () => {
+        try { if (typeof window.saveSessionManual === 'function') window.saveSessionManual(); } catch {}
+        setModalVisible(false);
+      };
+      secondary.onclick = async () => {
+        setModalVisible(false);
+        try { if (typeof window.finishQuiz === 'function') window.finishQuiz(); } catch {}
+      };
+      tertiary.onclick = () => {
+        state.allowLeaveOnce = true;
+        setModalVisible(false);
+        location.href = '../../index.html';
+      };
+    }
+    setModalVisible(true);
+  }
+
+  function installHistoryTrap() {
+    try {
+      history.pushState({ jlptExamGuard: true }, '', location.href);
+    } catch {}
+    window.addEventListener('popstate', () => {
+      if (!state.started || !isQuizActive() || state.allowLeaveOnce || state.resultLocked) return;
+      try { history.pushState({ jlptExamGuard: true }, '', location.href); } catch {}
+      openGuardModal('back');
+    });
+    window.addEventListener('beforeunload', (e) => {
+      if (!state.started || state.resultLocked || state.allowLeaveOnce) return;
+      e.preventDefault();
+      e.returnValue = '';
+      return '';
+    });
+  }
+
+  function installFullscreenTrap() {
+    document.addEventListener('fullscreenchange', () => {
+      if (!state.started || state.resultLocked) return;
+      if (!document.fullscreenElement && isQuizActive()) {
+        requestFullscreenSafe();
+      }
+    });
+  }
+
+  function persistLastResult() {
+    try {
+      const r = window.__JLPT_LAST_RESULT__;
+      if (!r || !r.key) return false;
+      const payload = JSON.stringify(r);
+      const key = String(r.key).trim();
+      sessionStorage.setItem('jlpt_exam_result', payload);
+      localStorage.setItem('jlpt_exam_result_latest', payload);
+      localStorage.setItem(`jlpt_exam_result_${key}`, payload);
+      // extra variants for path-key mismatches
+      const altKey = key.replace(/^n([1-5])-(\d{4})-(\d{2})$/, '$2-$3-n$1');
+      if (altKey && altKey !== key) localStorage.setItem(`jlpt_exam_result_${altKey}`, payload);
+      return true;
+    } catch (err) {
+      console.warn('[JLPT GUARD] persistLastResult failed:', err?.message || err);
+      return false;
+    }
+  }
+
+  window.__JLPT_PERSIST_LAST_RESULT__ = persistLastResult;
+
+  function wrap(name, fn) {
+    const original = window[name];
+    if (typeof original !== 'function') return;
+    if (original.__jlptGuardWrapped) return;
+    const wrapped = function (...args) {
+      return fn.call(this, original, ...args);
+    };
+    wrapped.__jlptGuardWrapped = true;
+    wrapped.__jlptOriginal = original;
+    window[name] = wrapped;
+  }
+
+  // Wait until exam functions exist, then wrap them.
+  const wrapTimer = setInterval(() => {
+    if (typeof window.startMode === 'function' && !window.startMode.__jlptGuardWrapped) {
+      wrap('startMode', function (original, mode) {
+        const fsOk = !!document.fullscreenElement;
+        state.pendingMode = mode;
+        if (!fsOk) {
+          openGuardModal('fullscreen');
+          requestFullscreenSafe();
+          return;
+        }
+        state.started = true;
+        state.allowLeaveOnce = false;
+        return original.call(this, mode);
+      });
+    }
+
+    if (typeof window.finishQuiz === 'function' && !window.finishQuiz.__jlptGuardWrapped) {
+      wrap('finishQuiz', function (original, ...args) {
+        const result = original.apply(this, args);
+        state.resultLocked = true;
+        persistLastResult();
+        try { exitFullscreenSafe(); } catch {}
+        return result;
+      });
+    }
+
+    if (typeof window.goHome === 'function' && !window.goHome.__jlptGuardWrapped) {
+      wrap('goHome', function (original, ...args) {
+        persistLastResult();
+        state.resultLocked = true;
+        return original.apply(this, args);
+      });
+    }
+
+    if (typeof window.saveSessionManual === 'function' && !window.saveSessionManual.__jlptGuardWrapped) {
+      wrap('saveSessionManual', function (original, ...args) {
+        const result = original.apply(this, args);
+        persistLastResult();
+        return result;
+      });
+    }
+
+    if (typeof window.loadSessionManual === 'function' && !window.loadSessionManual.__jlptGuardWrapped) {
+      wrap('loadSessionManual', function (original, ...args) {
+        const result = original.apply(this, args);
+        state.started = true;
+        return result;
+      });
+    }
+
+    if (typeof window.reviewAnswers === 'function' && !window.reviewAnswers.__jlptGuardWrapped) {
+      wrap('reviewAnswers', function (original, ...args) {
+        state.resultLocked = true;
+        return original.apply(this, args);
+      });
+    }
+
+    if (typeof window.startMode === 'function' && typeof window.__JLPT_START_MODE_NOW__ !== 'function') {
+      window.__JLPT_START_MODE_NOW__ = (mode) => {
+        try {
+          state.started = true;
+          return window.startMode(mode);
+        } catch (err) {
+          console.warn('[JLPT GUARD] __JLPT_START_MODE_NOW__ failed:', err?.message || err);
+        }
+      };
+    }
+
+    // stop once everything is wrapped
+    if (window.startMode?.__jlptGuardWrapped && window.finishQuiz?.__jlptGuardWrapped && window.goHome?.__jlptGuardWrapped) {
+      clearInterval(wrapTimer);
+    }
+  }, 150);
+
+  installHistoryTrap();
+  installFullscreenTrap();
+  window.addEventListener('pagehide', persistLastResult);
+  window.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') persistLastResult();
+  });
+})();
+</script>
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>JLPT N1 — Juli 2023</title>
@@ -102,9 +348,47 @@ canvas{position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.35;}
 #print-pdf-btn:hover{transform:translateY(-2px);background:#1a2d5d;}
 #print-pdf-btn.show{display:flex;}
 @media print{#print-pdf-btn{display:none!important;}}
+
+/* Guard Modal */
+.guard-modal-overlay{
+  position:fixed;inset:0;display:none;align-items:center;justify-content:center;
+  background:rgba(2,6,23,.78);backdrop-filter:blur(6px);z-index:100000;padding:18px;
+}
+.guard-modal-overlay.open{display:flex;}
+.guard-modal{
+  width:min(92vw,440px);background:#111a2f;border:1px solid rgba(90,169,255,.22);
+  border-radius:24px;padding:26px 22px;box-shadow:0 20px 60px rgba(0,0,0,.5);
+  text-align:center;
+}
+.guard-icon{font-size:34px;margin-bottom:10px;}
+.guard-modal h3{font-size:22px;line-height:1.25;margin-bottom:10px;}
+.guard-modal p{font-size:14px;line-height:1.8;color:var(--muted);margin-bottom:18px;}
+.guard-actions{display:flex;flex-direction:column;gap:10px;}
+.guard-btn{
+  width:100%;padding:13px 16px;border-radius:14px;border:1px solid var(--border);
+  background:rgba(24,35,63,.8);color:var(--text);font:inherit;font-weight:700;cursor:pointer;
+}
+.guard-btn.primary{background:linear-gradient(90deg,#5aa9ff,#7c4dff);border-color:transparent;color:#fff;}
+.guard-btn.secondary{background:rgba(25,195,125,.12);border-color:rgba(25,195,125,.35);color:#7ff0b6;}
+.guard-btn.ghost{background:transparent;border-color:rgba(255,255,255,.12);color:var(--muted);}
+.guard-btn:hover{filter:brightness(1.08);}
+
 </style>
 </head>
 <body>
+
+<div id="jlpt-guard-modal" class="guard-modal-overlay" aria-hidden="true">
+  <div class="guard-modal">
+    <div class="guard-icon">🛡️</div>
+    <h3 id="jlpt-guard-title">Mode layar penuh diperlukan</h3>
+    <p id="jlpt-guard-message">Ujian harus dikerjakan dalam mode layar penuh.</p>
+    <div class="guard-actions">
+      <button class="guard-btn primary" id="jlpt-guard-primary">Lanjutkan Layar Penuh</button>
+      <button class="guard-btn secondary" id="jlpt-guard-secondary">Tetap di Halaman</button>
+      <button class="guard-btn ghost" id="jlpt-guard-tertiary" style="display:none;">Keluar Tanpa Simpan</button>
+    </div>
+  </div>
+</div>
 <canvas id="bg-canvas"></canvas>
 <!-- Language Selector -->
 <div class="lang-selector">
@@ -438,6 +722,14 @@ function getQuestions(m){
 function getTimeLimit(m){return {all:6600,moji:2100,bunpou:1500,dokkai:3000}[m]||6300;}
 
 function startMode(m){
+  if (window.__JLPT_EXAM_GUARD_STATE__) window.__JLPT_EXAM_GUARD_STATE__.started = true;
+  if (!document.fullscreenElement && window.__JLPT_EXAM_GUARD_STATE__ && window.__JLPT_EXAM_GUARD_STATE__.pendingMode == null) {
+    window.__JLPT_EXAM_GUARD_STATE__.pendingMode = m;
+  }
+  if (!document.fullscreenElement && window.__JLPT_START_MODE_NOW__ && window.__JLPT_START_MODE_NOW__ !== startMode) {
+    try { /* guard hook will intercept on first load */ } catch (e) {}
+  }
+
   mode=m;questions=getQuestions(m);answers={};currentQ=0;
   startTime=Date.now();totalSeconds=getTimeLimit(m);
   showScreen('quiz');buildProgressGrid();renderQuestion();startTimer();
@@ -660,6 +952,62 @@ function inferCefr(level, score) {
   return found || { label: '—', range: '' };
 }
 
+
+function persistExamResult(latestResult){
+  if (!latestResult || !latestResult.key) return false;
+  try {
+    const payload = JSON.stringify(latestResult);
+    const key = String(latestResult.key).trim();
+    sessionStorage.setItem('jlpt_exam_result', payload);
+    localStorage.setItem('jlpt_exam_result_latest', payload);
+    localStorage.setItem(`jlpt_exam_result_${key}`, payload);
+
+    // extra aliases for legacy / alternate page-key formats
+    const aliases = new Set([
+      key,
+      key.replace(/^n([1-5])-(\d{4})-(\d{2})$/, '$2-$3-n$1'),
+      key.replace(/^n([1-5])-(\d{4})-(\d{2})$/, '$1-$2-$3'),
+      key.replace(/^n([1-5])-(\d{4})-(\d{2})$/, '$2-$1-$3'),
+      (latestResult.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''),
+    ]);
+    for (const alias of aliases) {
+      if (alias && alias !== key) localStorage.setItem(`jlpt_exam_result_${alias}`, payload);
+    }
+
+    // lightweight history cache so the index can recover even if the main key is stale
+    try {
+      const historyKey = 'jlpt_history_global';
+      const raw = localStorage.getItem(historyKey);
+      const history = raw ? JSON.parse(raw) : [];
+      if (Array.isArray(history)) {
+        const normalized = {
+          key: latestResult.key,
+          name: latestResult.name,
+          level: latestResult.level,
+          year: latestResult.year,
+          score: Number(latestResult.score || latestResult.jlptScore || latestResult.scoreEstimate || 0),
+          score_max: Number(latestResult.scoreMax || latestResult.score_max || 180),
+          cefr: latestResult.cefr || '',
+          cefr_range: latestResult.cefrRange || latestResult.cefr_range || '',
+          completedAt: latestResult.completedAt || new Date().toISOString(),
+          correct: Number(latestResult.correct || 0),
+          total: Number(latestResult.total || 0),
+          percentage: Number(latestResult.percentage || 0),
+          count: 1,
+        };
+        const idx = history.findIndex(h => h && h.key === normalized.key);
+        if (idx >= 0) history[idx] = { ...history[idx], ...normalized };
+        else history.unshift(normalized);
+        localStorage.setItem(historyKey, JSON.stringify(history));
+      }
+    } catch (e) {}
+    return true;
+  } catch (e) {
+    console.warn('[JLPT] persistExamResult failed:', e?.message || e);
+    return false;
+  }
+}
+
 function finishQuiz(){
   clearInterval(timerInterval);
   const elapsed = Math.floor((Date.now() - startTime) / 1000);
@@ -756,14 +1104,8 @@ function finishQuiz(){
     completedAt: new Date().toISOString(),
   };
   window.__JLPT_LAST_RESULT__ = latestResult;
-  try {
-    sessionStorage.setItem('jlpt_exam_result', JSON.stringify(latestResult));
-    const metaKey = resolveLocalExamMeta().key;
-    if (metaKey) {
-      localStorage.setItem('jlpt_exam_result_' + metaKey, JSON.stringify(latestResult));
-      localStorage.setItem('jlpt_exam_result_latest', JSON.stringify(latestResult));
-    }
-  } catch (e) {}
+  try { persistExamResult(latestResult); } catch (e) {}
+  try { if (window.__JLPT_EXAM_GUARD_STATE__) window.__JLPT_EXAM_GUARD_STATE__.resultLocked = true; } catch (e) {}
 
   document.getElementById('print-pdf-btn').classList.add('show');
 }
@@ -772,6 +1114,11 @@ function reviewAnswers(){
   currentQ=0;renderQuestion();
 }
 function goHome(){
+  if (window.__JLPT_EXAM_GUARD_STATE__) {
+    window.__JLPT_EXAM_GUARD_STATE__.resultLocked = true;
+    window.__JLPT_EXAM_GUARD_STATE__.allowLeaveOnce = true;
+    window.__JLPT_EXAM_GUARD_STATE__.started = false;
+  }
   clearInterval(timerInterval);
   document.getElementById('print-pdf-btn').classList.remove('show');
   showScreen('home');
