@@ -2,6 +2,7 @@
 <html lang="ja">
 <head>
   <script type="module" src="../../auth-guard.js"></script>
+<script type="module" src="../../jlpt-sync.js?v=6"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>JLPT N1 — Juli 2024</title>
@@ -58,6 +59,14 @@ h2{font-size:15px;font-weight:500;margin-bottom:10px;}
 .nav-btn.finish{background:rgba(255,95,115,.18);border-color:var(--danger);color:var(--danger);}
 .nav-btn.finish:hover{background:rgba(255,95,115,.3);}
 .nav-btn:disabled{opacity:.35;cursor:not-allowed;}
+.mini-toast{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);
+  background:#111a2f;border:1px solid rgba(95,240,176,.35);color:#5ff0b0;
+  padding:12px 18px;border-radius:14px;font-size:13px;font-weight:600;
+  box-shadow:0 15px 50px rgba(0,0,0,.5);z-index:99999;max-width:90vw;text-align:center;
+  opacity:0;pointer-events:none;transition:opacity .25s, transform .25s;
+}
+.mini-toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 .pass-banner{border-radius:16px;padding:16px;text-align:center;margin:12px 0;}
 .pass-banner.pass{background:rgba(25,195,125,.18);border:1px solid rgba(25,195,125,.3);}
 .pass-banner.fail{background:rgba(255,95,115,.12);border:1px solid rgba(255,95,115,.25);}
@@ -542,7 +551,28 @@ function restoreAnswer(q){
   exp.style.display='';exp.textContent=q.exp;
   document.getElementById('next-btn').disabled=false;
 }
-function nextQ(){if(currentQ<questions.length-1){currentQ++;renderQuestion();}}
+function nextQ(){
+  if(currentQ<questions.length-1){
+    currentQ++;renderQuestion();
+  } else {
+    const allAnswered = questions.length > 0 && Object.keys(answers).length >= questions.length;
+    if (allAnswered) showMiniToast(T('finish_reminder'));
+  }
+}
+function showMiniToast(msg, duration=4000){
+  let el = document.getElementById('mini-toast');
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'mini-toast';
+    el.className = 'mini-toast';
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(el.__hideTimer);
+  el.__hideTimer = setTimeout(()=>el.classList.remove('show'), duration);
+}
+window.showToast = window.showToast || showMiniToast;
 function prevQ(){if(currentQ>0){currentQ--;renderQuestion();}}
 function finishQuiz(){
   clearInterval(timerInterval);
@@ -631,7 +661,8 @@ const I18N = {
     correct_live:'Benar:',q_label:'Soal',q_of:'/',
     report_title:'🚩 Laporkan Soal Bermasalah',report_placeholder:'Jelaskan masalah pada soal ini (jawaban salah, teks tidak jelas, dll)...',
     report_send:'📤 Kirim Laporan',report_cancel:'Batal',report_thinking:'📤 Mengirim laporan...',
-    pred_pass_high:'✅ Kemungkinan lulus sangat tinggi.',pred_pass_mid:'⚠️ Tepat di batas lulus. Terus berlatih.',pred_fail:'❌ Perlu belajar lebih banyak untuk lulus.'
+    pred_pass_high:'✅ Kemungkinan lulus sangat tinggi.',pred_pass_mid:'⚠️ Tepat di batas lulus. Terus berlatih.',pred_fail:'❌ Perlu belajar lebih banyak untuk lulus.',
+    finish_reminder:'✅ Semua soal sudah dikerjakan! Klik tombol "Selesai" agar hasilmu tercatat.'
   },
   en: {
     stat_total:'total questions',stat_done:'attempted',stat_score:'last score',stat_pred:'prediction',
@@ -649,7 +680,8 @@ const I18N = {
     correct_live:'Correct:',q_label:'Q',q_of:'/',
     report_title:'🚩 Report a Problem',report_placeholder:'Describe the issue (wrong answer, unclear text, etc.)...',
     report_send:'📤 Send Report',report_cancel:'Cancel',report_thinking:'📤 Sending report...',
-    pred_pass_high:'✅ Very likely to pass.',pred_pass_mid:'⚠️ Right on the passing line. Keep practicing.',pred_fail:'❌ More study needed to pass.'
+    pred_pass_high:'✅ Very likely to pass.',pred_pass_mid:'⚠️ Right on the passing line. Keep practicing.',pred_fail:'❌ More study needed to pass.',
+    finish_reminder:'✅ All questions answered! Click "Finish" so your result gets recorded.'
   },
   jp: {
     stat_total:'問題数',stat_done:'解答済み',stat_score:'前回スコア',stat_pred:'予測',
@@ -667,7 +699,8 @@ const I18N = {
     correct_live:'正解：',q_label:'問',q_of:'/',
     report_title:'🚩 問題を報告',report_placeholder:'問題の内容を説明してください（誤答、不明瞭なテキストなど）...',
     report_send:'📤 報告を送信',report_cancel:'キャンセル',report_thinking:'📤 送信中...',
-    pred_pass_high:'✅ 合格の可能性が非常に高いです。',pred_pass_mid:'⚠️ 合格ラインギリギリです。引き続き練習を。',pred_fail:'❌ 合格には更なる学習が必要です。'
+    pred_pass_high:'✅ 合格の可能性が非常に高いです。',pred_pass_mid:'⚠️ 合格ラインギリギリです。引き続き練習を。',pred_fail:'❌ 合格には更なる学習が必要です。',
+    finish_reminder:'✅ 全問解答済みです！「終了」ボタンを押して結果を記録してください。'
   }
 };
 
