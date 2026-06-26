@@ -1222,6 +1222,72 @@ document.getElementById('report-modal').addEventListener('click', function(e) {
 });
 
 // ===== INIT LANG =====
+function syncStoredResultsToHistory() {
+  try {
+    const historyKey = 'jlpt_history_' + ((window._session && window._session.user && window._session.user.id) ? window._session.user.id : 'global');
+    const historyRaw = localStorage.getItem(historyKey) || localStorage.getItem('jlpt_history_global') || '[]';
+    const history = JSON.parse(historyRaw || '[]');
+    let changed = false;
+
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (!k || !k.startsWith('jlpt_exam_result_')) continue;
+      if (k === 'jlpt_exam_result_latest') continue;
+      const raw = localStorage.getItem(k);
+      if (!raw) continue;
+      try {
+        const result = JSON.parse(raw);
+        if (!result || !result.key) continue;
+        const idx = history.findIndex(h => h.key === result.key);
+        const entry = {
+          key: result.key,
+          name: result.name || result.title || result.key,
+          level: result.level || (typeof resolveLocalExamMeta === 'function' ? resolveLocalExamMeta().level : 'N5') || 'N5',
+          year: result.year || '',
+          score: Number(result.score) || null,
+          score_max: Number(result.scoreMax || result.score_max || 180) || 180,
+          cefr: result.cefr || inferCefr(result.level || 'N5', result.score).label,
+          completedAt: result.completedAt || new Date().toISOString(),
+          count: (idx >= 0 ? (history[idx].count || 1) : 1)
+        };
+        if (idx >= 0) {
+          history[idx] = entry;
+        } else {
+          history.unshift(entry);
+        }
+        changed = true;
+      } catch(e) {}
+    }
+
+    const latestRaw = localStorage.getItem('jlpt_exam_result_latest');
+    if (latestRaw) {
+      try {
+        const result = JSON.parse(latestRaw);
+        if (result && result.key) {
+          const idx = history.findIndex(h => h.key === result.key);
+          const entry = {
+            key: result.key,
+            name: result.name || result.title || result.key,
+            level: result.level || (typeof resolveLocalExamMeta === 'function' ? resolveLocalExamMeta().level : 'N5') || 'N5',
+            year: result.year || '',
+            score: Number(result.score) || null,
+            score_max: Number(result.scoreMax || result.score_max || 180) || 180,
+            cefr: result.cefr || inferCefr(result.level || 'N5', result.score).label,
+            completedAt: result.completedAt || new Date().toISOString(),
+            count: (idx >= 0 ? (history[idx].count || 1) : 1)
+          };
+          if (idx >= 0) history[idx] = entry; else history.unshift(entry);
+          changed = true;
+        }
+      } catch(e) {}
+      localStorage.removeItem('jlpt_exam_result_latest');
+    }
+
+    if (changed) {
+      localStorage.setItem(historyKey, JSON.stringify(history));
+    }
+  } catch(e) {}
+}
 document.addEventListener('DOMContentLoaded', function() {
   const saved = localStorage.getItem('jlpt_lang') || 'id';
   currentLang = saved;
@@ -1229,6 +1295,7 @@ document.addEventListener('DOMContentLoaded', function() {
     b.classList.toggle('active', b.getAttribute('onclick') === "setLang('" + saved + "')");
   });
   applyLang();
+  syncStoredResultsToHistory();
 });
 (function(){
   const c=document.getElementById('bg-canvas');
