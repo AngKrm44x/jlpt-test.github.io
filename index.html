@@ -8,30 +8,75 @@
   const supabase = createClient(SUPABASE_URL, SUPABASE_ANON);
   document.documentElement.style.visibility = 'hidden';
 
+  // Helper nampilin UI Maintenance
+  function showMaintenanceScreen() {
+    document.documentElement.style.visibility = 'visible';
+    const renderMaintenance = () => {
+      document.body.innerHTML = `
+        <div style="
+          position: fixed; inset: 0; background: #050910; 
+          color: #e8f0ff; display: flex; flex-direction: column; 
+          align-items: center; justify-content: center; 
+          font-family: sans-serif; z-index: 999999; text-align: center; padding: 20px;
+        ">
+          <span style="font-size: 64px; margin-bottom: 20px;">🛠️</span>
+          <h1 style="font-size: 28px; margin-bottom: 10px; font-weight: 800;">Sistem Sedang Maintenance</h1>
+          <p style="color: #7a91be; max-width: 500px; line-height: 1.6; font-size: 15px;">
+            Gua lagi ngelakuin pembaruan sistem/soal nih. Biar semuanya lancar pas lu ujian, akses ke file dan fitur ujian gua matikan sementara ya. Tunggu bentar!
+          </p>
+        </div>
+      `;
+    };
+    if (document.body) {
+      renderMaintenance();
+    } else {
+      document.addEventListener('DOMContentLoaded', renderMaintenance);
+    }
+  }
+
   try {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       window.location.replace('./auth.html');
     } else {
-      // =============================================
-      // ADMIN EMAILS — ganti dengan email kamu
-      // =============================================
-      const SUPER_ADMIN_EMAIL = 'sidiqangga44@gmail.com'; // ← ganti
-      const ADMIN_EMAIL       = 'admin@example.com';       // ← ganti
+      const SUPER_ADMIN_EMAIL = 'sidiqangga44@gmail.com';
+      const ADMIN_EMAIL       = 'admin@example.com';
+      const isAdmin = (session.user.email === SUPER_ADMIN_EMAIL || session.user.email === ADMIN_EMAIL);
 
-      // Kalau email admin → redirect langsung ke admin.html
-      if (session.user.email === SUPER_ADMIN_EMAIL || session.user.email === ADMIN_EMAIL) {
+      // Cek status maintenance ke Supabase di tahap paling awal!
+      let isMaintenanceActive = false;
+      try {
+        const { data: settingsData } = await supabase
+          .from('settings')
+          .select('value')
+          .eq('key', 'maintenance_mode')
+          .maybeSingle();
+        if (settingsData && settingsData.value === true) {
+          isMaintenanceActive = true;
+        }
+      } catch (err) {
+        console.error("Gagal cek maintenance:", err);
+      }
+
+      if (isAdmin) {
+        // Jika Admin, redirect ke admin.html (walaupun lagi maintenance)
         window.location.replace('./admin.html');
+      } else if (isMaintenanceActive) {
+        // Jika User biasa dan sedang maintenance, BLOKIR DI SINI!
+        showMaintenanceScreen();
       } else {
+        // Jika User biasa dan TIDAK maintenance, cek status user (active/pending)
         const { data: usr, error: usrErr } = await supabase
           .from('users')
           .select('status, full_name, display_name, avatar_url')
           .eq('id', session.user.id)
           .single();
+          
         if (usrErr || !usr || usr.status !== 'active') {
           if (!usr || usr.status !== 'active') await supabase.auth.signOut();
           window.location.replace('./auth.html');
         } else {
+          // Lolos semua syarat -> Tampilkan Web
           document.documentElement.style.visibility = 'visible';
           window._supabase = supabase;
           window._session  = session;
@@ -39,46 +84,9 @@
         }
       }
     }
-
-  // === LOGIKA MAINTENANCE MODE ===
-  async function checkMaintenanceStatus() {
-    try {
-      const { data, error } = await supabase
-        .from('settings')
-        .select('value')
-        .eq('key', 'maintenance_mode')
-        .maybeSingle();
-
-      if (data && data.value === true) {
-        // Buka visibility biar pesannya keliatan, jaga-jaga kalau nyangkut
-        document.documentElement.style.visibility = 'visible';
-        
-        // Blokir total tampilan index.html dan ganti jadi halaman pemberitahuan
-        document.body.innerHTML = `
-          <div style="
-            position: fixed; inset: 0; background: #050910; 
-            color: #e8f0ff; display: flex; flex-direction: column; 
-            align-items: center; justify-content: center; 
-            font-family: sans-serif; z-index: 999999; text-align: center; padding: 20px;
-          ">
-            <span style="font-size: 64px; margin-bottom: 20px;">🛠️</span>
-            <h1 style="font-size: 28px; margin-bottom: 10px; font-weight: 800;">Sistem Sedang Maintenance</h1>
-            <p style="color: #7a91be; max-width: 500px; line-height: 1.6; font-size: 15px;">
-              Gua lagi ngelakuin pembaruan sistem/soal nih. Biar semuanya lancar pas lu ujian, akses ke file dan fitur ujian gua matikan sementara ya. Tunggu bentar!
-            </p>
-          </div>
-        `;
-      }
-    } catch (err) {
-      console.error("Gagal memuat status maintenance:", err);
-    }
-  }
-
-  // Jalankan cek status setelah DOM selesai di-load biar document.body udah ada
-  document.addEventListener('DOMContentLoaded', checkMaintenanceStatus);
-
   } catch(e) {
     console.error('Auth guard error:', e);
+    // Fallback darurat jika ada error try/catch
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) window.location.replace('./auth.html');
