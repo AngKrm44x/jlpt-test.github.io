@@ -103,7 +103,41 @@ canvas{position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.35;}
 #print-pdf-btn.show{display:flex;}
 @media print{#print-pdf-btn{display:none!important;}}
 </style>
+
+<!-- SYSTEM MAINTENANCE GUARD FOR EXAM FILES -->
+<script type="module">
+  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+  const SUPABASE_URL  = 'https://uincqpdexdenjcmwdfsv.supabase.co';
+  const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpbmNxcGRleGRlbmpjbXdkZnN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5MjM4ODEsImV4cCI6MjA5NTQ5OTg4MX0.Lf1N_P_iiNQ2hnRJhd-Quy9MLKlZFSzbnXtXCnmRCS0';
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON);
+  document.documentElement.style.visibility = 'hidden';
+
+  async function checkExamAccess() {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const SUPER_ADMIN_EMAIL = 'sidiqangga44@gmail.com';
+      const ADMIN_EMAIL       = 'admin@example.com';
+      const isAdmin = session && (session.user.email === SUPER_ADMIN_EMAIL || session.user.email === ADMIN_EMAIL);
+
+      if (isAdmin) {
+        document.documentElement.style.visibility = 'visible';
+        return;
+      }
+
+      const { data: settings } = await supabase.from('settings').select('value').eq('key', 'maintenance_mode').maybeSingle();
+      if (settings && settings.value === true) {
+        window.location.replace(window.location.origin + '/jlpt-test.github.io/index.html');
+      } else {
+        document.documentElement.style.visibility = 'visible';
+      }
+    } catch (err) {
+      window.location.replace(window.location.origin + '/jlpt-test.github.io/index.html');
+    }
+  }
+  checkExamAccess();
+</script>
 </head>
+
 <body>
 <canvas id="bg-canvas"></canvas>
 <!-- Language Selector -->
