@@ -39,6 +39,44 @@
         }
       }
     }
+
+  // === LOGIKA MAINTENANCE MODE ===
+  async function checkMaintenanceStatus() {
+    try {
+      const { data, error } = await supabase
+        .from('settings')
+        .select('value')
+        .eq('key', 'maintenance_mode')
+        .maybeSingle();
+
+      if (data && data.value === true) {
+        // Buka visibility biar pesannya keliatan, jaga-jaga kalau nyangkut
+        document.documentElement.style.visibility = 'visible';
+        
+        // Blokir total tampilan index.html dan ganti jadi halaman pemberitahuan
+        document.body.innerHTML = `
+          <div style="
+            position: fixed; inset: 0; background: #050910; 
+            color: #e8f0ff; display: flex; flex-direction: column; 
+            align-items: center; justify-content: center; 
+            font-family: sans-serif; z-index: 999999; text-align: center; padding: 20px;
+          ">
+            <span style="font-size: 64px; margin-bottom: 20px;">🛠️</span>
+            <h1 style="font-size: 28px; margin-bottom: 10px; font-weight: 800;">Sistem Sedang Maintenance</h1>
+            <p style="color: #7a91be; max-width: 500px; line-height: 1.6; font-size: 15px;">
+              Gua lagi ngelakuin pembaruan sistem/soal nih. Biar semuanya lancar pas lu ujian, akses ke file dan fitur ujian gua matikan sementara ya. Tunggu bentar!
+            </p>
+          </div>
+        `;
+      }
+    } catch (err) {
+      console.error("Gagal memuat status maintenance:", err);
+    }
+  }
+
+  // Jalankan cek status setelah DOM selesai di-load biar document.body udah ada
+  document.addEventListener('DOMContentLoaded', checkMaintenanceStatus);
+
   } catch(e) {
     console.error('Auth guard error:', e);
     try {

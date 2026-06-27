@@ -47,6 +47,37 @@
         window._adminEmail    = email;
         window.SUPABASE_URL   = SUPABASE_URL;
         window.SUPABASE_ANON  = SUPABASE_ANON;
+
+        // === LOGIKA MAINTENANCE MODE ===
+        async function initMaintenanceMode() {
+          const toggleInput = document.getElementById('maintenanceToggle');
+          if (!toggleInput) return;
+
+          const { data, error } = await supabase
+            .from('settings')
+            .select('value')
+            .eq('key', 'maintenance_mode')
+            .maybeSingle();
+
+          if (data) {
+            toggleInput.checked = data.value;
+          }
+
+          toggleInput.addEventListener('change', async (e) => {
+            const isActive = e.target.checked;
+            const { error } = await supabase
+              .from('settings')
+              .upsert({ key: 'maintenance_mode', value: isActive }, { onConflict: 'key' });
+
+            if (error) {
+              alert('Gagal memperbarui status maintenance: ' + error.message);
+              e.target.checked = !isActive;
+            } else {
+              alert(`Maintenance mode berhasil ${isActive ? 'DIAKTIFKAN' : 'DINONAKTIFKAN'}!`);
+            }
+          });
+        }
+        initMaintenanceMode();
       }
     }
   } catch (e) {
@@ -632,6 +663,11 @@ select.form-input option{background:#0b1120;color:var(--text);}
   <div class="topbar-main">
     <div class="page-title" id="pageTitle">Dashboard</div>
     <div class="topbar-right">
+      <!-- Maintenance Mode Toggle -->
+      <div class="topbar-btn" style="gap: 8px; display: flex; align-items: center; border-color: var(--warn); color: var(--warn);">
+        <span>🛠️ Maintenance Mode:</span>
+        <input type="checkbox" id="maintenanceToggle" style="cursor: pointer; width: 16px; height: 16px;">
+      </div>
       <button class="topbar-btn" onclick="goto('upload')">⬆️ Upload Soal</button>
       <button class="topbar-btn" onclick="window.open('./index.html','_blank')">👁️ Lihat Site</button>
     </div>
