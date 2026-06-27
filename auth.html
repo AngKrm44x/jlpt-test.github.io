@@ -117,8 +117,16 @@ input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(90,169,25
 .strength-bar { display: flex; gap: 4px; margin-top: 8px; }
 .strength-seg { flex: 1; height: 3px; border-radius: 2px; background: rgba(255,255,255,.08); transition: background .3s; }
 .strength-label { font-size: 11px; margin-top: 5px; color: var(--muted); }
-.forgot-link { display: block; text-align: right; font-size: 12px; color: var(--primary); text-decoration: none; margin-top: -8px; margin-bottom: 16px; cursor: pointer; transition: opacity .2s; }
-.forgot-link:hover { opacity: .75; }
+.forgot-link { display: flex; align-items: center; justify-content: flex-end; gap: 5px; font-size: 12px; font-weight: 600; color: var(--muted); background: none; border: none; font-family: inherit; padding: 0; margin-top: 0; cursor: pointer; transition: color .2s, opacity .2s; letter-spacing: .2px; }
+.forgot-link:hover { color: var(--primary); opacity: 1; }
+.remember-row { display: flex; align-items: center; justify-content: space-between; margin-top: -4px; margin-bottom: 16px; }
+.remember-label { display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; }
+.remember-label input[type="checkbox"] { display: none; }
+.remember-box { width: 18px; height: 18px; border-radius: 6px; border: 1.5px solid var(--border); background: #0d1626; display: flex; align-items: center; justify-content: center; transition: .2s; flex-shrink: 0; }
+.remember-label input:checked ~ .remember-box { background: linear-gradient(135deg,#3558a8,#6c3fff); border-color: transparent; }
+.remember-box::after { content: ""; width: 5px; height: 9px; border: 2px solid white; border-top: none; border-left: none; transform: rotate(45deg) scaleY(0); transition: transform .15s; margin-top: -2px; }
+.remember-label input:checked ~ .remember-box::after { transform: rotate(45deg) scaleY(1); }
+.remember-text { font-size: 12px; font-weight: 600; color: var(--muted); }
 .forgot-screen { display: none; }
 .forgot-screen.show { display: block; }
 .forgot-back { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); cursor: pointer; background: none; border: none; font-family: inherit; margin-bottom: 20px; transition: color .2s; padding: 0; }
@@ -176,7 +184,14 @@ input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(90,169,25
           <button class="eye-btn" onclick="togglePass('loginPass', this)">👁</button>
         </div>
       </div>
-      <button type="button" class="forgot-link" onclick="showForgot()">Forgot password?</button>
+      <div class="remember-row">
+        <label class="remember-label">
+          <input type="checkbox" id="rememberMe" checked>
+          <span class="remember-box"></span>
+          <span class="remember-text">Remember me</span>
+        </label>
+        <button type="button" class="forgot-link" onclick="showForgot()"><span style="font-size:11px">🔑</span> Forgot password?</button>
+      </div>
       <button class="submit-btn" id="loginBtn" onclick="doLogin()">
         <span class="btn-text">Login →</span>
         <span class="spinner"><span class="spinner-ring"></span></span>
@@ -337,11 +352,23 @@ if (localStorage.getItem('jlpt_pending') === '1') {
 }
 
 // ============================================================
+// REMEMBER ME — restore checkbox state
+// ============================================================
+const rememberPref = localStorage.getItem('jlpt_remember');
+const rememberCb = document.getElementById('rememberMe');
+if (rememberPref === '0') rememberCb.checked = false;
+
+// ============================================================
 // CEK SESSION AKTIF
 // ============================================================
 const { data: { session } } = await supabase.auth.getSession();
 if (session && localStorage.getItem('jlpt_pending') !== '1') {
-  await handleSession(session);
+  // Kalau remember=off dan tidak ada sessionStorage flag -> sign out
+  if (rememberPref === '0' && !sessionStorage.getItem('jlpt_active')) {
+    await supabase.auth.signOut();
+  } else {
+    await handleSession(session);
+  }
 }
 
 // Listen OAuth callback
@@ -351,6 +378,8 @@ supabase.auth.onAuthStateChange(async (event, session) => {
     return;
   }
   if (event === 'SIGNED_IN' && session && localStorage.getItem('jlpt_pending') !== '1') {
+    sessionStorage.setItem('jlpt_active', '1');
+    localStorage.setItem('jlpt_remember', '1'); // Google login selalu remember
     await handleSession(session);
   }
 });
@@ -496,14 +525,19 @@ window.doGoogleLogin = async function() {
 // EMAIL LOGIN
 // ============================================================
 window.doLogin = async function() {
-  const email = document.getElementById('loginEmail').value.trim();
-  const pass  = document.getElementById('loginPass').value;
+  const email    = document.getElementById('loginEmail').value.trim();
+  const pass     = document.getElementById('loginPass').value;
+  const remember = document.getElementById('rememberMe').checked;
   if (!email || !pass) return showError('loginError','loginErrorMsg','Email & Password must be filled.');
   setLoading('loginBtn', true);
   clearAlerts();
   try {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
     if (error) throw error;
+    // Simpan preferensi remember me
+    localStorage.setItem('jlpt_remember', remember ? '1' : '0');
+    // Flag session aktif untuk tab ini (hilang kalau tab ditutup)
+    sessionStorage.setItem('jlpt_active', '1');
     await handleSession(data.session);
   } catch(err) {
     showError('loginError','loginErrorMsg', err.message === 'Invalid login credentials'
@@ -556,6 +590,8 @@ window.doRegister = async function() {
 // ============================================================
 window.doLogout = async function() {
   localStorage.removeItem('jlpt_pending');
+  localStorage.removeItem('jlpt_remember');
+  sessionStorage.removeItem('jlpt_active');
   await supabase.auth.signOut();
   location.reload();
 };
