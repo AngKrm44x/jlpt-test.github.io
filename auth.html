@@ -117,6 +117,20 @@ input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(90,169,25
 .strength-bar { display: flex; gap: 4px; margin-top: 8px; }
 .strength-seg { flex: 1; height: 3px; border-radius: 2px; background: rgba(255,255,255,.08); transition: background .3s; }
 .strength-label { font-size: 11px; margin-top: 5px; color: var(--muted); }
+.forgot-link { display: block; text-align: right; font-size: 12px; color: var(--primary); text-decoration: none; margin-top: -8px; margin-bottom: 16px; cursor: pointer; transition: opacity .2s; }
+.forgot-link:hover { opacity: .75; }
+.forgot-screen { display: none; }
+.forgot-screen.show { display: block; }
+.forgot-back { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); cursor: pointer; background: none; border: none; font-family: inherit; margin-bottom: 20px; transition: color .2s; padding: 0; }
+.forgot-back:hover { color: var(--primary); }
+.forgot-title { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800; margin-bottom: 6px; }
+.forgot-sub { color: var(--muted); font-size: 13px; line-height: 1.6; margin-bottom: 22px; }
+.alert-success { background: rgba(25,195,125,.12); border: 1px solid rgba(25,195,125,.3); color: #5de8ae; }
+.reset-success { display: none; text-align: center; padding: 10px 0; }
+.reset-success.show { display: block; }
+.reset-icon { font-size: 52px; margin-bottom: 14px; animation: float 3s ease-in-out infinite; }
+.reset-title { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800; margin-bottom: 8px; }
+.reset-sub { color: var(--muted); font-size: 13px; line-height: 1.7; max-width: 300px; margin: 0 auto 20px; }
 @media (max-width: 480px) { .card { padding: 24px 20px; border-radius: 20px; } .wrap { padding: 16px; } }
 </style>
 </head>
@@ -162,6 +176,7 @@ input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(90,169,25
           <button class="eye-btn" onclick="togglePass('loginPass', this)">👁</button>
         </div>
       </div>
+      <button type="button" class="forgot-link" onclick="showForgot()">Forgot password?</button>
       <button class="submit-btn" id="loginBtn" onclick="doLogin()">
         <span class="btn-text">Login →</span>
         <span class="spinner"><span class="spinner-ring"></span></span>
@@ -202,6 +217,71 @@ input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(90,169,25
       </button>
       <div class="alert alert-error" id="registerError">
         <span class="alert-icon">⚠️</span><span id="registerErrorMsg"></span>
+      </div>
+    </div>
+
+    <!-- FORGOT PASSWORD SCREEN -->
+    <div class="forgot-screen" id="forgotScreen">
+      <button class="forgot-back" onclick="hideForgot()">← Back to Login</button>
+      <div class="forgot-title">Reset Password 🔑</div>
+      <p class="forgot-sub">Enter your registered email. We'll send a reset link to your inbox.</p>
+      <div class="field">
+        <label>Email</label>
+        <input type="email" id="forgotEmail" placeholder="your@email.com" autocomplete="email">
+      </div>
+      <button class="submit-btn" id="forgotBtn" onclick="doForgotPassword()">
+        <span class="btn-text">Send Reset Link →</span>
+        <span class="spinner"><span class="spinner-ring"></span></span>
+      </button>
+      <div class="alert alert-error" id="forgotError">
+        <span class="alert-icon">⚠️</span><span id="forgotErrorMsg"></span>
+      </div>
+    </div>
+
+    <!-- RESET EMAIL SENT SUCCESS -->
+    <div class="reset-success" id="resetSuccess">
+      <div class="reset-icon">📩</div>
+      <div class="reset-title">Check Your Email!</div>
+      <p class="reset-sub">
+        Reset link has been sent to<br>
+        <strong id="resetEmailSent" style="color:var(--primary)"></strong><br><br>
+        Click the link in the email to create a new password. Check your spam folder if it doesn't arrive.
+      </p>
+      <button class="back-btn" onclick="hideResetSuccess()">← Back to Login</button>
+    </div>
+
+    <!-- NEW PASSWORD SCREEN (after email link click) -->
+    <div class="forgot-screen" id="newPasswordScreen">
+      <div class="forgot-title">Create New Password 🔐</div>
+      <p class="forgot-sub" style="margin-bottom:22px">Choose a strong new password for your account.</p>
+      <div class="field">
+        <label>New Password</label>
+        <div class="input-wrap">
+          <input type="password" id="newPass" placeholder="Min. 8 Characters" autocomplete="new-password" oninput="checkStrengthNew(this.value)">
+          <button class="eye-btn" onclick="togglePass('newPass', this)">👁</button>
+        </div>
+        <div class="strength-bar">
+          <div class="strength-seg" id="ns1"></div><div class="strength-seg" id="ns2"></div>
+          <div class="strength-seg" id="ns3"></div><div class="strength-seg" id="ns4"></div>
+        </div>
+        <div class="strength-label" id="newStrengthLabel"></div>
+      </div>
+      <div class="field">
+        <label>Confirm Password</label>
+        <div class="input-wrap">
+          <input type="password" id="newPassConfirm" placeholder="Repeat password" autocomplete="new-password">
+          <button class="eye-btn" onclick="togglePass('newPassConfirm', this)">👁</button>
+        </div>
+      </div>
+      <button class="submit-btn" id="newPassBtn" onclick="doUpdatePassword()">
+        <span class="btn-text">Save New Password →</span>
+        <span class="spinner"><span class="spinner-ring"></span></span>
+      </button>
+      <div class="alert alert-error" id="newPassError">
+        <span class="alert-icon">⚠️</span><span id="newPassErrorMsg"></span>
+      </div>
+      <div class="alert alert-success" id="newPassSuccess">
+        <span class="alert-icon">✅</span><span>Password updated! Redirecting to login...</span>
       </div>
     </div>
 
@@ -266,6 +346,10 @@ if (session && localStorage.getItem('jlpt_pending') !== '1') {
 
 // Listen OAuth callback
 supabase.auth.onAuthStateChange(async (event, session) => {
+  if (event === 'PASSWORD_RECOVERY') {
+    showNewPasswordScreen();
+    return;
+  }
   if (event === 'SIGNED_IN' && session && localStorage.getItem('jlpt_pending') !== '1') {
     await handleSession(session);
   }
@@ -482,6 +566,101 @@ window.doLogout = async function() {
 window.resetToLogin = function() {
   localStorage.removeItem('jlpt_pending');
   location.reload();
+};
+
+// ============================================================
+// FORGOT PASSWORD
+// ============================================================
+window.showForgot = function() {
+  document.getElementById('loginForm').classList.remove('active');
+  document.getElementById('tabs').style.display = 'none';
+  document.getElementById('googleBtn').style.display = 'none';
+  document.querySelector('.divider').style.display = 'none';
+  document.getElementById('forgotScreen').classList.add('show');
+  clearAlerts();
+};
+
+window.hideForgot = function() {
+  document.getElementById('forgotScreen').classList.remove('show');
+  document.getElementById('tabs').style.display = '';
+  document.getElementById('googleBtn').style.display = '';
+  document.querySelector('.divider').style.display = '';
+  document.getElementById('loginForm').classList.add('active');
+  clearAlerts();
+};
+
+window.hideResetSuccess = function() {
+  document.getElementById('resetSuccess').classList.remove('show');
+  document.getElementById('tabs').style.display = '';
+  document.getElementById('googleBtn').style.display = '';
+  document.querySelector('.divider').style.display = '';
+  document.getElementById('loginForm').classList.add('active');
+  clearAlerts();
+};
+
+window.doForgotPassword = async function() {
+  const email = document.getElementById('forgotEmail').value.trim();
+  if (!email) return showError('forgotError', 'forgotErrorMsg', 'Please enter your email address.');
+  setLoading('forgotBtn', true);
+  clearAlerts();
+  try {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin + window.location.pathname.replace('auth.html', '') + 'auth.html?reset=1'
+    });
+    if (error) throw error;
+    // Show success screen
+    document.getElementById('forgotScreen').classList.remove('show');
+    document.getElementById('resetEmailSent').textContent = email;
+    document.getElementById('resetSuccess').classList.add('show');
+  } catch(err) {
+    showError('forgotError', 'forgotErrorMsg', err.message || 'Failed to send reset email. Try again.');
+  }
+  setLoading('forgotBtn', false);
+};
+
+function showNewPasswordScreen() {
+  // Hide everything else
+  document.getElementById('loginForm').classList.remove('active');
+  document.getElementById('registerForm').classList.remove('active');
+  document.getElementById('tabs').style.display = 'none';
+  document.getElementById('googleBtn').style.display = 'none';
+  document.querySelector('.divider').style.display = 'none';
+  document.getElementById('newPasswordScreen').classList.add('show');
+}
+
+window.doUpdatePassword = async function() {
+  const pass    = document.getElementById('newPass').value;
+  const confirm = document.getElementById('newPassConfirm').value;
+  if (!pass || pass.length < 8) return showError('newPassError','newPassErrorMsg','Password must be at least 8 characters.');
+  if (pass !== confirm) return showError('newPassError','newPassErrorMsg','Passwords do not match.');
+  setLoading('newPassBtn', true);
+  clearAlerts();
+  try {
+    const { error } = await supabase.auth.updateUser({ password: pass });
+    if (error) throw error;
+    document.getElementById('newPassSuccess').classList.add('show');
+    setTimeout(async () => {
+      await supabase.auth.signOut();
+      location.href = location.pathname;
+    }, 2000);
+  } catch(err) {
+    showError('newPassError','newPassErrorMsg', err.message || 'Failed to update password. Try again.');
+  }
+  setLoading('newPassBtn', false);
+};
+
+window.checkStrengthNew = function(val) {
+  let score = 0;
+  if (val.length >= 8) score++;
+  if (/[A-Z]/.test(val)) score++;
+  if (/[0-9]/.test(val)) score++;
+  if (/[^A-Za-z0-9]/.test(val)) score++;
+  const colors = ['#ff5f73','#ffb547','#5aa9ff','#19c37d'];
+  const labels = ['','Weak','Enough','Strong','Very Strong'];
+  for (let i = 1; i <= 4; i++) {
+    document.getElementById('ns'+i).style.background = i <= score ? colors[score-1] : 'rgba(255,255,255,.08)';
+  }
+  document.getElementById('newStrengthLabel').textContent = val.length ? labels[score] : '';
 };
 
 // ============================================================
