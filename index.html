@@ -11,7 +11,35 @@
   // Helper nampilin UI Maintenance
   function showMaintenanceScreen() {
     document.documentElement.style.visibility = 'visible';
+    
     const renderMaintenance = () => {
+      // Ambil bahasa terakhir yang dipilih user dari localStorage, default 'id'
+      const currentLang = localStorage.getItem('jlpt_lang') || 'id';
+      
+      const t = {
+        id: {
+          title: "Sistem Sedang Maintenance",
+          desc: "Gua lagi ngelakuin pembaruan sistem/soal nih. Biar semuanya lancar pas lu ujian, akses ke file dan fitur ujian gua matikan sementara ya. Tunggu bentar!"
+        },
+        en: {
+          title: "System Under Maintenance",
+          desc: "I'm currently updating the system and questions. To ensure everything runs smoothly when you take the exam, access is temporarily disabled. Hang tight!"
+        },
+        ja: {
+          title: "システムメンテナンス中",
+          desc: "現在、システムや問題のアップデートを行っています。試験がスムーズに進むよう、一時的にアクセスを停止しています。少々お待ちください！"
+        }
+      }[currentLang];
+
+      // Bikin styling dinamis buat tombol yang lagi aktif
+      const getBtnStyle = (lang) => {
+        const isActive = currentLang === lang;
+        return "background: " + (isActive ? "rgba(90,169,255,.15)" : "transparent") + 
+               "; border: 1px solid " + (isActive ? "#5aa9ff" : "#2f4370") + 
+               "; color: " + (isActive ? "#5aa9ff" : "#aab8d8") + 
+               "; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.2s;";
+      };
+
       document.body.innerHTML = `
         <div style="
           position: fixed; inset: 0; background: #050910; 
@@ -19,14 +47,30 @@
           align-items: center; justify-content: center; 
           font-family: sans-serif; z-index: 999999; text-align: center; padding: 20px;
         ">
+          <!-- Tombol Ganti Bahasa -->
+          <div style="position: absolute; top: 20px; right: 20px; display: flex; gap: 10px; z-index: 1000000;">
+            <button onclick="window.setMaintenanceLang('id')" style="${getBtnStyle('id')}">🇮🇩 ID</button>
+            <button onclick="window.setMaintenanceLang('en')" style="${getBtnStyle('en')}">🇬🇧 EN</button>
+            <button onclick="window.setMaintenanceLang('ja')" style="${getBtnStyle('ja')}">🇯🇵 JA</button>
+          </div>
+
           <span style="font-size: 64px; margin-bottom: 20px;">🛠️</span>
-          <h1 style="font-size: 28px; margin-bottom: 10px; font-weight: 800;">Sistem Sedang Maintenance</h1>
+          <h1 style="font-size: 28px; margin-bottom: 10px; font-weight: 800;">${t.title}</h1>
           <p style="color: #7a91be; max-width: 500px; line-height: 1.6; font-size: 15px;">
-            Gua lagi ngelakuin pembaruan sistem/soal nih. Biar semuanya lancar pas lu ujian, akses ke file dan fitur ujian gua matikan sementara ya. Tunggu bentar!
+            ${t.desc}
           </p>
         </div>
       `;
+
+      // Bikin fungsi global biar bisa dipanggil dari atribut onclick di HTML
+      if (!window.setMaintenanceLang) {
+        window.setMaintenanceLang = (lang) => {
+          localStorage.setItem('jlpt_lang', lang);
+          renderMaintenance(); // Langsung render ulang teksnya
+        };
+      }
     };
+    
     if (document.body) {
       renderMaintenance();
     } else {
