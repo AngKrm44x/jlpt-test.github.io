@@ -463,12 +463,12 @@ function getTimeLimit(m){return {all:8940,moji:2100,bunpou:1500,dokkai:3000,chou
    - Per-question overrides still work via q.audio / q.audioSrc / q.audioFile.
    - Player has no pause/stop controls; once played, it auto-resumes.
 ------------------------------------------------------------ */
-const CHOUKAI_AUDIO_BASE_PATH = (typeof window !== 'assets/choukai/N3/2019/12/' && window.CHOUKAI_AUDIO_BASE_PATH)
+const CHOUKAI_AUDIO_BASE_PATH = (typeof window !== '../../assets/choukai/N3/2019/12/' && window.CHOUKAI_AUDIO_BASE_PATH)
   ? String(window.CHOUKAI_AUDIO_BASE_PATH)
   : '';
-const CHOUKAI_AUDIO_FILENAME = (typeof window !== 'assets/choukai/N3/2019/12/2019年12月.mp3' && window.CHOUKAI_AUDIO_FILENAME)
+const CHOUKAI_AUDIO_FILENAME = (typeof window !== '../../assets/choukai/N3/2019/12/2019年12月.mp3' && window.CHOUKAI_AUDIO_FILENAME)
   ? String(window.CHOUKAI_AUDIO_FILENAME)
-  : 'assets/choukai/N3/2019/12/2019年12月.mp3';
+  : '../../assets/choukai/N3/2019/12/2019年12月.mp3';
 function resolveChoukaiAudioSrc(q){
   const refRaw = (q && (q.audio || q.audioSrc || q.audioFile || '')).toString().trim();
   const ref = refRaw || CHOUKAI_AUDIO_FILENAME || `choukai-${q.id}.mp3`;
