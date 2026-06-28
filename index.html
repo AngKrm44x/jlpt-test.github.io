@@ -2530,6 +2530,7 @@ window.addEventListener('DOMContentLoaded', async () => {
 
   // Record current device login session
   recordLoginSession().catch(() => {});
+  startDeviceRevocationWatch().catch(() => {});
 
   // Sync exam scores from Supabase to show on cards
   syncExamScoresFromSupabase().catch(() => {});
@@ -2573,6 +2574,37 @@ async function recordLoginSession(){
   }
 }
 
+async function checkDeviceRevocation(){
+  let _ctx;
+  try { _ctx = await getSupabase(); } catch(e){ return; }
+  const { sb, session } = _ctx;
+  const deviceId = getOrCreateDeviceId();
+  const { data: row, error } = await sb
+    .from('login_sessions')
+    .select('id,is_current,last_seen,device_label')
+    .eq('user_id', session.user.id)
+    .eq('device_id', deviceId)
+    .maybeSingle();
+  if (error) return;
+  if (!row || row.is_current === false) {
+    try { await sb.auth.signOut(); } catch (e) {}
+    window.location.replace('./auth.html');
+    return;
+  }
+}
+
+let deviceRevocationWatchTimer = null;
+function startDeviceRevocationWatch(){
+  if (deviceRevocationWatchTimer) return;
+  checkDeviceRevocation().catch(() => {});
+  deviceRevocationWatchTimer = setInterval(() => {
+    checkDeviceRevocation().catch(() => {});
+  }, 30000);
+  window.addEventListener('focus', () => {
+    checkDeviceRevocation().catch(() => {});
+  });
+}
+
 async function openSecurityModal(){
   openModal('securityModal');
   await loadLoginHistory();
@@ -2600,6 +2632,7 @@ async function loadLoginHistory(){
   }
   list.innerHTML = sessions.map(s => {
     const isCurrent = s.device_id === deviceId;
+    const isRevoked  = s.is_current === false && !isCurrent;
     const lastSeen  = new Date(s.last_seen);
     const timeAgo   = formatNotifTime(s.last_seen);
     const icon = /Mobile|Android|iOS/i.test(s.device_label||'') ? '📱' : '💻';
@@ -2611,7 +2644,9 @@ async function loadLoginHistory(){
       </div>
       ${isCurrent
         ? `<span class="lh-badge">${t('thisDevice')}</span>`
-        : `<button class="lh-revoke" onclick="revokeDevice('${s.device_id}','${s.id}')">${t('logoutDevice')}</button>`}
+        : isRevoked
+          ? `<span class="lh-badge" style="background:rgba(255,79,109,.12);color:#ff9aaa;border:1px solid rgba(255,79,109,.25);">Logged out</span>`
+          : `<button class="lh-revoke" onclick="revokeDevice('${s.device_id}','${s.id}')">${t('logoutDevice')}</button>`}
     </div>`;
   }).join('');
 }
@@ -2621,7 +2656,14 @@ async function revokeDevice(deviceId, rowId){
   let _ctx;
   try { _ctx = await getSupabase(); } catch(e){ return; }
   const { sb } = _ctx;
-  await sb.from('login_sessions').delete().eq('id', rowId).catch(()=>{});
+  const { error } = await sb.from('login_sessions').update({
+    is_current: false,
+    last_seen: new Date().toISOString(),
+  }).eq('id', rowId).eq('device_id', deviceId);
+  if(error){
+    showToast('❌ ' + error.message);
+    return;
+  }
   showToast('✅ ' + t('logoutDevice') + ' OK');
   await loadLoginHistory();
 }

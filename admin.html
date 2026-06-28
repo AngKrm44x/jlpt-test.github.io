@@ -2,89 +2,7 @@
 <html lang="id">
 <head>
 <!-- ADMIN AUTH GUARD -->
-<script type="module">
-  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
-  const SUPABASE_URL  = 'https://uincqpdexdenjcmwdfsv.supabase.co';
-  const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpbmNxcGRleGRlbmpjbXdkZnN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5MjM4ODEsImV4cCI6MjA5NTQ5OTg4MX0.Lf1N_P_iiNQ2hnRJhd-Quy9MLKlZFSzbnXtXCnmRCS0';
-  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON);
-
-  document.documentElement.style.visibility = 'hidden';
-
-  // =============================================
-  // ADMIN EMAILS - ganti dengan email kamu
-  // =============================================
-  const SUPER_ADMIN_EMAIL = 'sidiqangga44@gmail.com'; // ← ganti email super admin
-  const ADMIN_EMAIL       = 'admin@example.com';       // ← ganti email admin biasa
-
-  const goTo = (url) => window.location.replace(url);
-
-  try {
-    const { data: { session } } = await supabase.auth.getSession();
-
-    if (!session) {
-      goTo('./auth.html');
-    } else {
-      const email = (session.user.email || '').trim().toLowerCase();
-      const superAdmin = SUPER_ADMIN_EMAIL.trim().toLowerCase();
-      const adminEmail  = ADMIN_EMAIL.trim().toLowerCase();
-
-      if (email !== superAdmin && email !== adminEmail) {
-        alert('⛔ Akses ditolak. Halaman ini khusus admin.');
-        goTo('./index.html');
-      } else {
-        const { data: usr } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
-
-        document.documentElement.style.visibility = 'visible';
-        window._supabase      = supabase;
-        window._session       = session;
-        window._userDb        = usr;
-        window._isSuperAdmin  = (email === superAdmin);
-        window._adminEmail    = email;
-        window.SUPABASE_URL   = SUPABASE_URL;
-        window.SUPABASE_ANON  = SUPABASE_ANON;
-
-        // === LOGIKA MAINTENANCE MODE ===
-        async function initMaintenanceMode() {
-          const toggleInput = document.getElementById('maintenanceToggle');
-          if (!toggleInput) return;
-
-          const { data, error } = await supabase
-            .from('settings')
-            .select('value')
-            .eq('key', 'maintenance_mode')
-            .maybeSingle();
-
-          if (data) {
-            toggleInput.checked = data.value;
-          }
-
-          toggleInput.addEventListener('change', async (e) => {
-            const isActive = e.target.checked;
-            const { error } = await supabase
-              .from('settings')
-              .upsert({ key: 'maintenance_mode', value: isActive }, { onConflict: 'key' });
-
-            if (error) {
-              alert('Gagal memperbarui status maintenance: ' + error.message);
-              e.target.checked = !isActive;
-            } else {
-              alert(`Maintenance mode berhasil ${isActive ? 'DIAKTIFKAN' : 'DINONAKTIFKAN'}!`);
-            }
-          });
-        }
-        initMaintenanceMode();
-      }
-    }
-  } catch (e) {
-    console.error('Auth error:', e);
-    goTo('./auth.html');
-  }
-</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin Panel – JLPT Exam Hub</title>
@@ -628,6 +546,9 @@ select.form-input option{background:#0b1120;color:var(--text);}
       <span class="nav-icon">⏳</span> User Pending
       <span class="nav-badge" id="pendingBadge">0</span>
     </div>
+    <div class="nav-item" onclick="goto('broadcast')" id="navBroadcast">
+      <span class="nav-icon">📣</span> Push Notif
+    </div>
 
     <div class="nav-section">Kontrol Ujian</div>
     <div class="nav-item" onclick="goto('examlock')" id="navExamLock">
@@ -941,6 +862,11 @@ select.form-input option{background:#0b1120;color:var(--text);}
       </div>
     </div>
 
+    <!-- ===== PUSH NOTIFICATION ===== -->
+    <div class="pane" id="pane-broadcast">
+      <div id="jlpt-notif-mount"></div>
+    </div>
+
     <!-- ===== EXAM LOCK MANAGER ===== -->
     <!-- Filled dynamically by jlpt-sync.js (global lock + per-exam lock list) -->
     <div class="pane" id="pane-examlock">
@@ -1111,6 +1037,10 @@ select.form-input option{background:#0b1120;color:var(--text);}
     <div class="form-group" style="margin-bottom:16px;">
       <label>Deskripsi</label>
       <input class="form-input" type="text" id="eeDesc">
+    </div>
+    <div class="form-group" style="margin-bottom:16px;">
+      <label>Section Badges (pisahkan dengan koma)</label>
+      <input class="form-input" type="text" id="eeBadges" placeholder="Grammar, Vocabulary, Reading">
     </div>
     <div class="form-row" style="margin-bottom:4px;">
       <div class="form-group">
@@ -1288,21 +1218,22 @@ window.goto = function(pane){
   const titles = {
     dashboard:'Dashboard', upload:'Upload Soal Baru', exams:'Kelola Soal',
     editor:'Editor Soal', reports:'Laporan Error Soal', requests:'Request Soal', users:'Semua User',
-    pending:'User Pending Approval', github:'GitHub & Telegram Config',
+    pending:'User Pending Approval', broadcast:'Push Notification', github:'GitHub & Telegram Config',
     examlock:'Exam Lock Manager', livemonitor:'Live Exam Monitor', examresults:'Exam Results'
   };
   document.getElementById('pageTitle').textContent = titles[pane]||pane;
   // Track panel navigation
   const panelDesc = {
-    examlock:'Membuka panel Exam Lock Manager',
-    livemonitor:'Membuka Live Exam Monitor',
-    examresults:'Membuka Exam Results',
-    upload:'Membuka halaman Upload Soal',
-    reports:'Membuka Laporan Error Soal',
-    requests:'Membuka Request Soal',
-    users:'Membuka daftar Semua User',
-    pending:'Membuka User Pending Approval',
-    github:'Membuka GitHub & Telegram Config',
+    upload:`Opened ${titles.upload}`,
+    reports:`Opened ${titles.reports}`,
+    requests:`Opened ${titles.requests}`,
+    users:`Opened ${titles.users}`,
+    pending:`Opened ${titles.pending}`,
+    broadcast:`Opened ${titles.broadcast}`,
+    examlock:`Opened ${titles.examlock}`,
+    livemonitor:`Opened ${titles.livemonitor}`,
+    examresults:`Opened ${titles.examresults}`,
+    github:`Opened ${titles.github}`,
   };
   if (panelDesc[pane] && typeof pushActivity === 'function') {
     pushActivity('system', panelDesc[pane], titles[pane] || pane);
@@ -1564,8 +1495,10 @@ function parseExamCards(html){
     const desc  = card.querySelector('.exam-desc')?.textContent?.trim()||'';
     const href  = card.querySelector('.open-btn')?.getAttribute('href')||'';
     const isNew = !!card.querySelector('.new-badge');
+    const badgeEls = Array.from(card.querySelectorAll('.badges .badge')).slice(1);
+    const badges = badgeEls.map(el => el.textContent.trim()).filter(Boolean);
     const month = key.includes('-07-')||key.endsWith('-07')?'07':'12';
-    list.push({key,level,year,month,title,desc,href,isNew});
+    list.push({key,level,year,month,title,desc,href,isNew,badges});
   });
   return list;
 }
@@ -1740,6 +1673,7 @@ window.openEditExamInfo = (key)=>{
   document.getElementById('eeHref').value = exam.href||'';
   document.getElementById('eeTitle').value = exam.title||'';
   document.getElementById('eeDesc').value = exam.desc||'';
+  document.getElementById('eeBadges').value = Array.isArray(exam.badges) && exam.badges.length ? exam.badges.join(', ') : 'Grammar, Vocabulary, Reading';
   document.getElementById('eeYear').value = exam.year||'';
   document.getElementById('eeNew').value = exam.isNew?'1':'0';
   openModal('editExamModal');
@@ -1749,6 +1683,11 @@ window.saveExamInfo = async()=>{
   const key  = document.getElementById('eeKey').value;
   const newTitle = document.getElementById('eeTitle').value.trim();
   const newDesc  = document.getElementById('eeDesc').value.trim();
+  const newBadges = String(document.getElementById('eeBadges').value || '')
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean)
+    .slice(0, 4);
   const newYear  = document.getElementById('eeYear').value.trim();
   const isNew    = document.getElementById('eeNew').value==='1';
   const gh = getGHConfig();
@@ -1756,7 +1695,13 @@ window.saveExamInfo = async()=>{
 
   // Update local list
   const exam = _examList.find(e=>e.key===key);
-  if(exam){ exam.title=newTitle; exam.desc=newDesc; exam.year=parseInt(newYear)||exam.year; exam.isNew=isNew; }
+  if(exam){
+    exam.title=newTitle;
+    exam.desc=newDesc;
+    exam.badges=newBadges.length ? newBadges : (exam.badges || ['Grammar', 'Vocabulary', 'Reading']);
+    exam.year=parseInt(newYear)||exam.year;
+    exam.isNew=isNew;
+  }
 
   // Push update ke index.html di GitHub
   await updateIndexHtml(null, null, false, true);
@@ -2452,11 +2397,15 @@ window.togglePwd = window.toggleFieldPwd = function(id, btn){
     const desc = esc(exam.desc || `Latest - Oldest JLPT ${level} exam simulation.`);
     const href = esc(exam.href || `./jlpt/${n}/${year}-${month}-${n}.html`);
     const newBadge = exam.isNew ? '<div class="new-badge">NEW</div>' : '';
+    const badges = Array.isArray(exam.badges) && exam.badges.length
+      ? exam.badges
+      : ['Reading', 'Grammar', 'Vocabulary'];
+    const sectionBadges = badges.slice(0, 4).map(b => `<span class="badge">${esc(b)}</span>`).join('');
     return `
 <div class="card" data-name="${esc(exam.key || `${year}-${month}-${n}`)}" data-level="${esc(level)}" data-year="${esc(year)}" data-examkey="${esc(exam.key || '')}">
 <div class="card-kanji">${esc(level)}</div>${newBadge}<div class="year">${esc(year)}</div>
 <div class="card-body"><div class="exam-title">${title}</div>
-<div class="badges"><span class="badge ${levelClass}">${esc(level)}</span><span class="badge badge-reading">Reading</span><span class="badge badge-grammar">Grammar</span><span class="badge badge-vocabulary">Vocabulary</span></div>
+<div class="badges"><span class="badge ${levelClass}">${esc(level)}</span>${sectionBadges}</div>
 <div class="exam-desc">${desc}</div></div>
 <div class="done-stamp">✓ Completed</div>
 <a href="${href}" class="open-btn" onclick="recordExamOpen(this)">OPEN EXAM <span class="open-btn-arrow">→</span></a>
@@ -2614,6 +2563,7 @@ window.togglePwd = window.toggleFieldPwd = function(id, btn){
           desc: `Latest - Oldest JLPT ${level} exam simulation.`,
           href: `./jlpt/${n}/${year}-${month}-${n}.html`,
           isNew: !!isNewBadge,
+          badges: ['Grammar', 'Vocabulary', 'Reading'],
         });
       }
       pushActivity('upload', 'Soal baru di-upload', `${level} ${year}-${month}`, { key });

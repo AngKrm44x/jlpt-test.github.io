@@ -327,17 +327,22 @@
 
     const ok1 = await setSystemSetting('exam_locked',      locked ? 'true' : 'false');
     const ok2 = await setSystemSetting('exam_lock_reason', reason || '');
+    const ok3 = await bulkSetAllExamLocks(locked, reason || '');
 
     // Re-read state and refresh UI once (instead of twice inside setSystemSetting)
     await loadSystemSettings();
+    await loadExamLocks(true);
     renderIndexLockUI();
     renderAdminControlUI();
     await refreshAdminPanels();
 
-    if (ok1) {
+    if (ok1 && ok2 && ok3) {
       toast(locked ? '🔒 Semua exam dikunci' : '🔓 Semua exam dibuka');
+      return true;
     }
-    return ok1;
+
+    toast('⚠️ Sebagian perubahan lock global belum tersimpan');
+    return false;
   }
 
   async function setExamLock(examKey, locked, reason = '') {
@@ -368,6 +373,58 @@
       const hint = err?.message?.includes('violates row-level security')
         ? '⚠️ RLS blocked exam-lock write – jalankan SQL schema terbaru di Supabase'
         : `⚠️ Gagal menyimpan lock ujian: ${err?.message || err}`;
+      toast(hint);
+      return false;
+    }
+  }
+
+  async function bulkSetAllExamLocks(locked, reason = '') {
+    const ctx = await getContext();
+    if (!ctx?.isAdmin) { toast('⛔ Admin only'); return false; }
+
+    try {
+      const catalog = getExamCatalog();
+      const loadedLocks = await loadExamLocks(true);
+      const rowsByKey = new Map();
+
+      for (const row of loadedLocks.values()) {
+        const key = String(row.exam_key || '').toLowerCase();
+        if (key) rowsByKey.set(key, row);
+      }
+      for (const exam of catalog) {
+        const key = String(exam.key || '').toLowerCase();
+        if (key && !rowsByKey.has(key)) rowsByKey.set(key, exam);
+      }
+
+      const payloads = Array.from(rowsByKey.values()).map(entry => {
+        const key = String(entry.exam_key || entry.key || '').toLowerCase();
+        return {
+          exam_key: key,
+          title: String(entry.title || '').trim(),
+          level: String(entry.level || '').toUpperCase(),
+          locked: !!locked,
+          lock_reason: locked ? String(reason || entry.lock_reason || '') : '',
+          updated_at: new Date().toISOString(),
+          updated_by: ctx.session.user.id,
+        };
+      });
+
+      if (!payloads.length) return true;
+
+      const chunkSize = 25;
+      for (let i = 0; i < payloads.length; i += chunkSize) {
+        const chunk = payloads.slice(i, i + chunkSize);
+        const { error } = await client.from('exam_settings').upsert(chunk, { onConflict: 'exam_key' });
+        if (error) throw error;
+      }
+
+      await loadExamLocks(true);
+      return true;
+    } catch (err) {
+      console.error('[jlpt-sync] bulkSetAllExamLocks failed:', err);
+      const hint = err?.message?.includes('violates row-level security')
+        ? '⚠️ RLS blocked bulk exam-lock write – jalankan SQL schema terbaru di Supabase'
+        : `⚠️ Gagal memperbarui semua lock ujian: ${err?.message || err}`;
       toast(hint);
       return false;
     }
@@ -1373,9 +1430,10 @@
     if (document.getElementById('jlpt-sync-admin-wrap')) return document.getElementById('jlpt-sync-admin-wrap');
 
     const lockMount    = document.getElementById('jlpt-examlock-mount');
+    const notifMount   = document.getElementById('jlpt-notif-mount');
     const liveMount    = document.getElementById('jlpt-livemonitor-mount');
     const resultsMount = document.getElementById('jlpt-examresults-mount');
-    const usingFallback = !lockMount && !liveMount && !resultsMount;
+    const usingFallback = !lockMount && !notifMount && !liveMount && !resultsMount;
     const fallbackMount = document.getElementById('pane-dashboard') || document.querySelector('.content') || document.body;
 
     const wrap = document.createElement('div');
@@ -1439,6 +1497,49 @@
             </select>
           </div>
           <div id="jlpt-exam-lock-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;"></div>
+        </div>
+      </div>`;
+
+    const notifHtml = `
+      <div id="jlpt-admin-notif-card" style="background:var(--card);border:1px solid var(--border);border-radius:20px;padding:20px;">
+        <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:14px;">
+          <div>
+            <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;margin-bottom:4px;">📣 Push Notification</div>
+            <div style="font-size:13px;color:var(--muted);line-height:1.6;">Kirim pesan ke semua user, user aktif, atau user yang dipilih.</div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+            <button id="jlpt-notif-refresh" class="topbar-btn">🔄 Reload User List</button>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-bottom:10px;">
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <label style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.08em;">Target</label>
+            <select id="jlpt-notif-target" class="topbar-btn" style="width:100%;justify-content:flex-start;">
+              <option value="active">Semua user aktif</option>
+              <option value="all">Semua user</option>
+              <option value="selected">User terpilih</option>
+            </select>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <label style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.08em;">Filter user</label>
+            <input id="jlpt-notif-search" placeholder="Cari nama / email..." style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;padding:11px 14px;color:var(--text);font-family:inherit;font-size:14px;outline:none;">
+          </div>
+        </div>
+        <div style="display:grid;gap:10px;margin-bottom:12px;">
+          <input id="jlpt-notif-title" placeholder="Judul notifikasi..." style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;padding:11px 14px;color:var(--text);font-family:inherit;font-size:14px;outline:none;">
+          <textarea id="jlpt-notif-message" rows="4" placeholder="Tulis pesan yang akan muncul di header user..." style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;padding:11px 14px;color:var(--text);font-family:inherit;font-size:14px;outline:none;resize:vertical;"></textarea>
+          <select id="jlpt-notif-type" class="topbar-btn" style="width:100%;justify-content:flex-start;">
+            <option value="system">System</option>
+            <option value="update">Update</option>
+            <option value="promo">Promo</option>
+            <option value="new_exam">New Exam</option>
+          </select>
+        </div>
+        <div id="jlpt-notif-user-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px;max-height:260px;overflow:auto;padding-right:4px;margin-bottom:12px;"></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button id="jlpt-notif-send" class="topbar-btn primary">📨 Kirim Notifikasi</button>
+          <button id="jlpt-notif-select-all" class="topbar-btn">☑️ Pilih Semua</button>
+          <button id="jlpt-notif-clear" class="topbar-btn">🧹 Clear Pilihan</button>
         </div>
       </div>`;
 
@@ -1534,11 +1635,12 @@
 
     if (usingFallback) {
       wrap.style.cssText = 'margin:18px 0 28px;display:grid;gap:16px;';
-      wrap.innerHTML     = lockHtml + liveHtml + resultsHtml;
+      wrap.innerHTML     = lockHtml + notifHtml + liveHtml + resultsHtml;
       fallbackMount.prepend(wrap);
     } else {
       document.body.appendChild(wrap);
       if (lockMount)    lockMount.innerHTML    = lockHtml;
+      if (notifMount)   notifMount.innerHTML   = notifHtml;
       if (liveMount)    liveMount.innerHTML    = liveHtml;
       if (resultsMount) resultsMount.innerHTML = resultsHtml;
     }
@@ -1558,6 +1660,92 @@
     root.querySelector('#jlpt-refresh-live')?.addEventListener('click',    () => refreshAdminLivePanel());
     root.querySelector('#jlpt-refresh-results')?.addEventListener('click', () => refreshAdminResultsPanel());
     root.querySelector('#jlpt-refresh-locks')?.addEventListener('click',   () => renderAdminControlUI());
+
+    const renderNotifUsers = async () => {
+      const wrapList = root.querySelector('#jlpt-notif-user-list');
+      if (!wrapList) return;
+      await loadUserMap();
+      const search = String(root.querySelector('#jlpt-notif-search')?.value || '').toLowerCase().trim();
+      const target = String(root.querySelector('#jlpt-notif-target')?.value || 'active');
+      const users = Array.from(state.userMap.values())
+        .filter(u => {
+          const hay = `${u.full_name || ''} ${u.display_name || ''} ${u.email || ''}`.toLowerCase();
+          return !search || hay.includes(search);
+        })
+        .sort((a, b) => String(a.full_name || a.display_name || a.email || '').localeCompare(String(b.full_name || b.display_name || b.email || '')));
+      if (!users.length) {
+        wrapList.innerHTML = '<div style="grid-column:1/-1;padding:14px;border:1px dashed var(--border);border-radius:14px;color:var(--muted);text-align:center;">Tidak ada user</div>';
+        return;
+      }
+      wrapList.innerHTML = users.map(u => {
+        const active = String(u.status || '').toLowerCase() === 'active';
+        const disabled = target !== 'selected';
+        const checked = disabled && ((target === 'all') || (target === 'active' && active));
+        return `
+          <label style="display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border:1px solid var(--border);border-radius:14px;background:rgba(255,255,255,.03);cursor:${target==='selected'?'pointer':'default'};">
+            <input type="checkbox" class="jlpt-notif-user-check" data-user-id="${esc(u.id)}" ${checked ? 'checked' : ''} ${target === 'selected' ? '' : 'disabled'} style="margin-top:3px;">
+            <div style="min-width:0;">
+              <div style="font-size:14px;font-weight:700;line-height:1.4;">${esc(u.full_name || u.display_name || u.email || u.id)}</div>
+              <div style="font-size:12px;color:var(--muted);line-height:1.5;word-break:break-word;">${esc(u.email || '—')}</div>
+              <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;">
+                <span style="font-size:10px;font-weight:800;padding:3px 8px;border-radius:999px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03);color:${active ? '#5ff0b0' : '#ffd18a'};">${esc(u.status || 'pending')}</span>
+              </div>
+            </div>
+          </label>`;
+      }).join('');
+    };
+
+    const sendNotif = async () => {
+      const title = String(root.querySelector('#jlpt-notif-title')?.value || '').trim();
+      const message = String(root.querySelector('#jlpt-notif-message')?.value || '').trim();
+      const type = String(root.querySelector('#jlpt-notif-type')?.value || 'system');
+      const target = String(root.querySelector('#jlpt-notif-target')?.value || 'active');
+      if (!title || !message) { toast('⚠️ Judul dan pesan wajib diisi'); return; }
+
+      await loadUserMap();
+      let recipients = [];
+      const users = Array.from(state.userMap.values());
+      if (target === 'all') {
+        recipients = users;
+      } else if (target === 'active') {
+        recipients = users.filter(u => String(u.status || '').toLowerCase() === 'active');
+      } else {
+        const ids = Array.from(root.querySelectorAll('.jlpt-notif-user-check:checked')).map(cb => cb.dataset.userId).filter(Boolean);
+        recipients = users.filter(u => ids.includes(u.id));
+        if (!recipients.length) { toast('⚠️ Pilih minimal satu user'); return; }
+      }
+
+      const rows = recipients.map(u => ({
+        user_id: u.id,
+        type,
+        title,
+        message,
+        is_read: false,
+        created_at: new Date().toISOString(),
+      }));
+      try {
+        const { error } = await client.from('notifications').insert(rows);
+        if (error) throw error;
+        pushActivity('system', `Notifikasi dikirim → ${title}`, target === 'selected' ? `${recipients.length} user dipilih` : `${recipients.length} user`, { type, target, count: recipients.length });
+        toast(`📨 Notifikasi terkirim ke ${recipients.length} user`);
+      } catch (err) {
+        console.error('[jlpt-sync] send notification failed:', err);
+        toast(`❌ Gagal kirim notifikasi: ${err?.message || err}`);
+      }
+    };
+
+    root.querySelector('#jlpt-notif-refresh')?.addEventListener('click', () => renderNotifUsers());
+    root.querySelector('#jlpt-notif-search')?.addEventListener('input', () => renderNotifUsers());
+    root.querySelector('#jlpt-notif-target')?.addEventListener('change', () => renderNotifUsers());
+    root.querySelector('#jlpt-notif-select-all')?.addEventListener('click', () => {
+      root.querySelectorAll('.jlpt-notif-user-check:not([disabled])').forEach(cb => { cb.checked = true; });
+    });
+    root.querySelector('#jlpt-notif-clear')?.addEventListener('click', () => {
+      root.querySelectorAll('.jlpt-notif-user-check').forEach(cb => { cb.checked = false; });
+    });
+    root.querySelector('#jlpt-notif-send')?.addEventListener('click', async () => { await sendNotif(); });
+
+    renderNotifUsers();
 
     // Live time-filter buttons
     root.querySelectorAll('.jlpt-live-time-btn').forEach(btn => {
