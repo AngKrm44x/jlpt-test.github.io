@@ -233,16 +233,75 @@
     if (!state.isAdminPage) return state.userMap;
     if (!force && state.userMap.size) return state.userMap;
     try {
-      const { data, error } = await client.from('users').select('id, full_name, display_name, email, role, status, created_at, updated_at');
+      const { data, error } = await client.from('users').select('*');
       if (error) throw error;
       const map = new Map();
-      (data || []).forEach(u => map.set(u.id, u));
+      (data || []).forEach(u => {
+        const row = { ...u };
+        row.__status = String(row.status || row.user_status || row.account_status || '').trim().toLowerCase();
+        map.set(String(row.id || '').trim(), row);
+      });
       state.userMap = map;
       return map;
     } catch (err) {
       console.warn('[jlpt-sync] loadUserMap failed:', err?.message || err);
+      const fallback = Array.isArray(window._allUsers) ? window._allUsers : [];
+      if (fallback.length) {
+        const map = new Map();
+        fallback.forEach(u => map.set(String(u.id || '').trim(), { ...u }));
+        state.userMap = map;
+      }
       return state.userMap;
     }
+  }
+
+  function resolveUserStatus(user = {}, row = {}) {
+    const raw = String(
+      user.status ??
+      user.user_status ??
+      user.account_status ??
+      row.status ??
+      row.user_status ??
+      row.account_status ??
+      ''
+    ).trim().toLowerCase();
+    if (raw) return raw;
+    if (user.is_banned === true || user.banned === true || row.is_banned === true || row.banned === true) return 'banned';
+    if (user.approved === true || row.approved === true || user.is_active === true || row.is_active === true) return 'active';
+    return 'pending';
+  }
+
+  function resolveUserRecord(userId, row = {}) {
+    const id = String(userId || row.user_id || '').trim();
+    const candidates = [
+      state.userMap?.get?.(id),
+      Array.isArray(window._allUsers) ? window._allUsers.find(u => String(u.id || '').trim() === id) : null,
+      row.user,
+      row,
+    ].filter(Boolean);
+
+    const merged = {};
+    for (const src of candidates) {
+      Object.assign(merged, src);
+    }
+    if (!merged.id && id) merged.id = id;
+    return merged;
+  }
+
+  function resolveUserLabel(userId, row = {}) {
+    const user = resolveUserRecord(userId, row);
+    return (
+      user.display_name ||
+      user.full_name ||
+      user.username ||
+      user.name ||
+      user.nickname ||
+      user.email ||
+      row.user_name ||
+      row.full_name ||
+      row.display_name ||
+      String(userId || row.user_id || '—')
+    );
   }
 
   // ── FIX 4: loadSystemSettings – exam_live_enabled logic was inverted ─────────
@@ -1308,9 +1367,9 @@
         return;
       }
       tbody.innerHTML = filtered.map(row => {
-        const user      = state.userMap.get(row.user_id) || {};
-        const userLabel = user.display_name || user.full_name || user.email || row.user_id || '—';
-        const status    = String(row.status || 'active');
+        const user      = resolveUserRecord(row.user_id, row);
+        const userLabel = resolveUserLabel(row.user_id, row);
+        const status    = resolveUserStatus(user, row);
         const badgeColor = status === 'done' ? '#5ff0b0' : status === 'active' ? '#7cc0ff' : '#ffd18a';
         const progress   = `${Number(row.current_q || 0)}/${Number(row.total_q || 0) || '—'} · ${Number(row.correct_count || 0)} benar · ${Number(row.percentage || 0).toFixed(2)}%`;
         return `<tr>
@@ -1387,8 +1446,8 @@
         return;
       }
       tbody.innerHTML = filteredRows.map(row => {
-        const user  = state.userMap.get(row.user_id) || {};
-        const label = user.display_name || user.full_name || user.email || row.user_id || '—';
+        const user  = resolveUserRecord(row.user_id, row);
+        const label = resolveUserLabel(row.user_id, row);
         const pct   = Number(row.percentage || 0);
         const sec   = row.section_scores || {};
         const moji  = sec.moji?.percentage   ?? '—';
@@ -1665,20 +1724,30 @@
       const wrapList = root.querySelector('#jlpt-notif-user-list');
       if (!wrapList) return;
       await loadUserMap(true);
+      if (typeof window.loadAllUsers === 'function') {
+        try { await window.loadAllUsers(); } catch (_) {}
+      }
       const search = String(root.querySelector('#jlpt-notif-search')?.value || '').toLowerCase().trim();
       const target = String(root.querySelector('#jlpt-notif-target')?.value || 'active');
-      const users = Array.from(state.userMap.values())
+      const mergedUsers = new Map();
+      for (const u of (Array.isArray(window._allUsers) ? window._allUsers : [])) {
+        if (u?.id) mergedUsers.set(String(u.id), { ...u });
+      }
+      for (const [id, u] of (state.userMap instanceof Map ? state.userMap.entries() : [])) {
+        if (id) mergedUsers.set(String(id), { ...(mergedUsers.get(String(id)) || {}), ...u });
+      }
+      const users = Array.from(mergedUsers.values())
         .filter(u => {
-          const hay = `${u.full_name || ''} ${u.display_name || ''} ${u.email || ''}`.toLowerCase();
+          const hay = `${u.full_name || ''} ${u.display_name || ''} ${u.email || ''} ${u.id || ''}`.toLowerCase();
           return !search || hay.includes(search);
         })
-        .sort((a, b) => String(a.full_name || a.display_name || a.email || '').localeCompare(String(b.full_name || b.display_name || b.email || '')));
+        .sort((a, b) => String(a.full_name || a.display_name || a.email || a.id || '').localeCompare(String(b.full_name || b.display_name || b.email || b.id || '')));
       if (!users.length) {
         wrapList.innerHTML = '<div style="grid-column:1/-1;padding:14px;border:1px dashed var(--border);border-radius:14px;color:var(--muted);text-align:center;">Tidak ada user</div>';
         return;
       }
       wrapList.innerHTML = users.map(u => {
-        const status = String(u.status || 'pending').toLowerCase();
+        const status = resolveUserStatus(u);
         const isActive = status === 'active';
         const isPending = status === 'pending';
         const isBanned = status === 'banned';
@@ -1713,11 +1782,14 @@
 
       await loadUserMap(true);
       let recipients = [];
-      const users = Array.from(state.userMap.values());
+      const users = Array.from(new Map([
+        ...(Array.isArray(window._allUsers) ? window._allUsers : []).filter(u => u && u.id).map(u => [String(u.id), { ...u }]),
+        ...(state.userMap instanceof Map ? Array.from(state.userMap.entries()).map(([id, u]) => [String(id), { ...(u || {}) }]) : [])
+      ]).values());
       if (target === 'all') {
         recipients = users;
       } else if (target === 'active') {
-        recipients = users.filter(u => String(u.status || '').toLowerCase() === 'active');
+        recipients = users.filter(u => resolveUserStatus(u) === 'active');
       } else {
         const ids = Array.from(root.querySelectorAll('.jlpt-notif-user-check:checked')).map(cb => cb.dataset.userId).filter(Boolean);
         recipients = users.filter(u => ids.includes(u.id));
