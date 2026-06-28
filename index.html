@@ -85,23 +85,30 @@
         `;
       };
 
-      document.body.innerHTML = renderContent(lang);
-
-      // Klik tombol ganti bahasa di maintenance screen (tanpa perlu rebuild seluruh listener app)
-      document.body.querySelectorAll('[data-mt-lang]').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const newLang = btn.getAttribute('data-mt-lang');
-          try { localStorage.setItem('jlpt_lang', newLang); } catch (_) {}
-          document.body.innerHTML = renderContent(newLang);
-          attachLockHandlers();
+      // Bind ulang listener tombol ganti bahasa setiap kali kontennya di-render ulang
+      // (penting: innerHTML lama dihancurkan total, jadi tombol HARUS di-query & di-bind lagi setiap render)
+      const paint = (l) => {
+        document.body.innerHTML = renderContent(l);
+        document.body.querySelectorAll('[data-mt-lang]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const newLang = btn.getAttribute('data-mt-lang');
+            try { localStorage.setItem('jlpt_lang', newLang); } catch (_) {}
+            paint(newLang);
+          });
         });
-      });
+      };
 
-      attachLockHandlers();
+      paint(lang);
+      attachLockHandlers(); // global lock di document — cukup dipasang sekali, tidak ikut hancur saat innerHTML body diganti
     };
 
     // Kunci semua interaksi: klik kanan, select, copy/cut/paste, drag, dan shortcut devtools/inspect
+    // Dipasang sekali saja di document (bukan di body), jadi tetap aktif walau body.innerHTML diganti-ganti
+    let _lockHandlersAttached = false;
     function attachLockHandlers() {
+      if (_lockHandlersAttached) return;
+      _lockHandlersAttached = true;
+
       const block = (e) => { e.preventDefault(); e.stopPropagation(); return false; };
 
       document.addEventListener('contextmenu', block, true);
@@ -114,6 +121,10 @@
       document.addEventListener('keydown', (e) => {
         const k = e.key ? e.key.toLowerCase() : '';
         const ctrlOrCmd = e.ctrlKey || e.metaKey;
+
+        // Jangan blokir klik biasa pada tombol ganti bahasa (Enter/Space saat fokus di tombol)
+        const isLangBtn = e.target && e.target.closest && e.target.closest('[data-mt-lang]');
+        if (isLangBtn && (k === 'enter' || k === ' ')) return;
 
         // Blokir Ctrl/Cmd + C/X/V/A/S/P/U
         if (ctrlOrCmd && ['c','x','v','a','s','p','u'].includes(k)) return block(e);
@@ -456,6 +467,9 @@ h1{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;letter-spacing:-
 }
 .notif-mark-all{font-size:12px;color:var(--muted);cursor:pointer;transition:color .2s;font-weight:600;}
 .notif-mark-all:hover{color:#5aa9ff;}
+.notif-header-actions{display:flex;align-items:center;gap:14px;}
+.notif-clear-all{font-size:12px;color:var(--muted);cursor:pointer;transition:color .2s;font-weight:600;}
+.notif-clear-all:hover{color:#ff5f73;}
 .notif-tabs{display:flex;gap:0;border-bottom:1px solid rgba(255,255,255,.05);}
 .notif-tab{flex:1;padding:10px;text-align:center;font-size:13px;font-weight:700;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;transition:.2s;}
 .notif-tab.active{color:#5aa9ff;border-bottom-color:#5aa9ff;}
@@ -1030,7 +1044,10 @@ body.sidebar-open .menu-fab{
       🔔 <span data-i18n="notifications">Notifications</span>
       <span class="notif-count-pill" id="notifCountPill">0</span>
     </div>
-    <span class="notif-mark-all" onclick="markAllRead()" data-i18n="markAllRead">Mark all read</span>
+    <div class="notif-header-actions">
+      <span class="notif-mark-all" onclick="markAllRead()" data-i18n="markAllRead">Mark all read</span>
+      <span class="notif-clear-all" onclick="clearAllNotifs()" data-i18n="clearAllNotifs">Clear all</span>
+    </div>
   </div>
   <div class="notif-tabs">
     <div class="notif-tab active" data-tab="all" onclick="switchNotifTab(this)" data-i18n="tabAll">All</div>
@@ -1778,7 +1795,7 @@ const TRANSLATIONS = {
   id: {
     heroTitle:'日本語能力　模擬試験　過去問題集',
     heroSubtitle:'Kumpulan soal latihan JLPT modern dengan antarmuka premium. Akses soal Reading, Grammar, dan Vocabulary berdasarkan tahun ujian.',
-    notifications:'Notifikasi',markAllRead:'Tandai semua dibaca',
+    notifications:'Notifikasi',markAllRead:'Tandai semua dibaca',clearAllNotifs:'Hapus semua',clearAllConfirm:'Hapus semua notifikasi? Notifikasi yang sudah dihapus tidak akan muncul lagi.',clearAllDone:'Semua notifikasi dihapus',
     tabAll:'Semua',tabNewExam:'Ujian Baru',tabUpdate:'Pembaruan',tabSystem:'Sistem',
     viewHistory:'📋 Lihat Riwayat Ujian',
     activeMember:'Anggota Aktif',requestExam:'Request Soal JLPT',examHistory:'Riwayat Ujian',logout:'Keluar',
@@ -1818,7 +1835,7 @@ const TRANSLATIONS = {
   en: {
     heroTitle:'日本語能力　模擬試験　過去問題集',
     heroSubtitle:'A collection of modern JLPT practice exercises and simulations with a premium interface. Access Reading, Grammar, and Vocabulary questions by exam year.',
-    notifications:'Notifications',markAllRead:'Mark all read',
+    notifications:'Notifications',markAllRead:'Mark all read',clearAllNotifs:'Clear all',clearAllConfirm:'Clear all notifications? Deleted notifications will not appear again.',clearAllDone:'All notifications cleared',
     tabAll:'All',tabNewExam:'New Exam',tabUpdate:'Update',tabSystem:'System',
     viewHistory:'📋 View Exam History',
     activeMember:'Active Member',requestExam:'Request JLPT Exam',examHistory:'Exam History',logout:'Logout',
@@ -1858,7 +1875,7 @@ const TRANSLATIONS = {
   ja: {
     heroTitle:'日本語能力　模擬試験　過去問題集',
     heroSubtitle:'プレミアムインターフェースを備えた最新のJLPT練習問題と模擬試験のコレクション。試験年度別に読解・文法・語彙の問題にアクセスできます。',
-    notifications:'通知',markAllRead:'すべて既読にする',
+    notifications:'通知',markAllRead:'すべて既読にする',clearAllNotifs:'すべて削除',clearAllConfirm:'すべての通知を削除しますか？削除した通知は再表示されません。',clearAllDone:'すべての通知を削除しました',
     tabAll:'すべて',tabNewExam:'新しい試験',tabUpdate:'更新',tabSystem:'システム',
     viewHistory:'📋 受験履歴を見る',
     activeMember:'アクティブメンバー',requestExam:'JLPT問題をリクエスト',examHistory:'受験履歴',logout:'ログアウト',
@@ -2154,6 +2171,33 @@ async function markAllRead(){
   updateNotifBadge();
   renderNotifList();
   showToast('✅ ' + t('markAllRead'));
+}
+
+async function clearAllNotifs(){
+  if(!NOTIF_DATA.length){ return; }
+  if(!confirm(t('clearAllConfirm'))) return;
+
+  // Tandai semua notif yang sedang ada sebagai "hidden" permanen biar gak muncul lagi
+  // walau habis logout-login atau realtime sync ulang.
+  NOTIF_DATA.forEach(n => { if(n?.id) notifHiddenSet.add(n.id); });
+  saveNotifHidden();
+
+  // Bersihkan cache lokal user ini juga
+  saveNotifCache(CURRENT_USER_ID, []);
+
+  // Hapus juga dari Supabase (kalau ada notif yang berasal dari DB)
+  const dbIds = NOTIF_DATA.filter(n => n.dbId).map(n => n.dbId);
+  if(dbIds.length){
+    try {
+      const { sb, session } = await getSupabase();
+      await sb.from('notifications').delete().eq('user_id', session.user.id);
+    } catch(e){}
+  }
+
+  NOTIF_DATA.splice(0, NOTIF_DATA.length);
+  updateNotifBadge();
+  renderNotifList();
+  showToast('🗑 ' + t('clearAllDone'));
 }
 
 function switchNotifTab(el){
@@ -2701,8 +2745,8 @@ window.addEventListener('DOMContentLoaded', async () => {
     const cachedNotifs = loadNotifCache(bootNotifUserId);
     if (Array.isArray(cachedNotifs) && cachedNotifs.length) {
       const merged = new Map();
-      cachedNotifs.forEach(n => { if (n?.id) merged.set(String(n.id), { ...n }); });
-      NOTIF_DATA.forEach(n => { if (n?.id && !merged.has(String(n.id))) merged.set(String(n.id), n); });
+      cachedNotifs.forEach(n => { if (n?.id && !notifHiddenSet.has(n.id)) merged.set(String(n.id), { ...n }); });
+      NOTIF_DATA.forEach(n => { if (n?.id && !notifHiddenSet.has(n.id) && !merged.has(String(n.id))) merged.set(String(n.id), n); });
       NOTIF_DATA.splice(0, NOTIF_DATA.length, ...[...merged.values()].sort((a,b)=> new Date(b.rawTime || b.createdAt || 0) - new Date(a.rawTime || a.createdAt || 0)));
       updateNotifBadge();
       renderNotifList();
@@ -3236,6 +3280,7 @@ async function initRealtimeNotifications(){
   function handleRealtimePayload(payload){
     const row = payload.new || payload;
     const notif = buildNotifFromDb(row);
+    if(notifHiddenSet.has(notif.id)) return; // user sudah menghapus notif ini, jangan dimunculkan lagi
     const existIdx = NOTIF_DATA.findIndex(x => x.id === notif.id);
     if(existIdx >= 0){
       // UPDATE existing (e.g. status berubah)
