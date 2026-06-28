@@ -137,7 +137,8 @@ canvas{position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.35;}
   <button class="lang-btn active" onclick="setLang('id')">ID</button>
   <button class="lang-btn" onclick="setLang('en')">EN</button>
   <button class="lang-btn" onclick="setLang('jp')">日本語</button>
-</div>
+          <button class="lang-btn" onclick="setLang('my')">မြန်မာ</button>
+        </div>
 <!-- Report Modal -->
 <div class="report-modal-overlay" id="report-modal">
   <div class="report-modal">
@@ -744,7 +745,87 @@ const I18N = {
     report_send:'📤 報告を送信',report_cancel:'キャンセル',report_thinking:'📤 送信中...',
     pred_pass_high:'✅ 合格の可能性が非常に高いです。',pred_pass_mid:'⚠️ 合格ラインギリギリです。引き続き練習を。',pred_fail:'❌ 合格には更なる学習が必要です。'
   }
-};
+,
+    my: {
+      score_estimate:'ခန့်မှန်း JLPT ရမှတ်',
+      passing_mark:'အောင်မှတ်',
+      cefr_estimate:'ခန့်မှန်း CEFR အဆင့်',
+      res_jlpt_section:'JLPT အပိုင်းအလိုက် ရမှတ်',
+      not_tested:'မဖြေဆိုရသေးပါ',
+      min_pass:'အနည်းဆုံး',
+      overall_label:'(စုစုပေါင်း၊ 聴解 မပါဝင်)',
+      score_no_listening_note:'အထက်ပါရမှတ်တွင် 聴解 (နားထောင်ခြင်း) အပိုင်း မပါဝင်သေးပါ၊ အဘယ်ကြောင့်ဆိုသော် ဤစနစ်တွင် ထိုအပိုင်းကို မစစ်ဆေးရသေးသောကြောင့် ဖြစ်သည်။ တရားဝင် JLPT ရမှတ်တွင် 聴解 ရမှတ်လည်း ပါဝင်မည်ဖြစ်သဖြင့် ကွာခြားနိုင်ပါသည်။',
+      estimate_pass_note:'ဖြေဆိုပြီးသော အပိုင်းများအရ သင်သည် အောင်မှတ်ကို ရောက်ရှိနိုင်ကြောင်း ခန့်မှန်းထားသည်။ သို့သော် 聴解 မပါဝင်သေးသောကြောင့် တရားဝင်အောင်မြင်မှုကို အာမခံနိုင်ခြင်း မရှိပါ။',
+      practice_note:'အောင်မှတ်ရရှိရန် ထပ်မံလေ့ကျင့်ရန် လိုအပ်ပါသည်။',
+
+      stat_total:'စုစုပေါင်း မေးခွန်း',
+      stat_done:'ဖြေဆိုပြီး',
+      stat_score:'နောက်ဆုံးရမှတ်',
+      stat_pred:'ခန့်မှန်းချက်',
+
+      info_audio:'⚠️ 聴解 (問題3 နှင့် 問題5) မေးခွန်းအချို့သည် အသံစာသား (transcript) မပြည့်စုံသေးသောကြောင့် placeholder အဖြစ်သာ ရှိနေပါသည်။',
+
+      mode_all:'🎯 စာမေးပွဲ အပြည့်အစုံ',
+      mode_all_sub:'မေးခွန်း · အချိန်ကန့်သတ်',
+      mode_all_unit:'မိနစ်',
+
+      mode_moji:'📝 文字・語彙',
+      mode_bunpou:'📐 文法',
+      mode_dokkai:'📖 読解',
+      mode_choukai:'🎧 聴解',
+
+      mode_sub_menit:'မေးခွန်း · အချိန်ကန့်သတ်',
+
+      audio_label:'🎧 အသံဖိုင် နားထောင်ရန်',
+      audio_missing:'⚠️ ဤမေးခွန်းအတွက် အသံဖိုင် မရှိသေးပါ — ကျေးဇူးပြု၍ အသံဖိုင်ကို ကိုယ်တိုင်ထည့်သွင်းပါ။',
+
+      passage_label:'📖 စာဖတ်ပိုဒ်',
+
+      btn_back:'← နောက်သို့',
+      btn_save:'💾 သိမ်းရန်',
+      btn_load:'📂 ဖွင့်ရန်',
+      btn_next:'ရှေ့သို့ →',
+      btn_finish:'ပြီးဆုံးရန်',
+      btn_report:'🚩 ပြဿနာတင်ပြရန်',
+
+      res_title:'စာမေးပွဲ ရလဒ်',
+      res_correct:'မှန်',
+      res_wrong:'မှား',
+      res_accuracy:'တိကျမှု',
+      res_time:'ကြာချိန်',
+
+      res_section:'အပိုင်းအလိုက် ရမှတ်',
+      res_pred_title:'အောင်မြင်မှု ခန့်မှန်းချက်',
+
+      btn_review:'အဖြေများ ပြန်လည်သုံးသပ်ရန်',
+      btn_home:'မီနူးသို့ ပြန်ရန်',
+
+      pass_label:'✅ အောင်မြင်နိုင်သည် (ခန့်မှန်း)',
+      fail_label:'❌ ထပ်မံလေ့လာရန် လိုအပ်သည်',
+
+      pass_sub_pass:'အောင်မြင်နိုင်ခြေ အလွန်မြင့်သည်!',
+      pass_sub_fail:'ထပ်မံလေ့လာရန် လိုအပ်ပါသည်။',
+
+      save_msg:'💾 Session ကို သိမ်းပြီးပါပြီ!',
+      load_msg:'📂 Session ကို ဖွင့်ပြီးပါပြီ!',
+      no_session:'သိမ်းထားသော Session မရှိပါ။',
+
+      correct_live:'အဖြေမှန်:',
+      q_label:'မေးခွန်း',
+      q_of:' / ',
+
+      report_title:'🚩 ပြဿနာရှိသော မေးခွန်းကို တင်ပြရန်',
+      report_placeholder:'ဤမေးခွန်း၏ ပြဿနာကို ရေးပါ (အဖြေမှား၊ စာသားမရှင်းလင်း စသည်)...',
+
+      report_send:'📤 အစီရင်ခံစာ ပို့ရန်',
+      report_cancel:'မလုပ်တော့ပါ',
+      report_thinking:'📤 အစီရင်ခံစာ ပို့နေသည်...',
+
+      pred_pass_high:'✅ အောင်မြင်နိုင်ခြေ အလွန်မြင့်သည်။',
+      pred_pass_mid:'⚠️ အောင်မှတ်အနီးတွင် ရှိနေသည်။ ဆက်လက်လေ့ကျင့်ပါ။',
+      pred_fail:'❌ အောင်မြင်ရန် ထပ်မံလေ့လာရန် လိုအပ်ပါသည်။'
+    }
+  };
 
 let currentLang = localStorage.getItem('jlpt_lang') || 'id';
 function T(k){ return (I18N[currentLang]||I18N['id'])[k] || I18N['id'][k] || k; }
