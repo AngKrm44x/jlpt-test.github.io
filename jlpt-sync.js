@@ -1726,7 +1726,13 @@
       try {
         const { error } = await client.from('notifications').insert(rows);
         if (error) throw error;
-        pushActivity('system', `Notifikasi dikirim → ${title}`, target === 'selected' ? `${recipients.length} user dipilih` : `${recipients.length} user`, { type, target, count: recipients.length });
+        if (typeof window.pushActivity === 'function') {
+          window.pushActivity('system', `Notifikasi dikirim → ${title}`, target === 'selected' ? `${recipients.length} user dipilih` : `${recipients.length} user`, { type, target, count: recipients.length });
+        } else if (typeof state.pushActivity === 'function') {
+          state.pushActivity('system', `Notifikasi dikirim → ${title}`, target === 'selected' ? `${recipients.length} user dipilih` : `${recipients.length} user`, { type, target, count: recipients.length });
+        } else {
+          console.log('[jlpt-sync] Notifikasi dikirim →', title, recipients.length);
+        }
         toast(`📨 Notifikasi terkirim ke ${recipients.length} user`);
       } catch (err) {
         console.error('[jlpt-sync] send notification failed:', err);

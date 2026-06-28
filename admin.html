@@ -2,7 +2,89 @@
 <html lang="id">
 <head>
 <!-- ADMIN AUTH GUARD -->
+<script type="module">
+  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
+  const SUPABASE_URL  = 'https://uincqpdexdenjcmwdfsv.supabase.co';
+  const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpbmNxcGRleGRlbmpjbXdkZnN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5MjM4ODEsImV4cCI6MjA5NTQ5OTg4MX0.Lf1N_P_iiNQ2hnRJhd-Quy9MLKlZFSzbnXtXCnmRCS0';
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON);
+
+  document.documentElement.style.visibility = 'hidden';
+
+  // =============================================
+  // ADMIN EMAILS - ganti dengan email kamu
+  // =============================================
+  const SUPER_ADMIN_EMAIL = 'sidiqangga44@gmail.com'; // ← ganti email super admin
+  const ADMIN_EMAIL       = 'admin@example.com';       // ← ganti email admin biasa
+
+  const goTo = (url) => window.location.replace(url);
+
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+
+    if (!session) {
+      goTo('./auth.html');
+    } else {
+      const email = (session.user.email || '').trim().toLowerCase();
+      const superAdmin = SUPER_ADMIN_EMAIL.trim().toLowerCase();
+      const adminEmail  = ADMIN_EMAIL.trim().toLowerCase();
+
+      if (email !== superAdmin && email !== adminEmail) {
+        alert('⛔ Akses ditolak. Halaman ini khusus admin.');
+        goTo('./index.html');
+      } else {
+        const { data: usr } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+
+        document.documentElement.style.visibility = 'visible';
+        window._supabase      = supabase;
+        window._session       = session;
+        window._userDb        = usr;
+        window._isSuperAdmin  = (email === superAdmin);
+        window._adminEmail    = email;
+        window.SUPABASE_URL   = SUPABASE_URL;
+        window.SUPABASE_ANON  = SUPABASE_ANON;
+
+        // === LOGIKA MAINTENANCE MODE ===
+        async function initMaintenanceMode() {
+          const toggleInput = document.getElementById('maintenanceToggle');
+          if (!toggleInput) return;
+
+          const { data, error } = await supabase
+            .from('settings')
+            .select('value')
+            .eq('key', 'maintenance_mode')
+            .maybeSingle();
+
+          if (data) {
+            toggleInput.checked = data.value;
+          }
+
+          toggleInput.addEventListener('change', async (e) => {
+            const isActive = e.target.checked;
+            const { error } = await supabase
+              .from('settings')
+              .upsert({ key: 'maintenance_mode', value: isActive }, { onConflict: 'key' });
+
+            if (error) {
+              alert('Gagal memperbarui status maintenance: ' + error.message);
+              e.target.checked = !isActive;
+            } else {
+              alert(`Maintenance mode berhasil ${isActive ? 'DIAKTIFKAN' : 'DINONAKTIFKAN'}!`);
+            }
+          });
+        }
+        initMaintenanceMode();
+      }
+    }
+  } catch (e) {
+    console.error('Auth error:', e);
+    goTo('./auth.html');
+  }
+</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin Panel – JLPT Exam Hub</title>
@@ -1136,20 +1218,48 @@ function encodeGithubContentUtf8(text){
 // =============================================
 async function initApp(){
   isSuperAdmin = window._isSuperAdmin || false;
-  // Tampilkan info admin
-  var session = window._session;
-  var usr = window._userDb;
-  const email = session.user.email;
-  const name = usr?.display_name || usr?.full_name || email.split('@')[0];
 
-  document.getElementById('adminNameEl').textContent = name;
-  document.getElementById('adminRoleEl').textContent = isSuperAdmin ? 'Super Admin' : 'Admin';
-  document.getElementById('adminAvatarEl').textContent = name.charAt(0).toUpperCase();
-  document.getElementById('roleBadgeEl').textContent = isSuperAdmin ? '⚡ SUPER ADMIN' : '🛡️ ADMIN';
+  // Tampilkan info admin dengan fallback aman jika auth guard belum selesai
+  let session = window._session;
+  let usr = window._userDb;
+  const sb = typeof getSupabase === 'function' ? getSupabase() : window._supabase;
+
+  try {
+    if (!session && sb?.auth?.getSession) {
+      const res = await sb.auth.getSession();
+      session = res?.data?.session || null;
+    }
+    if (!usr && session?.user && sb?.from) {
+      const userRes = await sb.from('users').select('*').eq('id', session.user.id).maybeSingle();
+      usr = userRes?.data || null;
+    }
+  } catch (err) {
+    console.warn('[admin] initApp fallback auth check failed:', err?.message || err);
+  }
+
+  if (!session?.user) {
+    console.warn('[admin] No valid session found during initApp; redirecting to auth.');
+    window.location.replace('./auth.html');
+    return;
+  }
+
+  const email = String(session.user.email || '').trim().toLowerCase();
+  const name = usr?.display_name || usr?.full_name || email.split('@')[0] || 'Admin';
+
+  const adminNameEl = document.getElementById('adminNameEl');
+  const adminRoleEl = document.getElementById('adminRoleEl');
+  const adminAvatarEl = document.getElementById('adminAvatarEl');
+  const roleBadgeEl = document.getElementById('roleBadgeEl');
+
+  if (adminNameEl) adminNameEl.textContent = name;
+  if (adminRoleEl) adminRoleEl.textContent = isSuperAdmin ? 'Super Admin' : 'Admin';
+  if (adminAvatarEl) adminAvatarEl.textContent = name.charAt(0).toUpperCase();
+  if (roleBadgeEl) roleBadgeEl.textContent = isSuperAdmin ? '⚡ SUPER ADMIN' : '🛡️ ADMIN';
 
   // Sembunyikan fitur super-admin only kalau bukan super admin
-  if(!isSuperAdmin){
-    document.getElementById('navPending').style.display='none';
+  const navPending = document.getElementById('navPending');
+  if(!isSuperAdmin && navPending){
+    navPending.style.display = 'none';
   }
 
   // Load config ke form dari localStorage
@@ -1167,36 +1277,36 @@ async function initApp(){
   const dropZone = document.getElementById('dropZone');
   const fileInput = document.getElementById('fileInput');
 
-  dropZone.addEventListener('dragover', e=>{ e.preventDefault(); dropZone.classList.add('drag'); });
-  dropZone.addEventListener('dragleave', ()=> dropZone.classList.remove('drag'));
-  dropZone.addEventListener('drop', e=>{
-    e.preventDefault(); dropZone.classList.remove('drag');
-    if(e.dataTransfer.files[0]) handleFileSelect(e.dataTransfer.files[0]);
-  });
-  fileInput.addEventListener('change', e=>{ if(e.target.files[0]) handleFileSelect(e.target.files[0]); });
+  if (dropZone) {
+    dropZone.addEventListener('dragover', e=>{ e.preventDefault(); dropZone.classList.add('drag'); });
+    dropZone.addEventListener('dragleave', ()=> dropZone.classList.remove('drag'));
+    dropZone.addEventListener('drop', e=>{
+      e.preventDefault(); dropZone.classList.remove('drag');
+      if(e.dataTransfer.files[0]) handleFileSelect(e.dataTransfer.files[0]);
+    });
+  }
+  if (fileInput) fileInput.addEventListener('change', e=>{ if(e.target.files[0]) handleFileSelect(e.target.files[0]); });
 
   // Auto-update path preview
   ['upLevel','upYear','upMonth'].forEach(id=>{
-    document.getElementById(id).addEventListener('input', updatePathPreview);
-    document.getElementById(id).addEventListener('change', updatePathPreview);
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('input', updatePathPreview);
+      el.addEventListener('change', updatePathPreview);
+    }
   });
 
   // Tab autocomplete
-  document.getElementById('codeEditor').addEventListener('keydown', e=>{
-    if(e.key==='Tab'){ e.preventDefault();
-      const el=e.target, s=el.selectionStart, end=el.selectionEnd;
-      el.value = el.value.substring(0,s)+'  '+el.value.substring(end);
-      el.selectionStart = el.selectionEnd = s+2; onEditorChange();
-    }
-  });
-}
-
-// Tunggu auth guard selesai, lalu jalankan init
-// Auth guard di head sudah selesai saat script body ini dieksekusi
-if(document.readyState === 'loading'){
-  document.addEventListener('DOMContentLoaded', initApp);
-} else {
-  initApp();
+  const codeEditor = document.getElementById('codeEditor');
+  if (codeEditor) {
+    codeEditor.addEventListener('keydown', e=>{
+      if(e.key==='Tab'){ e.preventDefault();
+        const el=e.target, s=el.selectionStart, end=el.selectionEnd;
+        el.value = el.value.substring(0,s)+'  '+el.value.substring(end);
+        el.selectionStart = el.selectionEnd = s+2; onEditorChange();
+      }
+    });
+  }
 }
 
 // =============================================
@@ -2991,9 +3101,11 @@ window.togglePwd = window.toggleFieldPwd = function(id, btn){
   // ----- Realtime subscriptions
   async function startRealtime(){
     try {
-      const ctx = await getSupabase();
-      const sb = ctx.sb || ctx;
-      if (!sb?.channel) return;
+      const sb = typeof getSupabase === 'function' ? getSupabase() : window._supabase;
+      if (!sb?.channel) {
+        console.warn('[admin] Realtime skipped: Supabase client not ready');
+        return;
+      }
 
       if (realtimeChannel) {
         try { await sb.removeChannel(realtimeChannel); } catch {}
@@ -3028,7 +3140,6 @@ window.togglePwd = window.toggleFieldPwd = function(id, btn){
           refreshAllAdminViews(`requests:${payload.eventType}`);
         })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, payload => {
-          // Only log when admin manually sends a notif — skip auto-generated ones (report resolved, etc.)
           const row = payload.new || {};
           if (payload.eventType === 'INSERT' && row.type === 'new_exam') {
             pushActivity('system', `Notifikasi ujian baru dikirim ke user`, row.title || '', { table: 'notifications', id: row.id });
