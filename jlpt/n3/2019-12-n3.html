@@ -479,78 +479,120 @@ function resolveChoukaiAudioSrc(q){
 function mountChoukaiAudioPlayer(q){
   const wrap = document.getElementById('audio-wrap');
   if(!wrap) return;
+
   const src = resolveChoukaiAudioSrc(q);
-  wrap.innerHTML = `
-    <div class="audio-lock-player">
-      <div class="audio-lock-row">
-        <button type="button" class="audio-lock-btn" id="audio-play-btn">▶ Putar audio</button>
-        <div class="audio-lock-status" id="audio-state">Siap diputar. Setelah mulai, audio akan terus berjalan sampai selesai.</div>
-      </div>
-      <audio id="choukai-audio" preload="auto" playsinline controlslist="nodownload noplaybackrate noremoteplayback"></audio>
-      <div class="audio-lock-progress" aria-hidden="true"><div class="audio-lock-progress-fill" id="audio-progress"></div></div>
-      <div class="audio-lock-note" id="audio-note">Sumber audio: <span id="audio-src-text"></span></div>
-    </div>`;
+  const existing = window.__CHOUKAI_AUDIO_STATE || null;
+  if(existing && existing.wrap === wrap && existing.src === src && existing.mounted){
+    if(existing.card) existing.card.style.display = '';
+    if(existing.state && existing.started && !existing.audio.ended){
+      existing.state.textContent = 'Audio sedang berjalan dan tetap tersambung walau soal berpindah.';
+    }
+    return existing;
+  }
+
+  if(!existing || existing.wrap !== wrap){
+    wrap.innerHTML = `
+      <div class="audio-lock-player">
+        <div class="audio-lock-row">
+          <button type="button" class="audio-lock-btn" id="audio-play-btn">▶ Putar audio</button>
+          <div class="audio-lock-status" id="audio-state">Siap diputar. Setelah mulai, audio akan terus berjalan sampai selesai.</div>
+        </div>
+        <audio id="choukai-audio" preload="auto" playsinline controlslist="nodownload noplaybackrate noremoteplayback"></audio>
+        <div class="audio-lock-progress" aria-hidden="true"><div class="audio-lock-progress-fill" id="audio-progress"></div></div>
+        <div class="audio-lock-note" id="audio-note">Sumber audio: <span id="audio-src-text"></span></div>
+      </div>`;
+  }
+
+  const card = wrap.firstElementChild;
   const audio = document.getElementById('choukai-audio');
   const btn = document.getElementById('audio-play-btn');
   const state = document.getElementById('audio-state');
   const progress = document.getElementById('audio-progress');
   const srcText = document.getElementById('audio-src-text');
   const note = document.getElementById('audio-note');
+
   if(srcText) srcText.textContent = src;
   if(!src){
     if(note) note.style.display = 'none';
     if(state) state.textContent = 'Audio belum disetel.';
     if(btn) btn.disabled = true;
-    return;
+    window.__CHOUKAI_AUDIO_STATE = { wrap, card, audio, btn, state, progress, src, started:false, mounted:true };
+    return window.__CHOUKAI_AUDIO_STATE;
   }
+
+  const prev = existing && existing.audio && existing.audio !== audio ? existing : null;
+  if(prev && prev.audio && prev.audio !== audio){
+    try{ prev.audio.pause(); }catch(e){}
+  }
+
   audio.src = src;
   audio.preload = 'auto';
   audio.controls = false;
   audio.playsInline = true;
-  let started = false;
-  let resumeLock = false;
+  audio.setAttribute('controlslist', 'nodownload noplaybackrate noremoteplayback');
+
+  const stateObj = {
+    wrap, card, audio, btn, state, progress, src,
+    started: existing ? !!existing.started : false,
+    mounted: true,
+    progressLocked: false,
+    _listenersBound: false
+  };
+
   const updateProgress = () => {
-    if(!progress || !audio.duration || !isFinite(audio.duration)) return;
+    if(!stateObj.progress || !audio.duration || !isFinite(audio.duration)) return;
     const pct = Math.max(0, Math.min(100, (audio.currentTime / audio.duration) * 100));
-    progress.style.width = pct + '%';
+    stateObj.progress.style.width = pct + '%';
   };
+
   const keepPlaying = () => {
-    if(!started || audio.ended) return;
-    if(audio.paused && !resumeLock){
-      resumeLock = true;
-      audio.play().catch(()=>{}).finally(()=>{ resumeLock = false; });
+    if(!stateObj.started || audio.ended) return;
+    if(audio.paused && !stateObj.progressLocked){
+      stateObj.progressLocked = true;
+      audio.play().catch(()=>{}).finally(()=>{ stateObj.progressLocked = false; });
     }
   };
-  btn && btn.addEventListener('click', async () => {
-    started = true;
-    if(btn) btn.disabled = true;
-    if(state) state.textContent = 'Audio sedang diputar dan tidak menyediakan tombol pause/stop.';
-    try{
-      await audio.play();
-    }catch(err){
-      started = false;
-      if(btn) btn.disabled = false;
-      if(state) state.textContent = 'Browser memblokir autoplay. Coba tekan lagi.';
-    }
-  });
-  audio.addEventListener('play', () => {
-    started = true;
-    if(state) state.textContent = 'Audio sedang berjalan.';
-  });
-  audio.addEventListener('pause', keepPlaying);
-  audio.addEventListener('contextmenu', (e) => e.preventDefault());
-  audio.addEventListener('seeking', () => { if(started && !audio.ended && audio.paused) keepPlaying(); });
-  audio.addEventListener('ended', () => {
-    if(progress) progress.style.width = '100%';
-    if(state) state.textContent = 'Audio selesai.';
-  });
-  audio.addEventListener('timeupdate', updateProgress);
-  audio.addEventListener('loadedmetadata', updateProgress);
-  audio.addEventListener('seeking', updateProgress);
-  audio.addEventListener('error', () => {
-    if(state) state.textContent = 'Audio gagal dimuat. Cek path GitHub / nama file.';
-    if(btn) btn.disabled = true;
-  });
+
+  if(stateObj.btn && !stateObj._listenersBound){
+    stateObj.btn.onclick = async () => {
+      stateObj.started = true;
+      if(stateObj.btn) stateObj.btn.disabled = true;
+      if(stateObj.state) stateObj.state.textContent = 'Audio sedang diputar dan tetap berjalan saat soal diganti.';
+      try{
+        await audio.play();
+      }catch(err){
+        stateObj.started = false;
+        if(stateObj.btn) stateObj.btn.disabled = false;
+        if(stateObj.state) stateObj.state.textContent = 'Browser memblokir pemutaran. Coba tekan lagi.';
+      }
+    };
+
+    audio.onplay = () => {
+      stateObj.started = true;
+      if(stateObj.btn) stateObj.btn.disabled = true;
+      if(stateObj.state) stateObj.state.textContent = 'Audio sedang berjalan.';
+    };
+    audio.onpause = () => keepPlaying();
+    audio.oncontextmenu = (e) => e.preventDefault();
+    audio.addEventListener('seeking', () => { if(stateObj.started && !audio.ended && audio.paused) keepPlaying(); });
+    audio.addEventListener('seeking', updateProgress);
+    audio.onended = () => {
+      if(stateObj.progress) stateObj.progress.style.width = '100%';
+      if(stateObj.state) stateObj.state.textContent = 'Audio selesai.';
+      if(stateObj.btn) stateObj.btn.disabled = true;
+      stateObj.started = false;
+    };
+    audio.ontimeupdate = updateProgress;
+    audio.onloadedmetadata = updateProgress;
+    audio.onerror = () => {
+      if(stateObj.state) stateObj.state.textContent = 'Audio gagal dimuat. Cek path GitHub / nama file.';
+      if(stateObj.btn) stateObj.btn.disabled = true;
+    };
+    stateObj._listenersBound = true;
+  }
+
+  window.__CHOUKAI_AUDIO_STATE = stateObj;
+  return stateObj;
 }
 function startMode(m){
   mode=m;questions=getQuestions(m);answers={};currentQ=0;
@@ -598,19 +640,21 @@ function renderQuestion(){
 
   // Audio player for 聴解 questions
   // Example:
-  // window.CHOUKAI_AUDIO_BASE_PATH = 'Choukai/2019-n3-n3/';
-  // window.CHOUKAI_AUDIO_FILENAME = '2019年12月.mp3';
+  // window.CHOUKAI_AUDIO_BASE_PATH = 'Choukai/N3/2019/';
+  // window.CHOUKAI_AUDIO_FILENAME = '2019.mp3';
   const ac=document.getElementById('audio-card');
   if(ac){
     if(q.sec==="聴解"){
       ac.style.display='';
       const al=document.getElementById('audio-label-text');
       if(al) al.textContent=T('audio_label');
-      mountChoukaiAudioPlayer(q);
+      const playerState = mountChoukaiAudioPlayer(q);
+      if(playerState && playerState.card) playerState.card.style.display = '';
+      if(playerState && playerState.state && playerState.started && !playerState.audio.ended){
+        playerState.state.textContent = 'Audio sedang berjalan dan tetap tersambung walau soal diganti.';
+      }
     }else{
       ac.style.display='none';
-      const aw=document.getElementById('audio-wrap');
-      if(aw) aw.innerHTML='';
     }
   }
 
