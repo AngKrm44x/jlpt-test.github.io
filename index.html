@@ -2583,10 +2583,24 @@ window.addEventListener('DOMContentLoaded', async () => {
 
   // Record current device login session
   recordLoginSession().catch(() => {});
-  startDeviceRevocationWatch().catch(() => {});
+  try { startDeviceRevocationWatch(); } catch (_) {}
 
   // Sync exam scores from Supabase to show on cards
   syncExamScoresFromSupabase().catch(() => {});
+
+  // Restore notification cache immediately so items stay visible even if DB is slow
+  try {
+    const bootNotifUserId = (window._session?.user?.id) || null;
+    const cachedNotifs = loadNotifCache(bootNotifUserId);
+    if (Array.isArray(cachedNotifs) && cachedNotifs.length) {
+      const merged = new Map();
+      cachedNotifs.forEach(n => { if (n?.id) merged.set(String(n.id), { ...n }); });
+      NOTIF_DATA.forEach(n => { if (n?.id && !merged.has(String(n.id))) merged.set(String(n.id), n); });
+      NOTIF_DATA.splice(0, NOTIF_DATA.length, ...[...merged.values()].sort((a,b)=> new Date(b.rawTime || b.createdAt || 0) - new Date(a.rawTime || a.createdAt || 0)));
+      updateNotifBadge();
+      renderNotifList();
+    }
+  } catch (_) {}
 
   // Init realtime notifikasi request soal
   initRealtimeNotifications();
