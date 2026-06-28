@@ -207,8 +207,8 @@ h1{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;letter-spacing:-
 .empty-icon{font-size:52px;margin-bottom:16px;opacity:.5;}
 
 /* TOAST */
-#toast{position:fixed;bottom:30px;right:30px;background:#1d2c50;border:1px solid #5aa9ff44;color:#fff;padding:14px 22px;border-radius:16px;font-size:14px;z-index:9999;transform:translateY(20px);opacity:0;transition:.3s ease;backdrop-filter:blur(8px);pointer-events:none;box-shadow:0 8px 30px rgba(0,0,0,.4);}
-#toast.show{transform:translateY(0);opacity:1;}
+#toast{position:fixed;top:22px;left:50%;transform:translateX(-50%) translateY(-20px);background:#1d2c50;border:1px solid #5aa9ff44;color:#fff;padding:14px 22px;border-radius:16px;font-size:14px;z-index:9999;opacity:0;transition:.3s ease;backdrop-filter:blur(8px);pointer-events:none;box-shadow:0 8px 30px rgba(0,0,0,.4);max-width:min(92vw,560px);text-align:center;}
+#toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
 
 /* BACK TO TOP */
 #backTop{position:fixed;bottom:30px;left:30px;width:44px;height:44px;border-radius:14px;background:#1d2c50;border:1px solid var(--border);color:var(--primary);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:0;transform:translateY(10px);transition:.3s;z-index:9999;box-shadow:0 8px 25px rgba(0,0,0,.3);}
@@ -1938,6 +1938,40 @@ const NOTIF_DATA = [
 let notifReadSet = new Set(JSON.parse(localStorage.getItem('jlpt_notif_read')||'[]'));
 let notifHiddenSet = new Set(JSON.parse(localStorage.getItem('jlpt_notif_hidden')||'[]'));
 let notifTabActive = 'all';
+let CURRENT_USER_ID = null;
+
+function getNotifCacheKey(userId = CURRENT_USER_ID){
+  return userId ? `jlpt_notif_cache_${userId}` : 'jlpt_notif_cache_global';
+}
+function loadNotifCache(userId = CURRENT_USER_ID){
+  try {
+    const raw = localStorage.getItem(getNotifCacheKey(userId));
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch(e) { return []; }
+}
+function saveNotifCache(userId = CURRENT_USER_ID, items = []){
+  try {
+    const uniq = new Map();
+    (Array.isArray(items) ? items : []).forEach(n => {
+      if(!n || !n.id) return;
+      uniq.set(String(n.id), n);
+    });
+    localStorage.setItem(getNotifCacheKey(userId), JSON.stringify([...uniq.values()]));
+  } catch(e){}
+}
+function upsertNotifCache(notif, userId = CURRENT_USER_ID){
+  if(!notif || !notif.id) return;
+  const items = loadNotifCache(userId);
+  const idx = items.findIndex(n => String(n.id) === String(notif.id));
+  if(idx >= 0) items[idx] = { ...items[idx], ...notif };
+  else items.unshift(notif);
+  saveNotifCache(userId, items);
+}
+function removeNotifCache(id, userId = CURRENT_USER_ID){
+  const items = loadNotifCache(userId).filter(n => String(n.id) !== String(id));
+  saveNotifCache(userId, items);
+}
 
 function getUnreadCount(){
   return NOTIF_DATA.filter(n=> n.unread && !notifReadSet.has(n.id)).length;
@@ -1979,8 +2013,12 @@ function renderNotifList(){
 async function readNotif(id){
   notifReadSet.add(id);
   localStorage.setItem('jlpt_notif_read', JSON.stringify([...notifReadSet]));
-  // Mark as read in Supabase if it's a DB notification
   const notif = NOTIF_DATA.find(n => n.id === id);
+  if(notif){
+    notif.unread = false;
+    upsertNotifCache({ ...notif, unread: false });
+  }
+  // Mark as read in Supabase if it's a DB notification
   if(notif?.dbId){
     try {
       const { sb } = await getSupabase();
@@ -1992,8 +2030,12 @@ async function readNotif(id){
 }
 
 async function markAllRead(){
-  NOTIF_DATA.forEach(n => notifReadSet.add(n.id));
+  NOTIF_DATA.forEach(n => {
+    notifReadSet.add(n.id);
+    n.unread = false;
+  });
   localStorage.setItem('jlpt_notif_read', JSON.stringify([...notifReadSet]));
+  saveNotifCache(CURRENT_USER_ID, NOTIF_DATA.map(n => ({ ...n, unread: false })));
   // Bulk mark DB notifications as read
   const dbIds = NOTIF_DATA.filter(n => n.dbId && !n.is_read).map(n => n.dbId);
   if(dbIds.length){
@@ -3031,30 +3073,41 @@ async function initRealtimeNotifications(){
   try { _ctx = await getSupabase(); } catch(e){ console.warn('[Notif] Supabase not ready:', e); return; }
   const { sb, session } = _ctx;
   const userId = session.user.id;
+  CURRENT_USER_ID = userId;
 
   // Load notifikasi lama dari Supabase
   const { data: existingNotifs, error: loadErr } = await sb
     .from('notifications')
     .select('*')
     .eq('user_id', userId)
-    .order('created_at', { ascending: false })
-    .limit(20);
+    .order('created_at', { ascending: false });
 
   if(loadErr) console.warn('[Notif] Load error:', loadErr.message);
 
-  if(existingNotifs?.length){
-    existingNotifs.forEach(n => {
-      const notif = buildNotifFromDb(n);
-      if(notifHiddenSet.has(notif.id)) return;
-      if(!NOTIF_DATA.find(x => x.id === notif.id)){
-        NOTIF_DATA.push(notif);
-      }
-    });
-    // sort by time desc
-    NOTIF_DATA.sort((a,b) => new Date(b.rawTime||0) - new Date(a.rawTime||0));
-    updateNotifBadge();
-    renderNotifList();
-  }
+  const merged = new Map();
+
+  // DB notifications first
+  (existingNotifs || []).forEach(n => {
+    const notif = buildNotifFromDb(n);
+    if(notifHiddenSet.has(notif.id)) return;
+    merged.set(notif.id, notif);
+  });
+
+  // Local cache fallback/backup (keeps items visible across logout-login and if DB read is delayed)
+  loadNotifCache(userId).forEach(n => {
+    if(!n || !n.id || notifHiddenSet.has(n.id)) return;
+    merged.set(String(n.id), { ...n });
+  });
+
+  // Keep static seed items too
+  NOTIF_DATA.filter(n => !notifHiddenSet.has(n.id)).forEach(n => {
+    if(!merged.has(n.id)) merged.set(n.id, n);
+  });
+
+  const ordered = [...merged.values()].sort((a,b) => new Date(b.rawTime || b.createdAt || 0) - new Date(a.rawTime || a.createdAt || 0));
+  NOTIF_DATA.splice(0, NOTIF_DATA.length, ...ordered);
+  updateNotifBadge();
+  renderNotifList();
 
   // Subscribe realtime — support INSERT & UPDATE
   if(_realtimeChannel){ try{ sb.removeChannel(_realtimeChannel); }catch(_){} }
@@ -3069,6 +3122,7 @@ async function initRealtimeNotifications(){
     } else {
       NOTIF_DATA.unshift(notif);
     }
+    upsertNotifCache({ ...notif });
     updateNotifBadge();
     renderNotifList();
     if(payload.eventType === 'INSERT' || !payload.eventType){
@@ -3165,8 +3219,11 @@ function addRequestNotif({ id, status, level, types, time }){
       ja: `リクエスト（${types}）は管理者の返答を待っています。`,
     },
     time: formatNotifTime(time),
+    rawTime: new Date(time || Date.now()).toISOString(),
+    createdAt: new Date(time || Date.now()).toISOString(),
   };
   NOTIF_DATA.unshift(notif);
+  upsertNotifCache(notif);
   updateNotifBadge();
   renderNotifList();
 }
@@ -3202,6 +3259,7 @@ async function deleteNotif(id){
   if(!confirm(currentLang === 'ja' ? 'この通知を削除しますか？' : currentLang === 'en' ? 'Delete this notification?' : 'Hapus notifikasi ini?')) return;
   notifHiddenSet.add(notif.id);
   saveNotifHidden();
+  removeNotifCache(notif.id);
   if(notif.dbId){
     try{
       const { sb } = await getSupabase();
