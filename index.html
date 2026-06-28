@@ -8,25 +8,123 @@
   const supabase = createClient(SUPABASE_URL, SUPABASE_ANON);
   document.documentElement.style.visibility = 'hidden';
 
-  // Helper nampilin UI Maintenance
+  // Helper nampilin UI Maintenance (ID/EN/JA + full lock: no klik, no copy, no devtools shortcut)
   function showMaintenanceScreen() {
     document.documentElement.style.visibility = 'visible';
+
+    const MT = {
+      id: {
+        title: 'Sistem Sedang Maintenance',
+        desc: 'Gua lagi ngelakuin pembaruan sistem/soal nih. Biar semuanya lancar pas lu ujian, akses ke file dan fitur ujian gua matikan sementara ya. Tunggu bentar!',
+        note: 'Halaman ini diblokir sementara — interaksi, klik, dan copy/paste dinonaktifkan selama maintenance.'
+      },
+      en: {
+        title: 'System Under Maintenance',
+        desc: "We're currently rolling out a system/content update. To make sure everything runs smoothly for your exam, access to exam files and features is temporarily disabled. Please check back shortly!",
+        note: 'This page is temporarily locked — interactions, clicks, and copy/paste are disabled during maintenance.'
+      },
+      ja: {
+        title: 'システムメンテナンス中',
+        desc: '現在、システム・問題データの更新作業を行っております。試験当日に支障が出ないよう、試験ファイルおよび機能への一時アクセスを停止しております。今しばらくお待ちください。',
+        note: 'メンテナンス中、このページの操作・クリック・コピー＆ペーストは一時的に無効化されています。'
+      }
+    };
+
     const renderMaintenance = () => {
-      document.body.innerHTML = `
-        <div style="
-          position: fixed; inset: 0; background: #050910; 
-          color: #e8f0ff; display: flex; flex-direction: column; 
-          align-items: center; justify-content: center; 
-          font-family: sans-serif; z-index: 999999; text-align: center; padding: 20px;
+      let lang = 'id';
+      try {
+        const saved = localStorage.getItem('jlpt_lang');
+        if (saved && MT[saved]) {
+          lang = saved;
+        } else {
+          const nav = (navigator.language || 'id').toLowerCase();
+          if (nav.startsWith('ja')) lang = 'ja';
+          else if (nav.startsWith('en')) lang = 'en';
+          else lang = 'id';
+        }
+      } catch (_) {}
+
+      const FLAGS = { id: '🇮🇩', en: '🇬🇧', ja: '🇯🇵' };
+      const LABELS = { id: 'Indonesia', en: 'English', ja: '日本語' };
+
+      const renderContent = (l) => {
+        const m = MT[l] || MT.id;
+        const switcherBtns = Object.keys(MT).map(code => `
+          <button type="button" data-mt-lang="${code}" class="mt-lang-btn${code === l ? ' active' : ''}" style="
+            user-select:none;-webkit-user-select:none;
+            background:${code === l ? 'rgba(90,169,255,.18)' : 'transparent'};
+            border:1px solid ${code === l ? '#5aa9ff' : '#26314f'};
+            color:${code === l ? '#cfe4ff' : '#7a91be'};
+            padding:7px 14px;border-radius:999px;font-size:13px;font-weight:600;
+            cursor:pointer;display:inline-flex;align-items:center;gap:6px;
+            font-family:'Inter',sans-serif;transition:.2s;
+          ">${FLAGS[code]} ${LABELS[code]}</button>
+        `).join('');
+
+        return `
+        <div id="mt-overlay" oncontextmenu="return false;" style="
+          position: fixed; inset: 0; background: #050910;
+          color: #e8f0ff; display: flex; flex-direction: column;
+          align-items: center; justify-content: center;
+          font-family: 'Inter', sans-serif; z-index: 2147483647; text-align: center; padding: 20px;
+          user-select: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none;
+          -webkit-touch-callout: none; cursor: default;
         ">
           <span style="font-size: 64px; margin-bottom: 20px;">🛠️</span>
-          <h1 style="font-size: 28px; margin-bottom: 10px; font-weight: 800;">Sistem Sedang Maintenance</h1>
-          <p style="color: #7a91be; max-width: 500px; line-height: 1.6; font-size: 15px;">
-            Gua lagi ngelakuin pembaruan sistem/soal nih. Biar semuanya lancar pas lu ujian, akses ke file dan fitur ujian gua matikan sementara ya. Tunggu bentar!
+          <h1 style="font-size: 28px; margin-bottom: 10px; font-weight: 800;">${m.title}</h1>
+          <p style="color: #7a91be; max-width: 500px; line-height: 1.6; font-size: 15px; margin-bottom: 26px;">
+            ${m.desc}
+          </p>
+          <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:center; margin-bottom:22px;">
+            ${switcherBtns}
+          </div>
+          <p style="color: #4c5e85; max-width: 460px; line-height: 1.6; font-size: 12px;">
+            ${m.note}
           </p>
         </div>
-      `;
+        `;
+      };
+
+      document.body.innerHTML = renderContent(lang);
+
+      // Klik tombol ganti bahasa di maintenance screen (tanpa perlu rebuild seluruh listener app)
+      document.body.querySelectorAll('[data-mt-lang]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const newLang = btn.getAttribute('data-mt-lang');
+          try { localStorage.setItem('jlpt_lang', newLang); } catch (_) {}
+          document.body.innerHTML = renderContent(newLang);
+          attachLockHandlers();
+        });
+      });
+
+      attachLockHandlers();
     };
+
+    // Kunci semua interaksi: klik kanan, select, copy/cut/paste, drag, dan shortcut devtools/inspect
+    function attachLockHandlers() {
+      const block = (e) => { e.preventDefault(); e.stopPropagation(); return false; };
+
+      document.addEventListener('contextmenu', block, true);
+      document.addEventListener('selectstart', block, true);
+      document.addEventListener('copy', block, true);
+      document.addEventListener('cut', block, true);
+      document.addEventListener('paste', block, true);
+      document.addEventListener('dragstart', block, true);
+
+      document.addEventListener('keydown', (e) => {
+        const k = e.key ? e.key.toLowerCase() : '';
+        const ctrlOrCmd = e.ctrlKey || e.metaKey;
+
+        // Blokir Ctrl/Cmd + C/X/V/A/S/P/U
+        if (ctrlOrCmd && ['c','x','v','a','s','p','u'].includes(k)) return block(e);
+        // Blokir F12 dan Ctrl/Cmd+Shift+I/J/C (devtools)
+        if (k === 'f12') return block(e);
+        if (ctrlOrCmd && e.shiftKey && ['i','j','c'].includes(k)) return block(e);
+        // Blokir Ctrl+U (view source)
+        if (ctrlOrCmd && k === 'u') return block(e);
+      }, true);
+    }
+
     if (document.body) {
       renderMaintenance();
     } else {
