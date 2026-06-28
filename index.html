@@ -387,6 +387,13 @@ h1{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;letter-spacing:-
 .notif-title{font-size:14px;font-weight:700;margin-bottom:3px;line-height:1.4;}
 .notif-desc{font-size:12px;color:var(--muted);line-height:1.5;}
 .notif-time{font-size:11px;color:#5a6f99;margin-top:5px;}
+.notif-del-btn{
+  width:28px;height:28px;border-radius:10px;border:1px solid rgba(255,255,255,.08);
+  background:rgba(255,255,255,.03);color:#ff9aaa;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  margin-top:6px;transition:.2s;
+}
+.notif-del-btn:hover{background:rgba(255,79,109,.1);border-color:rgba(255,79,109,.25);color:#ff5f73;}
 .notif-empty{text-align:center;padding:40px 20px;color:var(--muted);}
 .notif-empty-icon{font-size:38px;margin-bottom:10px;opacity:.4;}
 .notif-footer{padding:14px 22px;border-top:1px solid rgba(255,255,255,.05);text-align:center;}
@@ -1929,6 +1936,7 @@ const NOTIF_DATA = [
 ];
 
 let notifReadSet = new Set(JSON.parse(localStorage.getItem('jlpt_notif_read')||'[]'));
+let notifHiddenSet = new Set(JSON.parse(localStorage.getItem('jlpt_notif_hidden')||'[]'));
 let notifTabActive = 'all';
 
 function getUnreadCount(){
@@ -1946,7 +1954,8 @@ function updateNotifBadge(){
 function renderNotifList(){
   const list = document.getElementById('notifList');
   const iconClass = {new_exam:'new-exam', update:'update', system:'system', promo:'promo'};
-  const filtered = notifTabActive === 'all' ? NOTIF_DATA : NOTIF_DATA.filter(n => n.type === notifTabActive);
+  const filtered = (notifTabActive === 'all' ? NOTIF_DATA : NOTIF_DATA.filter(n => n.type === notifTabActive))
+    .filter(n => !notifHiddenSet.has(n.id));
 
   if(!filtered.length){
     list.innerHTML = `<div class="notif-empty"><div class="notif-empty-icon">🔔</div><p style="font-size:14px;">${t('notifications')} —</p></div>`;
@@ -1954,13 +1963,15 @@ function renderNotifList(){
   }
   list.innerHTML = filtered.map(n => {
     const isUnread = n.unread && !notifReadSet.has(n.id);
+    const relTime = n.rawTime ? formatNotifTime(n.rawTime) : (n.time || '');
     return `<div class="notif-item ${isUnread?'unread':''}" onclick="readNotif('${n.id}')">
       <div class="notif-icon ${iconClass[n.type]||''}">${n.icon}</div>
       <div class="notif-body">
         <div class="notif-title">${n.title[currentLang]||n.title['en']}</div>
         <div class="notif-desc">${n.desc[currentLang]||n.desc['en']}</div>
-        <div class="notif-time">${n.time}</div>
+        <div class="notif-time">${relTime}</div>
       </div>
+      <button type="button" class="notif-del-btn" title="${currentLang==='ja'?'削除':currentLang==='en'?'Delete notification':'Hapus notifikasi'}" onclick="event.stopPropagation();deleteNotif('${n.id}')">✕</button>
     </div>`;
   }).join('');
 }
@@ -2656,10 +2667,7 @@ async function revokeDevice(deviceId, rowId){
   let _ctx;
   try { _ctx = await getSupabase(); } catch(e){ return; }
   const { sb } = _ctx;
-  const { error } = await sb.from('login_sessions').update({
-    is_current: false,
-    last_seen: new Date().toISOString(),
-  }).eq('id', rowId).eq('device_id', deviceId);
+  const { error } = await sb.from('login_sessions').delete().eq('id', rowId).eq('device_id', deviceId);
   if(error){
     showToast('❌ ' + error.message);
     return;
@@ -2887,7 +2895,7 @@ async function syncExamScoresFromSupabase(){
 window.__jlptInjectNotif = function(row){
   if(!row) return;
   const notif = buildNotifFromDb(row);
-  if(NOTIF_DATA.find(x => x.id === notif.id)) return;
+  if(NOTIF_DATA.find(x => x.id === notif.id) || notifHiddenSet.has(notif.id)) return;
   NOTIF_DATA.unshift(notif);
   updateNotifBadge();
   renderNotifList();
@@ -2907,7 +2915,13 @@ window.addEventListener('storage', (e) => {
 // LOGOUT
 // =============================================
 async function doLogout(){
-  try{ const { sb } = await getSupabase(); await sb.auth.signOut(); }catch(e){}
+  try{ const { sb, session } = await getSupabase();
+    if(session?.user?.id){
+      const deviceId = getOrCreateDeviceId();
+      await sb.from('login_sessions').delete().eq('user_id', session.user.id).eq('device_id', deviceId).catch(()=>{});
+    }
+    await sb.auth.signOut();
+  }catch(e){}
   window.location.replace('./auth.html');
 }
 
@@ -3030,8 +3044,10 @@ async function initRealtimeNotifications(){
 
   if(existingNotifs?.length){
     existingNotifs.forEach(n => {
-      if(!NOTIF_DATA.find(x => x.id === 'db_' + n.id)){
-        NOTIF_DATA.push(buildNotifFromDb(n));
+      const notif = buildNotifFromDb(n);
+      if(notifHiddenSet.has(notif.id)) return;
+      if(!NOTIF_DATA.find(x => x.id === notif.id)){
+        NOTIF_DATA.push(notif);
       }
     });
     // sort by time desc
@@ -3127,6 +3143,7 @@ function buildNotifFromDb(n){
     desc:    { id: descStr,  en: descStr,  ja: descStr  },
     time:    formatNotifTime(n.created_at),
     rawTime: n.created_at,
+    createdAt: n.created_at,
     dbId:    n.id,
   };
 }
@@ -3157,12 +3174,44 @@ function addRequestNotif({ id, status, level, types, time }){
 function formatNotifTime(ts){
   if(!ts) return '';
   const d = new Date(ts);
+  if(Number.isNaN(d.getTime())) return '';
   const now = new Date();
-  const diff = Math.floor((now - d) / 1000);
-  if(diff < 60) return 'Baru saja';
-  if(diff < 3600) return Math.floor(diff/60) + ' menit lalu';
-  if(diff < 86400) return Math.floor(diff/3600) + ' jam lalu';
-  return d.toLocaleDateString('id-ID', { day:'2-digit', month:'short' });
+  const diffMs = now - d;
+  const diffSec = Math.floor(diffMs / 1000);
+  const diffMin = Math.floor(diffSec / 60);
+  const diffHour = Math.floor(diffMin / 60);
+  const diffDay = Math.floor(diffHour / 24);
+  if(diffSec < 60) return 'Baru saja';
+  if(diffMin < 60) return `${diffMin} menit lalu`;
+  if(diffHour < 24) return `${diffHour} jam lalu`;
+  if(diffDay === 1) return 'Kemarin';
+  if(diffDay < 7) return `${diffDay} hari lalu`;
+  if(diffDay < 14) return 'Minggu lalu';
+  if(diffDay < 30) return `${Math.floor(diffDay / 7)} minggu lalu`;
+  if(diffDay < 60) return 'Bulan lalu';
+  return d.toLocaleDateString('id-ID', { day:'2-digit', month:'short', year: diffDay >= 365 ? 'numeric' : undefined });
+}
+
+function saveNotifHidden(){
+  localStorage.setItem('jlpt_notif_hidden', JSON.stringify([...notifHiddenSet]));
+}
+
+async function deleteNotif(id){
+  const notif = NOTIF_DATA.find(n => n.id === id || n.dbId === id);
+  if(!notif) return;
+  if(!confirm(currentLang === 'ja' ? 'この通知を削除しますか？' : currentLang === 'en' ? 'Delete this notification?' : 'Hapus notifikasi ini?')) return;
+  notifHiddenSet.add(notif.id);
+  saveNotifHidden();
+  if(notif.dbId){
+    try{
+      const { sb } = await getSupabase();
+      await sb.from('notifications').delete().eq('id', notif.dbId);
+    }catch(e){}
+  }
+  const idx = NOTIF_DATA.findIndex(n => n.id === notif.id);
+  if(idx >= 0) NOTIF_DATA.splice(idx, 1);
+  updateNotifBadge();
+  renderNotifList();
 }
 
 // =============================================

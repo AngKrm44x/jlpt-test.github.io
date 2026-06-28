@@ -229,11 +229,11 @@
   }
 
   // ── DB helpers ───────────────────────────────────────────────────────────────
-  async function loadUserMap() {
+  async function loadUserMap(force = false) {
     if (!state.isAdminPage) return state.userMap;
-    if (state.userMap.size)  return state.userMap;
+    if (!force && state.userMap.size) return state.userMap;
     try {
-      const { data, error } = await client.from('users').select('id, full_name, display_name, email, role');
+      const { data, error } = await client.from('users').select('id, full_name, display_name, email, role, status, created_at, updated_at');
       if (error) throw error;
       const map = new Map();
       (data || []).forEach(u => map.set(u.id, u));
@@ -1664,7 +1664,7 @@
     const renderNotifUsers = async () => {
       const wrapList = root.querySelector('#jlpt-notif-user-list');
       if (!wrapList) return;
-      await loadUserMap();
+      await loadUserMap(true);
       const search = String(root.querySelector('#jlpt-notif-search')?.value || '').toLowerCase().trim();
       const target = String(root.querySelector('#jlpt-notif-target')?.value || 'active');
       const users = Array.from(state.userMap.values())
@@ -1678,9 +1678,18 @@
         return;
       }
       wrapList.innerHTML = users.map(u => {
-        const active = String(u.status || '').toLowerCase() === 'active';
-        const disabled = target !== 'selected';
-        const checked = disabled && ((target === 'all') || (target === 'active' && active));
+        const status = String(u.status || 'pending').toLowerCase();
+        const isActive = status === 'active';
+        const isPending = status === 'pending';
+        const isBanned = status === 'banned';
+        const checked = target !== 'selected' && ((target === 'all') || (target === 'active' && isActive));
+        const statusMeta = isActive
+          ? { text:'active', color:'#5ff0b0', bg:'rgba(25,195,125,.12)', border:'rgba(25,195,125,.3)' }
+          : isBanned
+            ? { text:'banned', color:'#ff4f6d', bg:'rgba(255,79,109,.14)', border:'rgba(255,79,109,.3)' }
+            : isPending
+              ? { text:'pending', color:'#ffd18a', bg:'rgba(255,181,71,.12)', border:'rgba(255,181,71,.3)' }
+              : { text:status || 'unknown', color:'#aab8d8', bg:'rgba(255,255,255,.03)', border:'rgba(255,255,255,.08)' };
         return `
           <label style="display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border:1px solid var(--border);border-radius:14px;background:rgba(255,255,255,.03);cursor:${target==='selected'?'pointer':'default'};">
             <input type="checkbox" class="jlpt-notif-user-check" data-user-id="${esc(u.id)}" ${checked ? 'checked' : ''} ${target === 'selected' ? '' : 'disabled'} style="margin-top:3px;">
@@ -1688,7 +1697,7 @@
               <div style="font-size:14px;font-weight:700;line-height:1.4;">${esc(u.full_name || u.display_name || u.email || u.id)}</div>
               <div style="font-size:12px;color:var(--muted);line-height:1.5;word-break:break-word;">${esc(u.email || '—')}</div>
               <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;">
-                <span style="font-size:10px;font-weight:800;padding:3px 8px;border-radius:999px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03);color:${active ? '#5ff0b0' : '#ffd18a'};">${esc(u.status || 'pending')}</span>
+                <span style="font-size:10px;font-weight:800;padding:3px 8px;border-radius:999px;border:1px solid ${statusMeta.border};background:${statusMeta.bg};color:${statusMeta.color};text-transform:uppercase;">${esc(statusMeta.text)}</span>
               </div>
             </div>
           </label>`;
@@ -1702,7 +1711,7 @@
       const target = String(root.querySelector('#jlpt-notif-target')?.value || 'active');
       if (!title || !message) { toast('⚠️ Judul dan pesan wajib diisi'); return; }
 
-      await loadUserMap();
+      await loadUserMap(true);
       let recipients = [];
       const users = Array.from(state.userMap.values());
       if (target === 'all') {
