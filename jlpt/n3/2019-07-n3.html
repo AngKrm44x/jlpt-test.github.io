@@ -1,0 +1,1264 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<script type="module" src="../../auth-guard.js"></script>
+<script type="module" src="../../jlpt-sync.js?v=6"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JLPT N3 — Juli 2019</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0b1020;--bg2:#121a2f;--card:#18233f;--card2:#1f2d52;--border:#2b3a63;--text:#f1f5ff;--muted:#9fb0d3;--primary:#5aa9ff;--success:#19c37d;--danger:#ff5f73;--warning:#ffb547;--font:'Zen Kaku Gothic New',sans-serif;--mono:'JetBrains Mono',monospace;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:radial-gradient(ellipse at top left,#1a2d5a 0%,transparent 45%),radial-gradient(ellipse at bottom right,#231440 0%,transparent 40%),var(--bg);color:var(--text);font-family:var(--font);padding:16px;padding-bottom:calc(16px + env(safe-area-inset-bottom, 0px));}
+.app{max-width:720px;margin:0 auto;}
+.screen{display:none;}.screen.active{display:block;}
+.header{background:rgba(24,35,63,.85);backdrop-filter:blur(12px);border:1px solid var(--border);border-radius:20px;padding:22px 24px;margin-bottom:14px;}
+h1{font-size:22px;font-weight:700;letter-spacing:.02em;margin-bottom:3px;}
+h2{font-size:15px;font-weight:500;margin-bottom:10px;}
+.muted{color:var(--muted);font-size:13px;}
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;}
+.stat-card{background:rgba(24,35,63,.7);border:1px solid var(--border);border-radius:14px;padding:12px 10px;text-align:center;}
+.stat-num{font-size:21px;font-weight:700;color:var(--text);}
+.stat-lbl{font-size:10px;color:var(--muted);margin-top:3px;letter-spacing:.04em;}
+.mode-btn{width:100%;text-align:left;padding:14px 18px;border-radius:16px;border:1px solid var(--border);background:rgba(24,35,63,.7);color:var(--text);cursor:pointer;font-size:14px;font-family:var(--font);margin-bottom:10px;transition:all .18s;line-height:1.6;}
+.mode-btn:hover{background:var(--card2);border-color:#4a6aaa;transform:translateY(-1px);}
+.card{background:rgba(24,35,63,.85);backdrop-filter:blur(8px);border:1px solid var(--border);border-radius:18px;padding:18px 20px;margin-bottom:12px;}
+.badge{display:inline-block;padding:3px 11px;border-radius:99px;font-size:11px;font-weight:600;letter-spacing:.03em;}
+.badge-moji{background:rgba(90,169,255,.18);color:#5aa9ff;border:1px solid rgba(90,169,255,.3);}
+.badge-bunpou{background:rgba(124,77,255,.18);color:#a87bff;border:1px solid rgba(124,77,255,.3);}
+.badge-dokkai{background:rgba(25,195,125,.18);color:#19c37d;border:1px solid rgba(25,195,125,.3);}
+.badge-type{background:rgba(255,255,255,.07);color:var(--muted);border:1px solid rgba(255,255,255,.1);}
+.timer-bar{height:5px;background:rgba(255,255,255,.07);border-radius:99px;overflow:hidden;margin:10px 0 6px;}
+.timer-fill{height:100%;background:linear-gradient(90deg,#5aa9ff,#7c4dff);border-radius:99px;transition:width .5s linear;}
+.timer-fill.warn{background:linear-gradient(90deg,var(--warning),#f57c00);}
+.timer-fill.danger{background:linear-gradient(90deg,var(--danger),#c0392b);}
+.progress-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(30px,1fr));gap:4px;margin-bottom:12px;}
+.prog-dot{height:30px;border-radius:8px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--muted);cursor:pointer;transition:all .12s;font-family:var(--mono);}
+.prog-dot:hover{border-color:#4a6aaa;}
+.prog-dot.current{border:2px solid var(--primary);color:var(--text);font-weight:600;}
+.prog-dot.correct{background:rgba(25,195,125,.25);border-color:var(--success);color:var(--success);}
+.prog-dot.wrong{background:rgba(255,95,115,.2);border-color:var(--danger);color:var(--danger);}
+.passage-label{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;}
+.passage-box{background:rgba(11,16,32,.6);border-left:3px solid var(--primary);border-radius:0 12px 12px 0;padding:14px 18px;font-size:13.5px;line-height:2;color:rgba(241,245,255,.85);}
+.passage-box p{margin-bottom:.5em;}.passage-box p:last-child{margin-bottom:0;}
+.q-img-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;}
+.q-img-grid img{width:100%;border-radius:10px;border:1px solid var(--border);background:#fff;}
+.q-img-single{margin-bottom:14px;}
+.q-img-single img{max-width:100%;border-radius:10px;border:1px solid var(--border);background:#fff;display:block;margin:0 auto;}
+.img-cell{position:relative;}
+.img-cell .img-num{position:absolute;top:4px;left:4px;background:rgba(11,16,32,.75);color:#fff;font-size:10px;font-family:var(--mono);padding:2px 6px;border-radius:6px;}
+.audio-box{background:rgba(11,16,32,.6);border:1px solid var(--border);border-radius:14px;padding:12px 14px;margin-bottom:14px;}
+.audio-box audio{width:100%;display:block;}
+.audio-label{font-size:11px;color:var(--muted);margin-bottom:8px;letter-spacing:.04em;}
+.audio-missing{font-size:12px;color:var(--warning);margin-top:6px;line-height:1.6;}
+.audio-lock-player{display:flex;flex-direction:column;gap:10px;}
+.audio-lock-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.audio-lock-btn{padding:9px 14px;border-radius:12px;border:1px solid rgba(90,169,255,.35);background:rgba(90,169,255,.16);color:#7ec0ff;cursor:pointer;font-size:13px;font-family:var(--font);font-weight:700;transition:all .15s;}
+.audio-lock-btn:hover:not(:disabled){background:rgba(90,169,255,.28);}
+.audio-lock-btn:disabled{opacity:.55;cursor:not-allowed;}
+.audio-lock-status{font-size:12px;color:var(--muted);line-height:1.6;}
+.audio-lock-progress{height:5px;background:rgba(255,255,255,.07);border-radius:99px;overflow:hidden;}
+.audio-lock-progress-fill{height:100%;width:0%;background:linear-gradient(90deg,#5aa9ff,#7c4dff);border-radius:99px;transition:width .2s linear;}
+.audio-lock-note{font-size:12px;color:var(--muted);line-height:1.7;}
+.mondai-divider{font-size:12px;font-weight:700;color:var(--primary);letter-spacing:.05em;background:rgba(90,169,255,.1);border:1px solid rgba(90,169,255,.25);border-radius:10px;padding:8px 12px;margin-bottom:12px;}
+.mondai-instruction{font-size:12px;color:var(--muted);line-height:1.7;margin-bottom:10px;}
+.badge-choukai{background:rgba(255,181,71,.18);color:#ffb547;border:1px solid rgba(255,181,71,.3);}
+.q-text{font-size:15px;line-height:1.9;color:var(--text);margin-bottom:14px;}
+.q-text u{text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1.5px;text-decoration-color:var(--primary);}
+.option-btn{width:100%;text-align:left;padding:11px 16px;border-radius:12px;border:1px solid var(--border);background:rgba(18,26,47,.6);color:var(--text);cursor:pointer;font-size:13.5px;font-family:var(--font);margin-bottom:7px;transition:all .15s;line-height:1.7;}
+.option-btn:hover:not(:disabled){background:var(--card2);border-color:#4a6aaa;}
+.option-btn.correct{background:rgba(25,195,125,.18);border-color:var(--success);color:#a0f5d3;}
+.option-btn.wrong{background:rgba(255,95,115,.15);border-color:var(--danger);color:#ffb3be;}
+.option-btn:disabled{cursor:default;}
+.explanation{background:rgba(11,16,32,.5);border-radius:10px;padding:10px 14px;font-size:12.5px;color:var(--muted);margin-top:8px;line-height:1.7;border-left:2px solid var(--warning);}
+.row{display:flex;align-items:center;gap:6px;margin-top:8px;flex-wrap:wrap;}
+.spacer{flex:1;}
+.nav-btn{padding:8px 12px;border-radius:11px;border:1px solid var(--border);background:rgba(24,35,63,.7);color:var(--text);cursor:pointer;font-size:12px;font-family:var(--font);transition:all .15s;white-space:nowrap;}
+.nav-btn:hover{background:var(--card2);}
+.nav-btn.finish{background:rgba(255,95,115,.18);border-color:var(--danger);color:var(--danger);}
+.nav-btn.finish:hover{background:rgba(255,95,115,.3);}
+.nav-btn:disabled{opacity:.35;cursor:not-allowed;}
+.pass-banner{border-radius:16px;padding:16px;text-align:center;margin:12px 0;}
+.pass-banner.pass{background:rgba(25,195,125,.18);border:1px solid rgba(25,195,125,.3);}
+.pass-banner.fail{background:rgba(255,95,115,.12);border:1px solid rgba(255,95,115,.25);}
+.section-result{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:13px;}
+.section-result:last-child{border-bottom:none;}
+.info-note{background:rgba(255,181,71,.07);border:1px solid rgba(255,181,71,.2);border-radius:12px;padding:10px 14px;font-size:12px;color:rgba(255,181,71,.8);margin-bottom:10px;}
+
+/* Language Selector */
+.lang-selector{display:flex;gap:6px;align-items:center;margin-bottom:14px;}
+.lang-btn{padding:6px 14px;border-radius:99px;border:1px solid var(--border);background:rgba(24,35,63,.7);color:var(--muted);cursor:pointer;font-size:12px;font-family:var(--font);font-weight:600;transition:all .18s;letter-spacing:.03em;}
+.lang-btn:hover{background:var(--card2);color:var(--text);}
+.lang-btn.active{background:rgba(90,169,255,.18);border-color:rgba(90,169,255,.4);color:#5aa9ff;}
+
+/* Report Modal */
+.report-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);z-index:10000;display:none;align-items:center;justify-content:center;padding:16px;}
+.report-modal-overlay.open{display:flex;}
+.report-modal{background:#121a2f;border:1px solid var(--border);border-radius:20px;padding:22px;max-width:480px;width:100%;position:relative;}
+.report-modal h3{font-size:16px;font-weight:700;margin-bottom:12px;}
+.report-modal textarea{width:100%;background:rgba(11,16,32,.7);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:var(--font);font-size:13px;padding:10px 12px;resize:vertical;min-height:90px;outline:none;line-height:1.6;}
+.report-modal textarea:focus{border-color:#4a6aaa;}
+.report-bot-area{margin-top:10px;background:rgba(11,16,32,.5);border-radius:10px;padding:10px 12px;font-size:12.5px;color:var(--muted);min-height:50px;max-height:200px;overflow-y:auto;line-height:1.7;border-left:2px solid var(--primary);}
+.report-modal .row{margin-top:12px;}
+.report-close{position:absolute;top:14px;right:16px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;line-height:1;}
+.report-close:hover{color:var(--text);}
+.report-btn-row{display:flex;gap:8px;margin-top:10px;}
+.report-send-btn{padding:9px 18px;border-radius:10px;border:1px solid rgba(90,169,255,.4);background:rgba(90,169,255,.18);color:#5aa9ff;cursor:pointer;font-size:13px;font-family:var(--font);font-weight:600;transition:all .15s;}
+.report-send-btn:hover{background:rgba(90,169,255,.3);}
+.report-send-btn:disabled{opacity:.4;cursor:not-allowed;}
+.report-cancel-btn{padding:9px 18px;border-radius:10px;border:1px solid var(--border);background:rgba(24,35,63,.7);color:var(--muted);cursor:pointer;font-size:13px;font-family:var(--font);}
+
+canvas{position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.35;}
+.app{position:relative;z-index:1;}
+#print-pdf-btn{position:fixed;right:24px;bottom:24px;border:1px solid rgba(96,165,250,.22);border-radius:18px;background:#142349;color:white;padding:14px 18px;display:none;align-items:center;gap:12px;cursor:pointer;z-index:999999;box-shadow:0 10px 30px rgba(0,0,0,.25);font-weight:700;font-size:15px;transition:.2s ease;}
+#print-pdf-btn:hover{transform:translateY(-2px);background:#1a2d5d;}
+#print-pdf-btn.show{display:flex;}
+@media print{#print-pdf-btn{display:none!important;}}
+</style>
+
+<!-- SYSTEM MAINTENANCE GUARD FOR EXAM FILES -->
+<script type="module">
+  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+  const SUPABASE_URL  = 'https://uincqpdexdenjcmwdfsv.supabase.co';
+  const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpbmNxcGRleGRlbmpjbXdkZnN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5MjM4ODEsImV4cCI6MjA5NTQ5OTg4MX0.Lf1N_P_iiNQ2hnRJhd-Quy9MLKlZFSzbnXtXCnmRCS0';
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON);
+  document.documentElement.style.visibility = 'hidden';
+
+  async function checkExamAccess() {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const SUPER_ADMIN_EMAIL = 'sidiqangga44@gmail.com';
+      const ADMIN_EMAIL       = 'admin@example.com';
+      const isAdmin = session && (session.user.email === SUPER_ADMIN_EMAIL || session.user.email === ADMIN_EMAIL);
+
+      if (isAdmin) {
+        document.documentElement.style.visibility = 'visible';
+        return;
+      }
+
+      const { data: settings } = await supabase.from('settings').select('value').eq('key', 'maintenance_mode').maybeSingle();
+      if (settings && settings.value === true) {
+        window.location.replace(window.location.origin + '/jlpt-test.github.io/index.html');
+      } else {
+        document.documentElement.style.visibility = 'visible';
+      }
+    } catch (err) {
+      window.location.replace(window.location.origin + '/jlpt-test.github.io/index.html');
+    }
+  }
+  checkExamAccess();
+</script>
+</head>
+
+<body>
+<canvas id="bg-canvas"></canvas>
+<!-- Language Selector -->
+<div class="lang-selector">
+  <span style="font-size:11px;color:var(--muted);letter-spacing:.05em;">🌐</span>
+  <button class="lang-btn active" onclick="setLang('id')">ID</button>
+  <button class="lang-btn" onclick="setLang('en')">EN</button>
+  <button class="lang-btn" onclick="setLang('jp')">日本語</button>
+</div>
+<!-- Report Modal -->
+<div class="report-modal-overlay" id="report-modal">
+  <div class="report-modal">
+    <button class="report-close" onclick="closeReport()">✕</button>
+    <h3 id="report-title">🚩 Laporkan Soal Bermasalah</h3>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:8px;" id="report-qinfo"></div>
+    <textarea id="report-text" placeholder="Jelaskan masalah pada soal ini (jawaban salah, teks tidak jelas, dll)..."></textarea>
+    <div id="report-bot-area" class="report-bot-area" style="display:none;"></div>
+    <div class="report-btn-row">
+      <button class="report-send-btn" id="report-send-btn" onclick="sendReport()">Kirim ke Bot</button>
+      <button class="report-cancel-btn" onclick="closeReport()">Batal</button>
+    </div>
+  </div>
+</div>
+<div class="app">
+
+<!-- HOME -->
+<div id="home" class="screen active">
+  <div class="header">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+      <h1>JLPT N3 — Juli 2019</h1>
+    </div>
+    <p class="muted">74 soal asli 言語知識 (文字・語彙・文法) + 読解 · 28 soal 聴解 · 150 menit</p>
+  </div>
+  <div class="stat-grid">
+    <div class="stat-card"><div class="stat-num">102</div><div class="stat-lbl" data-i18n="stat_total">total soal</div></div>
+    <div class="stat-card"><div class="stat-num" id="hs-done">0</div><div class="stat-lbl" data-i18n="stat_done">dikerjakan</div></div>
+    <div class="stat-card"><div class="stat-num" id="hs-score">—</div><div class="stat-lbl" data-i18n="stat_score">skor terakhir</div></div>
+    <div class="stat-card"><div class="stat-num" id="hs-pred">—</div><div class="stat-lbl" data-i18n="stat_pred">prediksi</div></div>
+  </div>
+  <div class="info-note">⚠️ Sebagian soal 聴解 (問題3 & 問題5) belum memiliki naskah/transkrip karena memerlukan audio asli — ditandai sebagai placeholder dan akan dilengkapi kemudian.</div>
+  <button class="mode-btn" onclick="startMode('all')"><strong>🎯 Ujian Penuh</strong><br><span style="font-size:12px;color:var(--muted)">Semua 102 soal · timer 150 menit</span></button>
+  <button class="mode-btn" onclick="startMode('moji')"><strong>📝 文字・語彙</strong><br><span style="font-size:12px;color:var(--muted)">35 soal · 問題1–5 · timer 35 menit</span></button>
+  <button class="mode-btn" onclick="startMode('bunpou')"><strong>📐 文法</strong><br><span style="font-size:12px;color:var(--muted)">23 soal · 問題1–3 · timer 25 menit</span></button>
+  <button class="mode-btn" onclick="startMode('dokkai')"><strong>📖 読解</strong><br><span style="font-size:12px;color:var(--muted)">16 soal · 問題4–7 · timer 50 menit</span></button>
+  <button class="mode-btn" onclick="startMode('choukai')"><strong>🎧 聴解</strong><br><span style="font-size:12px;color:var(--muted)">28 soal · 問題1–5 · timer 40 menit</span></button>
+</div>
+
+<!-- QUIZ -->
+<div id="quiz" class="screen">
+  <div class="card" style="padding:14px 18px;">
+    <div class="row" style="margin-top:0;">
+      <span class="badge" id="q-sec-badge">文字</span>
+      <span class="badge badge-type" id="q-type-badge">問題1</span>
+      <div class="spacer"></div>
+      <span id="timer-text" style="font-size:14px;font-weight:600;font-family:var(--mono)">--:--</span>
+    </div>
+    <div class="timer-bar"><div class="timer-fill" id="timer-fill" style="width:100%"></div></div>
+    <div class="row" style="margin-top:2px;">
+      <span class="muted" id="q-num" style="font-family:var(--mono);font-size:12px;">問 1 / 73</span>
+      <div class="spacer"></div>
+      <span class="muted" id="q-score-live" style="font-size:12px;">正解: 0</span>
+    </div>
+  </div>
+  <div class="progress-grid" id="prog-grid"></div>
+  <div class="card" id="passage-card" style="display:none;">
+    <div class="passage-label" data-i18n="passage_label">📖 teks bacaan</div>
+    <div class="passage-box" id="passage-text"></div>
+  </div>
+  <div class="card audio-box" id="audio-card" style="display:none;">
+    <div class="audio-label" id="audio-label-text">🎧 dengarkan audio</div>
+    <div id="audio-wrap"></div>
+  </div>
+  <div class="card">
+    <div id="q-img-area"></div>
+    <div class="q-text" id="q-text"></div>
+    <div id="options"></div>
+    <div class="explanation" id="explanation" style="display:none;"></div>
+  </div>
+  <div class="row">
+    <button class="nav-btn" onclick="prevQ()" data-i18n="btn_back">← Kembali</button>
+    <button class="nav-btn" onclick="saveSessionManual()" data-i18n="btn_save">💾 Simpan</button>
+    <button class="nav-btn" onclick="loadSessionManual()" data-i18n="btn_load">📂 Muat</button>
+    <div class="spacer"></div>
+    <button class="nav-btn" onclick="openReport()" data-i18n="btn_report" style="background:rgba(255,181,71,.12);border-color:rgba(255,181,71,.3);color:var(--warning);">🚩 Laporkan</button>
+    <button class="nav-btn" id="next-btn" onclick="nextQ()" data-i18n="btn_next" disabled>Lanjut →</button>
+    <button class="nav-btn finish" onclick="finishQuiz()" data-i18n="btn_finish">Selesai</button>
+  </div>
+</div>
+
+<!-- RESULT -->
+<div id="result" class="screen">
+  <div class="header"><h1 data-i18n="res_title">Hasil Ujian</h1><p class="muted" id="res-date"></p></div>
+  <div class="pass-banner" id="pass-banner">
+    <strong id="pass-text" style="font-size:18px;"></strong>
+    <p id="pass-sub" style="font-size:13px;margin-top:6px;color:var(--muted);"></p>
+  </div>
+  <div class="stat-grid">
+    <div class="stat-card"><div class="stat-num" id="r-correct"></div><div class="stat-lbl" data-i18n="res_correct">benar</div></div>
+    <div class="stat-card"><div class="stat-num" id="r-wrong"></div><div class="stat-lbl" data-i18n="res_wrong">salah</div></div>
+    <div class="stat-card"><div class="stat-num" id="r-pct"></div><div class="stat-lbl" data-i18n="res_accuracy">akurasi</div></div>
+    <div class="stat-card"><div class="stat-num" id="r-time"></div><div class="stat-lbl" data-i18n="res_time">waktu</div></div>
+  </div>
+  <div class="card"><h2 data-i18n="res_section">Skor per seksi</h2><div id="section-results"></div></div>
+  <div class="card"><h2 data-i18n="res_jlpt_section">Skor Resmi JLPT per Seksi</h2><div id="scoring-section-results"></div></div>
+  <div class="card"><h2 id="res-pred-h2">Prediksi kelulusan JLPT N3</h2><div id="prediction-detail" style="font-size:13px;line-height:2;color:var(--muted);"></div></div>
+  <div class="row" style="gap:8px;margin-top:8px;">
+    <button class="nav-btn" onclick="reviewAnswers()" data-i18n="btn_review">Tinjau Jawaban</button>
+    <div class="spacer"></div>
+    <button class="nav-btn" onclick="goHome()" data-i18n="btn_home">Kembali ke Menu</button>
+  </div>
+</div>
+
+</div>
+<script>
+const PASSAGES = {
+  // 文法 問題3 — 日本の生活の中で考えたこと (留学生の作文)
+  p3: `以下は、留学生の作文である。\n\n日本の生活の中で考えたこと\nジョーンズ　エミリー\n\n日本に来てから2か月、私は日本人の友達ができませんでした。大学では日本語の授業にだけ出ていたので日本人学生と話す機会はなく、どうしたら日本人の友達が（19）。\n\n先月、大学の中の普段通らない道を通ると、体育館でバスケットボールクラブの学生が練習をしていました。私もバスケットボールが好きなので、しばらく見ていました。（20）、クラブに入れば日本人の友達ができるのではないかと考えました。入り方を聞こうとしましたが、私は日本語でうまく話せるか不安で、なかなか聞けませんでした。でも、クラブに入らなかったら、ずっと日本人学生と友達になる機会は（21）。私は近くにいた学生に話しかけてみました。彼女は質問に丁寧に（22）。少し見学をした後、私はクラブに入ることにしました。\n\nクラブに入って1か月たちました。今は日本人の友達もたくさんいます。（23）あきらめないでクラブの入り方を聞いたから、こんなに速く友達ができたのだと思います。不安でも行動してみることが大切だと思いました。`,
+
+  // 読解 問題4(1) あずま日本語学校
+  p4_1: `大学、専門学校に進学を希望している皆さんへ\n\n進学指導室には、大学案内や過去の入試問題など、いろいろな資料が置いてあります。また、進学指導の先生に相談もできます。\n\n進学指導室の資料は、開室時間中はいつでも自由に利用できます。進学について相談したい人は、進学指導室にあるパソコンで予約してください。予約の受け付けは二日前までです。当日は、遅れないように進学指導室に行ってください。\n\n進学指導室の開室時間：月～金・10時～18時\n\nあずま日本語学校`,
+
+  // 読解 問題4(2) 引っ越しの白い箱
+  p4_2: `先月引っ越しをした。その時、引っ越し会社の人が「荷物はこれに入れてください。」と言って持ってきたのは、白いダンボール箱だった。私は何度も引っ越しをしたが、今まで頼んだ引っ越し会社が持ってきたダンボール箱は、いつも茶色だった。白はきれいだけど、汚れやすい。どうしてだろう思って聞いてみた。同じ重さの荷物でも、白だとほかの色より軽く感じるのだそうだ。なるほど、重い荷物を運ぶ仕事をやりやすくする工夫だったのだ。`,
+
+  // 読解 問題4(3) キムさんへのメール
+  p4_3: `キムさん\n\n5日の商品説明会の資料について、お願いがあります。\n実は、今日から4日まで2泊3日の急な出張が入り、今、新幹線に乗っています。私が、キムさんが今作っている資料と私の資料を一つにして完成させ、印刷する予定でしたが、できなくなりました。このメールと一緒に私の資料を送りますので、私の代わりに完成させて、必要な人数分を印刷しておいてください。\nもし、印刷の前に私がキムさんの資料をチェックしたほうがいい場合は、明日（3日）の夜までにメールで送ってください。\nよろしくお願いします。\n田中`,
+
+  // 読解 問題4(4) 喫茶店で勉強
+  p4_4: `最近、喫茶店で一人で勉強している人をよく見る。話し声がして落ち着かないのに、なぜこんな所で勉強するのだろうと思っていた。\n\nでも、先日読んだ本に「集中したいときは、雨の音や話し声など少し音があるほうがいい。静かすぎると小さな音でも気になるからだ。だが、同じ話し声でも、興味がある内容が聞こえると、つい聞いてしまうから注意が必要だ。」と書かれていた。\n\n私も電車の中のほうが、静かな部屋より集中して本が読めることに気づき、なるほどと思った。`,
+
+  // 読解 問題5(1) ピアノ教室
+  p5_1: `昨日、会社のみんなで昼ご飯を食べに行きました。料理を待っている間、課長がずっとテーブルの上で指を動かしていました。私が「指の体操ですか。」と尋ねると、「実は、ピアノを習い始めたんだよ。うまく指が動かなくてね。暇があると、つい練習してしまうんだ。」と楽しそうに話してくれました。\n\n課長は、最近、朝から晩まで仕事のことばかり考えている自分に気づき、これではよくないと考えて、何か新しいことをやってみたいと思ったそうです。そんなときに、近所で「大人のためのピアノ教室」を見つけ、子供のころ習いたかったことを思い出して、行ってみたのだそうです。課長はうれしそうに「新しいことを始めるのは大変だったけれど、毎日楽しいし、前より仕事もうまくいくようになった気がするんだよ。」と言っていました。\n\n課長の話を聞いて、私も何かやりたくなりました。実は、子供のころからバレエを習いたいと思っていたので、私も（　）つもりです。`,
+
+  // 読解 問題5(2) 五角形の鉛筆
+  p5_2: `私は日本の大学を受験するため、去年から日本で勉強している。最近、こんな面白いことがあった。銀行で受験料を振り込んだとき、窓口の人が「頑張ってください。」と言って1本の鉛筆をくれた。そして、「その鉛筆、五角形なんですよ。『五角（ごかく）』と『合格（ごうかく）』は発音が似ているから、合格を願って、受験生にお渡ししているんです。」と教えてくれた。\n\n私は①ちょっと意外だった。私の国にも「五角」と「合格」のように、発音が似ていて意味が違う言葉はあるし、それを使った言葉遊びもある。でも、日本では銀行でこのようなサービスをしているのだ。面白いなあと思った。\n\n②このような応援は、実際に効果があるかどうかわからない。しかし、大切なのは気持ちだ。自分が頑張っているときに、こうやって応援してもらったら、誰でもうれしいだろう。`,
+
+  // 読解 問題6 持たない生活
+  p6: `先日、雑誌で「持たない生活」をしている人を紹介する記事を読んだ。物をできるだけ減らして、自分にとって本当に必要で気に入っている物だけに囲まれて生活するようにしたら、毎日がとても気持ちよく送れるようになった、という話だった。私の家は物が多く、床や机の上に物があふれている。それがずっと当たり前だと思ってきた。でも、こんな生活があったのだ。①私は早速、実行することにした。\n\n最初にしたのは、私の部屋にある自分の洋服や本、かばんなどを減らすことだ。本当に必要で気に入っている物だけを残して、人にあげたりリサイクルの店に持っていったりした。すると、部屋が広くなっただけでなく、片付けにも時間がかからなくなり、気持ちよく生活できるようになった。\n\nそうしている間に、私は家にある家族の物も気になりだした。リビングの床には雑誌がたくさん重ねてあったが、古い物は誰も読んでいない。掃除機が2台あったが、1台は全く使われていない。それらが気になって、両親に聞かずに捨ててしまったのだ。すると、②父も母も怒ってしまった。雑誌は時間があるときにまた読むし、掃除機はまだ使えるのだから、もったいないと言う。みんなお金を出して買った物だから大切だ。それに、自分たちはどんどん捨ててしまう生活より、古い物でも捨てないで大切に使う生活のほうがいい、と言うのだ。\n\n一緒に住んでいても、考え方は違う。今回、私はちょっとやりすぎてしまったようだ。これからは、「持たない生活」は自分の部屋だけで実行しようと思っている。`,
+
+  // 読解 問題7 自然教室の案内
+  p7: `自然教室のご案内\n\n寺西市自然の家では、各季節に寺西市の自然を学ぶ教室を行っています。\n1年コース（全4回）と1回コースの2種類のコースがあります。市民の皆さん、ぜひ参加してください。\n\n【1年コース】定員：40名\n春夏秋冬の4回全てのプログラムに参加できる人を募集します。\n\n【1回コース】定員：各プログラム10名\n夏または冬のプログラムどちらかに1回だけ参加を希望する人を募集します。\n\n春：春を探そう（5/11土）— 大森山に生えている草花を観察します。\n夏：水の生き物（8/3土）— 大木川で見られる生き物を観察します。\n秋：畑に感謝（1/9土）— 寺西市で取れる野菜について学んだ後に、市の畑に行って野菜を取ります。\n冬：雪の世界（1/11土）— 大森山で冬の自然を観察します。\n\n※雨の場合は、延期になります。\n\n◇応募できる方　寺西市に住んでいる方\n（小学生以下の方は大人と一緒に参加してください。）\n\n◇申し込み方法　（定員の人数が集まったら締め切ります。）\n1年コース：氏名、住所、電話番号をハガキに書き、4月12日（金）までに着くようにお送りください。\n※希望者には4月6日（土）に説明会を行います。参加を希望する方は前日までに電話してください（説明会に参加しなくてもコースへのお申し込みは可能です。）\n1回コース：各募集期間中に電話でお申し込みください。\n夏のプログラム募集期間：7/1（月）～7/12（金）\n冬のプログラム募集期間：12/2（月）～12/13（金）\n\n◇参加費・振り込み期限\n1年コース：一人3500円・4/19（金）\n1回コース：一人1000円・各プログラム当日の1週間前\n※小学生以下は無料です。\n\n寺西市自然の家\n155-0002　寺西市森山町5-9　電話：051-282-1788（10:00～18:00）`,
+};
+
+const Q = [
+// ========== 言語知識（文字・語彙）==========
+// 問題1 漢字読み
+{id:1,sec:"文字・語彙",type:"問題1",q:'この前よりも<u>遅く</u>なってしまいました。',opts:["おそく","きたなく","みじかく","とおく"],ans:0,exp:"遅い（おそい）= late, slow。「遅くなる」= to become late。答え：1"},
+{id:2,sec:"文字・語彙",type:"問題1",q:'このペンを使って<u>線</u>を書いてください。',opts:["ず","せん","え","もじ"],ans:1,exp:"線（せん）= line。答え：2"},
+{id:3,sec:"文字・語彙",type:"問題1",q:'夏休みは<u>調査</u>に行くつもりです。',opts:["ちょうさつ","ちょうさ","かんさ","かんさつ"],ans:1,exp:"調査（ちょうさ）= investigation, survey。答え：2"},
+{id:4,sec:"文字・語彙",type:"問題1",q:'今朝、<u>郵便</u>が届きました。',opts:["ゆべん","ゆびん","ゆうべん","ゆうびん"],ans:3,exp:"郵便（ゆうびん）= mail, postal service。答え：4"},
+{id:5,sec:"文字・語彙",type:"問題1",q:'腰に薬を<u>塗って</u>もらった。',opts:["むね","かた","こし","くび"],ans:2,exp:"腰（こし）= waist, lower back。注：選択肢は「腰」の読み方を問う設問（むね＝胸、かた＝肩、こし＝腰、くび＝首）。答え：3"},
+{id:6,sec:"文字・語彙",type:"問題1",q:'歩いているうちに<u>方角</u>がわからなくなった。',opts:["ほうがく","ほうかく","ほうごく","ほうごう"],ans:0,exp:"方角（ほうがく）= direction。答え：1"},
+{id:7,sec:"文字・語彙",type:"問題1",q:'これを<u>包んで</u>もらえませんか。',opts:["むすんで","あんで","つつんで","はこんで"],ans:2,exp:"包む（つつむ）= to wrap。「包んで」= wrap (it)。答え：3"},
+{id:8,sec:"文字・語彙",type:"問題1",q:'<u>昼食</u>の後は工場見学です。',opts:["しょうしょく","ちょうしょく","しゅうしょく","ちゅうしょく"],ans:3,exp:"昼食（ちゅうしょく）= lunch。答え：4"},
+// 問題2 漢字書き
+{id:9,sec:"文字・語彙",type:"問題2",q:'<u>さいしょ</u>に来たのは鈴木さんです。',opts:["最後","最始","最初","最終"],ans:2,exp:"最初（さいしょ）= the first, the beginning。答え：3"},
+{id:10,sec:"文字・語彙",type:"問題2",q:'昨日の夜、30分<u>ていでん</u>した。',opts:["消電","切電","止電","停電"],ans:3,exp:"停電（ていでん）= power outage。答え：4"},
+{id:11,sec:"文字・語彙",type:"問題2",q:'この文章を<u>やくして</u>もらえませんか。',opts:["訳して","説して","記して","語して"],ans:0,exp:"訳す（やくす）= to translate。答え：1"},
+{id:12,sec:"文字・語彙",type:"問題2",q:'新しい<u>かぐ</u>を買いました。',opts:["道具","家具","家貝","道貝"],ans:1,exp:"家具（かぐ）= furniture。答え：2"},
+{id:13,sec:"文字・語彙",type:"問題2",q:'箱の<u>うちがわ</u>を見てください。',opts:["裏測","裏側","内測","内側"],ans:3,exp:"内側（うちがわ）= inside, inner side。答え：4"},
+{id:14,sec:"文字・語彙",type:"問題2",q:'もうすこし<u>あさい</u>皿がほしいです。',opts:["軽い","浅い","厚い","細い"],ans:1,exp:"浅い（あさい）= shallow。答え：2"},
+// 問題3 文脈規定
+{id:15,sec:"文字・語彙",type:"問題3",q:'部屋に入るときは、ドアを（　）してください。',opts:["ノック","スタート","サイン","カット"],ans:0,exp:"ノック（する）= to knock。ドアをノックする = knock on the door。答え：1"},
+{id:16,sec:"文字・語彙",type:"問題3",q:'この大学には、音楽や絵画など、（　）を専門とする学生が多い。',opts:["貿易","科学","芸術","工業"],ans:2,exp:"芸術（げいじゅつ）= art。音楽や絵画は芸術の分野。答え：3"},
+{id:17,sec:"文字・語彙",type:"問題3",q:'佐藤さんは、いつも（　）を言って、みんなを笑わせます。',opts:["冗談","感想","文句","意見"],ans:0,exp:"冗談（じょうだん）= joke。冗談を言って笑わせる = tell jokes and make people laugh。答え：1"},
+{id:18,sec:"文字・語彙",type:"問題3",q:'中村さんは、いろいろなことを自分からやってみようとする（　）人だ。',opts:["感情的な","積極的な","自動的な","効果的な"],ans:1,exp:"積極的（せっきょくてき）= proactive, positive。自分からやってみようとする人 = a proactive person。答え：2"},
+{id:19,sec:"文字・語彙",type:"問題3",q:'私は引っ越してきたばかりなので、まだ近所に（　）人がいません。',opts:["したしい","おとなしい","えらい","めずらしい"],ans:0,exp:"親しい（したしい）= close, familiar (friend/relationship)。近所に親しい人がいない = no close friends in the neighborhood yet。答え：1"},
+{id:20,sec:"文字・語彙",type:"問題3",q:'工事の音がうるさくて、なかなか勉強に（　）できない。',opts:["緊張","集中","進行","注意"],ans:1,exp:"集中する（しゅうちゅうする）= to concentrate。勉強に集中できない = can't concentrate on studying。答え：2"},
+{id:21,sec:"文字・語彙",type:"問題3",q:'旅行に行けなくなってしまったので、ホテルの予約を（　）。',opts:["引き落とした","言い直した","取り消した","投げ捨てた"],ans:2,exp:"取り消す（とりけす）= to cancel。予約を取り消す = cancel a reservation。答え：3"},
+{id:22,sec:"文字・語彙",type:"問題3",q:'使った後は、この箱にきちんと（　）ください。',opts:["渡して","しまって","加えて","ぶつけて"],ans:1,exp:"しまう = to put away, to store。箱にしまう = put it away in the box。答え：2"},
+{id:23,sec:"文字・語彙",type:"問題3",q:'注文したカメラが届いたのがうれしくて、（　）箱から出して使ってみた。',opts:["ずいぶん","けっこう","なるべく","さっそく"],ans:3,exp:"さっそく = immediately, right away。届いてすぐに使った様子。答え：4"},
+{id:24,sec:"文字・語彙",type:"問題3",q:'朝は、駅から大学に行くバスが5分（　）で出ているので、あまり待たないで乗れる。',opts:["時期","時差","間隔","中間"],ans:2,exp:"間隔（かんかく）= interval。5分間隔で出ている = runs at 5-minute intervals。答え：3"},
+{id:25,sec:"文字・語彙",type:"問題3",q:'道がよくわからなくて、辺りを（　）歩きまわってしまいました。',opts:["ぐらぐら","ぺらぺら","とんとん","うろうろ"],ans:3,exp:"うろうろ = wandering aimlessly。道がわからずうろうろ歩く = wander around lost。答え：4"},
+// 問題4 言い換え類義
+{id:26,sec:"文字・語彙",type:"問題4",q:'倉庫を<u>整理</u>した。',opts:["調べた","借りた","片付けた","直した"],ans:2,exp:"整理する（せいりする）= to organize, tidy up ≈ 片付ける（かたづける）。答え：3"},
+{id:27,sec:"文字・語彙",type:"問題4",q:'とても<u>おかしな</u>話を聞きました。',opts:["怖い","有名な","うれしい","変な"],ans:3,exp:"おかしな = strange, odd ≈ 変な（へんな）。答え：4"},
+{id:28,sec:"文字・語彙",type:"問題4",q:'早く<u>済ませて</u>ください。',opts:["使わせて","終わらせて","見せて","帰らせて"],ans:1,exp:"済ませる（すませる）= to finish, get done ≈ 終わらせる（おわらせる）。答え：2"},
+{id:29,sec:"文字・語彙",type:"問題4",q:'このパソコンには何か<u>欠点</u>がありますか。',opts:["よくないところ","いいところ","好きなところ","好きじゃないところ"],ans:0,exp:"欠点（けってん）= flaw, defect ≈ よくないところ（bad point）。答え：1"},
+{id:30,sec:"文字・語彙",type:"問題4",q:'先生に言われたことを<u>そのまま</u>書きました。',opts:["何も変えないで","自分の言葉で","急いで","少し後で"],ans:0,exp:"そのまま = as it is, without change ≈ 何も変えないで（without changing anything）。答え：1"},
+// 問題5 用法
+{id:31,sec:"文字・語彙",type:"問題5",q:'報告',opts:["テレビの天気予報で明日の天気の報告をしている。","リーさんから、クラスのみんなで博物館に行こうという報告があった。","けんかをした友人から電話があって、会って謝りたいという報告をされた。","アンケートの結果について、今日の会議で報告があった。"],ans:3,exp:"報告（ほうこく）= report（事実・結果を伝える）。「会議で報告があった」が正しい用法。答え：4"},
+{id:32,sec:"文字・語彙",type:"問題5",q:'満員',opts:["アルバイト店員を募集したが、なかなか満員にならない。","この駅の近くの道はいつも満員で、とても歩きにくい。","参加者が満員になったので、会話を始めます。","会場は満員で、座れない人もたくさんいた。"],ans:3,exp:"満員（まんいん）= full (of people, in a space)。「会場は満員で座れない人もいた」が正しい用法。答え：4"},
+{id:33,sec:"文字・語彙",type:"問題5",q:'かき混ぜる',opts:["日本語の文章は漢字とひらがながかき混ぜられている。","牛乳に卵と砂糖を入れたら、よくかき混ぜてください。","大事な手紙を古い本などにかき混ぜて捨ててしまった。","このクラスにはいろいろな国の留学生がかき混ぜられている。"],ans:1,exp:"かき混ぜる（かきまぜる）= to stir, mix（液体・粉などを混ぜる）。「牛乳に卵と砂糖を入れてかき混ぜる」が正しい用法。答え：2"},
+{id:34,sec:"文字・語彙",type:"問題5",q:'発生',opts:["この工場から、多くの新しい商品が発生している。","海の近くに新しいホテルがたくさん発生している。","火災が発生したときのために、みんなで避難訓練をした。","その映画を見て、日本に対する興味が発生した。"],ans:2,exp:"発生する（はっせいする）= to occur, break out（事故・災害など）。「火災が発生した」が正しい用法。答え：3"},
+{id:35,sec:"文字・語彙",type:"問題5",q:'お互いに',opts:["あの夫婦は、どんなときでもお互いに協力し合って生きてきた。","昨日、お互いにエレベーターに乗った人は、小学校の時の先生だった。","学校で風邪が流行していて、クラスメートはお互いに授業を休んでいる。","イチゴのケーキとチョコのケーキはお互いにおいしそうで、選べない。"],ans:0,exp:"お互いに（おたがいに）= mutually, each other。「お互いに協力し合う」が正しい用法。答え：1"},
+
+// ========== 言語知識（文法）==========
+// 文法 問題1
+{id:36,sec:"文法",type:"問題1",q:'高校時代の友達と会うと、楽しくて、いつも何時間（　）おしゃべりしてしまう。',opts:["は","も","など","くらい"],ans:1,exp:"〜も = as much as〜（強調）。「何時間もおしゃべりする」= chat for hours and hours。答え：2"},
+{id:37,sec:"文法",type:"問題1",q:'このファッション雑誌は、20代前半の女性（　）中心に人気がある。',opts:["に","が","は","を"],ans:3,exp:"〜を中心に = centered on〜。「20代前半の女性を中心に人気がある」= popular mainly among women in their early twenties。答え：4"},
+{id:38,sec:"文法",type:"問題1",q:'昨日パーティーで知り合いに話しかけられてしばらく話したのだが、（　）名前が思い出せなくて、最後まで名前を呼べなかった。',opts:["必ず","必ずしも","どうか","どうしても"],ans:3,exp:"どうしても = no matter how hard one tries。どうしても名前が思い出せない = couldn't remember the name no matter how hard I tried。答え：4"},
+{id:39,sec:"文法",type:"問題1",q:'（大学のホームページで）奨学金の申し込みには、申込書（　）成績証明書などの書類が必要です。',opts:["のほかに","のことで","について","にくらべ"],ans:0,exp:"〜のほかに = in addition to〜, besides〜。申込書のほかに成績証明書も必要 = in addition to the application form, a transcript is also needed。答え：1"},
+{id:40,sec:"文法",type:"問題1",q:'A「あれ、雨が降ってきましたね。」\nB「本当ですね。今夜は大雨になるそうですよ。雨が強くならない（　）帰りましょうか。」',opts:["ように","うちに","ために","までに"],ans:1,exp:"〜うちに = while〜（状態が変わる前に）。雨が強くならないうちに = before the rain gets heavier。答え：2"},
+{id:41,sec:"文法",type:"問題1",q:'社長はいつも、アルバイトの私たちにも出張のおみやげを（　）。',opts:["くださいます","いただきます","さしあげます","召し上がります"],ans:0,exp:"くださる = honorific for くれる（目上の人が私たちに何かを与える）。社長が私たちに与える行為への尊敬語。答え：1"},
+{id:42,sec:"文法",type:"問題1",q:'（駅の改札口で）妹「お姉ちゃん、急ごう、もうすぐ電車が（　）。」\n姉「そうだね。急ごう。」',opts:["来てる","来とく","来ちゃう","来なきゃ"],ans:2,exp:"〜ちゃう = casual contraction of 〜てしまう。電車が来ちゃう = the train is about to come (and leave without us)。答え：3"},
+{id:43,sec:"文法",type:"問題1",q:'（家で）息子「ねえ、お母さん、算数の教科書、知らない？ないんだけど。」\n母「え、（　）でしょう？さっき宿題をするとき見ていたよね。もう一度よく探しなさい。」',opts:["ないに違いない","ないはずがない","なくてはいけない","なくてもおかしくない"],ans:1,exp:"〜はずがない = there's no way that〜。ないはずがない = there's no way it's missing（さっき見ていたのだから、ないはずがない）。答え：2"},
+{id:44,sec:"文法",type:"問題1",q:'私の大学の近くには、森中駅と南川駅があって、大学には（　）歩いて行けるが、私はいつも森中駅を使っている。',opts:["どちらかは","どちらからは","どちらでも","どちらからでも"],ans:3,exp:"どちらからでも = from either one。どちらの駅からでも歩いて行ける = you can walk from either station。答え：4"},
+{id:45,sec:"文法",type:"問題1",q:'（料理教室で）先生「沸騰したお湯に塩とキャベツを入れ、キャベツが（　）煮ます。」',opts:["やわらかくするまで","やわらかくする間","やわらかくなるまで","やわらかくなる間"],ans:2,exp:"〜なるまで = until it becomes〜。キャベツがやわらかくなるまで煮る = simmer until the cabbage becomes soft。答え：3"},
+{id:46,sec:"文法",type:"問題1",q:'昨日初めてパンを作った。インターネットで見たレシピには「初めてでもうまく作れる」と（　）、失敗してしまった。',opts:["書いていたから","書いてあったのに","書いてみたから","書いておいたのに"],ans:1,exp:"〜てあったのに = even though it was written that〜（期待と反する結果）。書いてあったのに失敗した = even though it said so, I failed。答え：2"},
+{id:47,sec:"文法",type:"問題1",q:'田中「私、テニスを習うことにしたんだ。山下さんはテニスできる？」\n山下「うん。昔ちょっとだけテニスクラブに（　）。」',opts:["入ったままなんだ","入ったばかりだったんだ","入っていたことがあるんだ","入っているところだったんだ"],ans:2,exp:"〜たことがある = have had the experience of〜ing（過去の経験）。テニスクラブに入っていたことがある = used to belong to a tennis club。答え：3"},
+{id:48,sec:"文法",type:"問題1",q:'（本屋で）A「日本語の辞書にもいろいろな種類があるんだね。どれを買うか迷うなあ。」\nB「これがいいんじゃない？ほかのより言葉の使い方の例が多くて（　）よ。」',opts:["使いすぎている","使いすぎるらしい","使いやすそうだ","使いやすくてもいい"],ans:2,exp:"〜やすそうだ = seems easy to〜（見た目・印象からの推測）。使いやすそうだ = looks easy to use。答え：3"},
+// 文法 問題2 (文の組み立て)
+{id:49,sec:"文法",type:"問題2",q:'X高校とY高校のバスケットボールの試合は10時開始の予定だったが、大雨 ___ ___ ★ ___ になった。\n1 のため　2 による　3 11時開始　4 電車の遅れ',opts:["1-4-2-3（★=11時開始）","2-4-1-3（★=11時開始）","4-2-1-3（★=11時開始）","1-2-4-3（★=11時開始）"],ans:2,exp:"大雨 電車の遅れ❹による❷のため❶11時開始❸になった。★=11時開始（3）。「大雨による電車の遅れのため11時開始になった」。答え：3"},
+{id:50,sec:"文法",type:"問題2",q:'昨日行った桜動物園には、500種類以上の動物がいた。あんなにいろいろな ___ ___ ★ ___ ないだろう。\n1 動物が　2 なかなか　3 動物園は　4 見られる',opts:["1-3-2-4（★=なかなか）","3-1-2-4（★=なかなか）","1-2-4-3（★=動物園は）","3-1-4-2（★=動物が）"],ans:1,exp:"動物園は❸動物が❶なかなか❷見られる❹ないだろう。★=なかなか（2）。「動物がなかなか見られる動物園はないだろう」。答え：2"},
+{id:51,sec:"文法",type:"問題2",q:'母は、姉が ___ ___ ★ ___ 泣きそうな顔をしていた。\n1 今にも　2 大学に合格したという　3 知らせを聞いて　4 一番行きたがっていた',opts:["2-4-3-1（★=知らせを聞いて）","4-2-3-1（★=知らせを聞いて）","2-3-4-1（★=知らせを聞いて）","4-3-2-1（★=知らせを聞いて）"],ans:1,exp:"姉が 一番行きたがっていた❹大学に合格したという❷知らせを聞いて❸今にも❶泣きそうな顔をしていた。★=知らせを聞いて（3）。答え：2"},
+{id:52,sec:"文法",type:"問題2",q:'20階建ての大きいマンションが ___ ___ ★ ___ 昼でも部屋の中が暗い。\n1 隣に　2 私の家に　3 建ったことで　4 日が当たらなくなって',opts:["2-1-3-4（★=建ったことで）","1-2-3-4（★=建ったことで）","2-1-4-3（★=日が当たらなくなって）","1-3-2-4（★=建ったことで）"],ans:0,exp:"私の家に❷隣に❶建ったことで❸日が当たらなくなって❹昼でも部屋の中が暗い。★=建ったことで（3）。答え：1"},
+{id:53,sec:"文法",type:"問題2",q:'田中「山下さんって、パソコンにすごく詳しいよね。」\n木村「うん、大学生の ___ ___ ★ ___ のよ。」\n1 とき　2 アルバイトしていた　3 みたいだ　4 コンピューター会社で',opts:["1-4-2-3（★=アルバイトしていた）","4-2-1-3（★=みたいだ）","1-2-4-3（★=アルバイトしていた）","4-1-2-3（★=アルバイトしていた）"],ans:0,exp:"大学生の とき❶コンピューター会社で❹アルバイトしていた❷みたいだ❸。★=アルバイトしていた（2）。「大学生のときコンピューター会社でアルバイトしていたみたいだ」。答え：1"},
+// 文法 問題3 — 日本の生活の中で考えたこと（留学生の作文）
+{id:54,sec:"文法",type:"問題3",passage:"p3",q:'(19)に入る最もよいものを選んでください。\n「どうしたら日本人の友達が（19）。」',opts:["できるのか知りたいです","できたのかわかりません","できたのか知りたかったです","できるのかわかりませんでした"],ans:3,exp:"できるのかわかりませんでした = didn't know how I could make friends（当時の状況を回顧して述べている）。文脈は「2か月間、友達ができなかった」という過去の状況の説明。答え：4"},
+{id:55,sec:"文法",type:"問題3",passage:"p3",q:'(20)に入る最もよいものを選んでください。\n「（20）、クラブに入れば日本人の友達ができるのではないかと考えました。」',opts:["つまり","そして","ところが","たとえば"],ans:1,exp:"そして = and then（時間の流れに沿って次の行動・考えにつながる接続詞）。バスケ部の練習を見て、そして〜と考えた。答え：2"},
+{id:56,sec:"文法",type:"問題3",passage:"p3",q:'(21)に入る最もよいものを選んでください。\n「クラブに入らなかったら、ずっと日本人学生と友達になる機会は（21）。」',opts:["ないでしょう","ないかもしれない","ないと思ったからです","ないかもしれないと思いました"],ans:3,exp:"ないかもしれないと思いました = I thought there might not be (a chance)（過去の心情を表す文末表現）。文章全体が過去の経験を語る文体に合う。答え：4"},
+{id:57,sec:"文法",type:"問題3",passage:"p3",q:'(22)に入る最もよいものを選んでください。\n「彼女は質問に丁寧に（22）。」',opts:["答えてやりました","答えてもらえました","答えてくれました","答えてあげられました"],ans:2,exp:"〜てくれました = (someone) did something for me（相手の行為に対する感謝）。彼女が丁寧に答えてくれた = she kindly answered (for me)。答え：3"},
+{id:58,sec:"文法",type:"問題3",passage:"p3",q:'(23)に入る最もよいものを選んでください。\n「（23）あきらめないでクラブの入り方を聞いたから、こんなに速く友達ができたのだと思います。」',opts:["あのとき","そんなとき","このときも","どんなときも"],ans:0,exp:"あのとき = at that time（過去の特定の場面を指す）。不安だったその時にあきらめなかったから、という意味。答え：1"},
+
+// ========== 読解 ==========
+// 問題4(1) あずま日本語学校
+{id:59,sec:"読解",type:"問題4",passage:"p4_1",q:'進学について相談をしたい人は、どうすればいいか。',opts:["進学指導室のパソコンで二日前までに予約をし、当日、進学指導室に行く。","進学指導室のパソコンで当日までに予約をし、進学指導室に行く。","希望する時間を先生に言って予約をし、当日、進学指導室に行く。","予約する必要はなく、好きな時間に進学指導室へ行く。"],ans:0,exp:"「進学指導室にあるパソコンで予約してください。予約の受け付けは二日前までです。当日は、遅れないように進学指導室に行ってください。」→ パソコンで二日前までに予約し、当日行く。答え：1"},
+// 問題4(2) 引っ越しの白い箱
+{id:60,sec:"読解",type:"問題4",passage:"p4_2",q:'引っ越し会社の人によると、白い箱を使うのはどうしてか。',opts:["白い箱のほうが茶色い箱より軽く作られているから","白い箱は茶色い箱よりきれいに見えるから","白はほかの色より荷物の汚れがわかりやすい色だから","白はほかの色より荷物が軽いと感じる色だから"],ans:3,exp:"「同じ重さの荷物でも、白だとほかの色より軽く感じるのだそうだ。重い荷物を運ぶ仕事をやりやすくする工夫だった」→ 白は荷物が軽いと感じる色だから。答え：4"},
+// 問題4(3) キムさんへのメール
+{id:61,sec:"読解",type:"問題4",passage:"p4_3",q:'キムさんがこのメールで頼まれていることはどれか。',opts:["田中さんが出張に行く前に自分の資料を完成させ、必要な人数分を印刷すること","自分と田中さんの資料を一つにして完成させ、必要な人数分を印刷すること","田中さんの資料に問題がないかどうかチェックして、資料を完成させること","自分の資料が完成したら、3日の夜までに田中さんにメールで送ること"],ans:1,exp:"「私の代わりに完成させて、必要な人数分を印刷しておいてください」「私が、キムさんが今作っている資料と私の資料を一つにして完成させ、印刷する予定でしたが、できなくなりました」→ 二人の資料を一つにして完成させ、印刷すること。答え：2"},
+// 問題4(4) 喫茶店で勉強
+{id:62,sec:"読解",type:"問題4",passage:"p4_4",q:'文章によると、集中しやすいのは例えばどんな所か。',opts:["雨の音や話し声が聞こえる、うるさい部屋","雨の音も話し声も何も聞こえない、静かな図書館","興味のない内容について話している声が少し聞こえる喫茶店","面白そうな内容について話している声が少し聞こえる電車の中"],ans:2,exp:"「集中したいときは、雨の音や話し声など少し音があるほうがいい」「興味がある内容が聞こえると、つい聞いてしまうから注意が必要だ」→ 興味のない内容の話し声が少し聞こえる場所が集中しやすい。答え：3"},
+
+// 問題5(1) ピアノ教室
+{id:63,sec:"読解",type:"問題5",passage:"p5_1",q:'ずっとテーブルの上で指を動かしていましたとあるが、なぜか。',opts:["料理を注文するために、店の人を呼びたかったから","ずっと前に注文した料理が、なかなか来なくて怒っていたから","指がよく動くようになってから、ピアノを習い始めようと思っていたから","ピアノがうまくなるように、指を動かす練習をしたかったから"],ans:3,exp:"「実は、ピアノを習い始めたんだよ。うまく指が動かなくてね。暇があると、つい練習してしまうんだ」→ ピアノの練習のために指を動かしていた。答え：4"},
+{id:64,sec:"読解",type:"問題5",passage:"p5_1",q:'課長は、なぜ最近、新しいことをやってみたいと思ったのか。',opts:["以前よりも、仕事が少し暇になってきたから","仕事のことばかり考えているのは、よくないと思ったから","新しいことを始めると、もっと仕事がうまくいくようになると思ったから","自分の子供と一緒に、何かを始めたくなったから"],ans:1,exp:"「最近、朝から晩まで仕事のことばかり考えている自分に気づき、これではよくないと考えて、何か新しいことをやってみたいと思った」→ 仕事ばかり考えるのはよくないと思ったから。答え：2"},
+{id:65,sec:"読解",type:"問題5",passage:"p5_1",q:'（　）に入れるのに最もよいものはどれか。',opts:["バレエ教室を探す","ピアノ教室を探す","仕事を早く終わらせる","何かやりたいことを見つける"],ans:0,exp:"「実は、子供のころからバレエを習いたいと思っていたので、私も（　）つもりです」→ バレエ教室を探すつもり。答え：1"},
+// 問題5(2) 五角形の鉛筆
+{id:66,sec:"読解",type:"問題5",passage:"p5_2",q:'銀行の窓口の人が「私」に鉛筆をくれたのは、どんな気持ちを伝えたかったからか。',opts:["大学に入ってから勉強を頑張ってほしいという気持ち","日本の大学を受験してほしいという気持ち","大学に合格してほしいという気持ち","大学合格おめでとうという気持ち"],ans:2,exp:"「『五角』と『合格』は発音が似ているから、合格を願って、受験生にお渡ししている」→ 大学に合格してほしいという気持ち。答え：3"},
+{id:67,sec:"読解",type:"問題5",passage:"p5_2",q:'①ちょっと意外だったとあるが、何が意外だったのか。',opts:["日本語の「五角」と「合格」の発音が似ていること","日本にも、発音が似ていて意味が違う言葉を使った遊びがあること","日本の銀行が、言葉遊びを使って面白いサービスをしていること","日本の銀行のサービスが、自分の国の銀行のサービスと似ていること"],ans:2,exp:"「私の国にも『五角』と『合格』のように発音が似ていて意味が違う言葉を使った言葉遊びもある。でも、日本では銀行でこのようなサービスをしているのだ」→ 銀行が言葉遊びを使ってサービスをしていることが意外だった。答え：3"},
+{id:68,sec:"読解",type:"問題5",passage:"p5_2",q:'②このような応援について、「私」はどう考えているか。',opts:["実際に効果があるので、応援してもらった人は喜ぶだろう。","実際の効果があってもなくても、応援してもらった人は喜ぶだろう。","実際の効果はわからないので、もっと効果がある応援のほうがいいだろう。","実際の効果はないので、応援している人がうれしいだけだろう。"],ans:1,exp:"「実際に効果があるかどうかわからない。しかし、大切なのは気持ちだ。応援してもらったら、誰でもうれしいだろう」→ 効果の有無にかかわらず、応援された人は喜ぶだろう。答え：2"},
+
+// 問題6 持たない生活
+{id:69,sec:"読解",type:"問題6",passage:"p6",q:'「持たない生活」はどのような生活か。',opts:["雑誌に載っているような物だけに囲まれている生活","欲しい物があっても我慢して買わないようにする生活","必要で気に入っている物でもできるだけ減らす生活","必要で気に入っている物だけを持つようにする生活"],ans:3,exp:"「自分にとって本当に必要で気に入っている物だけに囲まれて生活するようにした」→ 必要で気に入っている物だけを持つ生活。答え：4"},
+{id:70,sec:"読解",type:"問題6",passage:"p6",q:'①実行することにしたとあるが、何から始めたのか。',opts:["家中をきれいに掃除すること","自分の部屋にある自分の物を減らすこと","リビングの床や机の上の物を片付けること","今までより広い部屋を自分の部屋にすること"],ans:1,exp:"「最初にしたのは、私の部屋にある自分の洋服や本、かばんなどを減らすことだ」→ 自分の部屋の自分の物を減らすことから始めた。答え：2"},
+{id:71,sec:"読解",type:"問題6",passage:"p6",q:'②父も母も怒ってしまったとあるが、なぜか。',opts:["両親が大切だと思っている物を「私」が黙って捨てたから","両親がよく使っている物を「私」が黙って捨てたから","両親が持っている高そうな物を「私」が黙って捨てたから","両親が買ったばかりの物を「私」が黙って捨てたから"],ans:0,exp:"「みんなお金を出して買った物だから大切だ」「古い物でも捨てないで大切に使う生活のほうがいい」→ 両親が大切だと思っている物を黙って捨てたから怒った。答え：1"},
+{id:72,sec:"読解",type:"問題6",passage:"p6",q:'「私」は今、どう考えているか。',opts:["「持たない生活」は素晴らしいので、両親にもぜひ始めてもらおう。","両親の考えのほうが良いと思う点が多いので、「持たない生活」はやめよう。","両親と「私」は考え方が違うので、自分の場所だけで「持たない生活」を続けていこう。","しばらくは「持たない生活」を自分の場所だけで続けて、両親の考え方が変わるのを待とう。"],ans:2,exp:"「一緒に住んでいても、考え方は違う。これからは、『持たない生活』は自分の部屋だけで実行しようと思っている」→ 両親と考え方が違うので、自分の部屋だけで続ける。答え：3"},
+
+// 問題7 自然教室の案内
+{id:73,sec:"読解",type:"問題7",passage:"p7",q:'大学生のマルコさんは寺西市に住んでいる。自然教室に参加しようと思っているが、1年コースに参加するためには、どのように申し込みをしなければならないか。',opts:["4月6日までに電話で申し込む。","4月6日までに着くようにハガキで申し込む。","4月12日までに電話で申し込む。","4月12日までに着くようにハガキで申し込む。"],ans:3,exp:"「1年コース：氏名、住所、電話番号をハガキに書き、4月12日（金）までに着くようにお送りください」→ 4月12日までに着くようハガキで申し込む。答え：4"},
+{id:74,sec:"読解",type:"問題7",passage:"p7",q:'会社員のディヤナさんは寺西市に住んでいる。1回コースの冬のプログラム「雪の世界」に申し込もうと思っているが、参加費はいつまでに振り込まなければならないか。',opts:["4月19日","12月2日の1週間前","1月11日の1週間前","1月11日"],ans:2,exp:"「1回コース：一人1000円・各プログラム当日の1週間前」「雪の世界（1/11土）」→ プログラム当日（1月11日）の1週間前までに振り込む。答え：3"},
+
+// ========== 聴解 ==========
+// 問題1（課題理解）— 6問。質問を聞いてから話を聞き、何をするか選ぶ。
+{id:75,sec:"聴解",type:"問題1",q:'1番\n（音声：パーティーの準備について話しています。男の人はこれから何をしますか。）',opts:["会場を予約する","プレゼントを用意する","参加者をグループに分ける","参加者の名札を作る"],ans:2,exp:"-。",audio:""},
+{id:76,sec:"聴解",type:"問題1",q:'2番\n（音声：船に乗る前の案内について話しています。女の人はこれから何をしますか。）',opts:["レインコートを着る","船の乗り場に移動する","船での注意点を聞く","荷物をロッカーに入れる"],ans:1,exp:"-",audio:""},
+{id:77,sec:"聴解",type:"問題1",q:'3番\n（音声：工場見学について話しています。男の人はこれから何をしますか。）',opts:["工場見学の計画を立てる","タクシーを予約する","メールで連絡する","食事をする場所を決める"],ans:3,exp:"-",audio:""},
+{id:78,sec:"聴解",type:"問題1",q:'4番\n（音声：コンビニのアルバイトについて店長と話しています。男の学生はこれから何をしますか。）',opts:["ほかのアルバイトに電話をする","両替に行く","レジの仕事をする","窓ガラスを掃除する"],ans:2,exp:"-",audio:""},
+{id:79,sec:"聴解",type:"問題1",q:'5番\n（音声：会員登録について話しています。女の人は何を伝えなければなりませんか。）',opts:["生年月日、性別","生年月日、性別、電話番号","生年月日、性別、電話番号、住所","電話番号、住所"],ans:2,exp:"-",audio:""},
+{id:80,sec:"聴解",type:"問題1",q:'6番\n（音声：会議の準備について話しています。男の人はこれから何をしますか。）',opts:["お茶を準備する","使えるへやを探す","パソコンを用意する","うけつけに連絡する"],ans:2,exp:"-",audio:""},
+
+// 問題2（ポイント理解）— 6問。質問→問題用紙を読む→話を聞いて選ぶ。
+{id:81,sec:"聴解",type:"問題2",q:'1番\n質問を聞いてください。男の人が引っ越しをすることになったのは、なぜですか。',opts:["ゴミを出す日をまちがえたから","へやでギターをひいたから","テレビの音がうるさかったから","アパートの前に車を止めたから"],ans:2,exp:"-",audio:""},
+{id:82,sec:"聴解",type:"問題2",q:'2番\n質問を聞いてください。新しくできた水族館のどんなところが人気ですか。',opts:["生き物の種類が多いところ","見せ方が新しいところ","生き物の説明が詳しいところ","観察会をやっているところ"],ans:3,exp:"-",audio:""},
+{id:83,sec:"聴解",type:"問題2",q:'3番\n質問を聞いてください。注文のときに、何を確認しなければなりませんか。',opts:["Tシャツの絵","Tシャツのサイズ","Tシャツの数","Tシャツのとどく日"],ans:1,exp:"-",audio:""},
+{id:84,sec:"聴解",type:"問題2",q:'4番\n質問を聞いてください。男の人は、なぜ今の仕事を選びましたか。',opts:["農業がせんもんだったから","親を手伝いたかったから","じっかの野菜で商品を作りたかったから","お金をたくさん稼ぎたかったから"],ans:3,exp:"-",audio:""},
+{id:85,sec:"聴解",type:"問題2",q:'5番\n質問を聞いてください。女の人は、このレストランのどんなところが好きだと言っていますか。',opts:["料理が毎日かわるところ","店が静かなところ","店員が親切なところ","ワインが一杯無料なところ"],ans:1,exp:"-",audio:""},
+{id:86,sec:"聴解",type:"問題2",q:'6番\n質問を聞いてください。男の人は、なぜこのマラソン大会に出たいと言っていますか。',opts:["観光地を走れるから","すばらしい自然が見られるから","町の人の応援がうれしいから","友だちと一緒に走れるから"],ans:3,exp:"-",audio:""},
+
+// 問題3（概要理解）— 問題用紙に印刷なし。標準3問のプレースホルダー。
+{id:87,sec:"聴解",type:"問題3",q:'1番\n（問題用紙に何も印刷されていません。話の前に質問はありません。話を聞いたあとに、質問と選択肢を聞いて答えてください。）',opts:["1","2","3","4"],ans:1,exp:"-",audio:""},
+{id:88,sec:"聴解",type:"問題3",q:'2番\n（問題用紙に何も印刷されていません。話の前に質問はありません。話を聞いたあとに、質問と選択肢を聞いて答えてください。）',opts:["1","2","3","4"],ans:4,exp:"-",audio:""},
+{id:89,sec:"聴解",type:"問題3",q:'3番\n（問題用紙に何も印刷されていません。話の前に質問はありません。話を聞いたあとに、質問と選択肢を聞いて答えてください。）',opts:["1","2","3","4"],ans:4,exp:"-",audio:""},
+
+// 問題4（発話表現）— 4問。矢印の人は何と言いますか。
+{id:90,sec:"聴解",type:"問題4",img:"../../assets/images/N3/2019/7/choukai0719_4_1.png",q:'1番\n（絵を見ながら質問を聞いてください。矢印（→）の人は何と言いますか。）',opts:["1","2","3"],ans:2,exp:"-",audio:""},
+{id:91,sec:"聴解",type:"問題4",img:"../../assets/images/N3/2019/7/choukai0719_4_2.png",q:'2番\n（絵を見ながら質問を聞いてください。矢印（→）の人は何と言いますか。）',opts:["1","2","3"],ans:1,exp:"-",audio:""},
+{id:92,sec:"聴解",type:"問題4",img:"../../assets/images/N3/2019/7/choukai0719_4_3.png",q:'3番\n（絵を見ながら質問を聞いてください。矢印（→）の人は何と言いますか。）',opts:["1","2","3"],ans:1,exp:"-",audio:""},
+{id:93,sec:"聴解",type:"問題4",img:"../../assets/images/N3/2019/7/choukai0719_4_4.png",q:'4番\n（絵を見ながら質問を聞いてください。矢印（→）の人は何と言いますか。）',opts:["1","2","3"],ans:3,exp:"-",audio:""},
+
+// 問題5（即時応答）— 問題用紙に印刷なし。標準9問のプレースホルダー。
+{id:94,sec:"聴解",type:"問題5",q:'1番\n（問題用紙に何も印刷されていません。まず文を聞いてください。それから、その返事を聞いて、1から3の中から、最もよいものを一つえらんでください。）',opts:["1","2","3"],ans:2,exp:"-",audio:""},
+{id:95,sec:"聴解",type:"問題5",q:'2番\n（問題用紙に何も印刷されていません。まず文を聞いてください。それから、その返事を聞いて、1から3の中から、最もよいものを一つえらんでください。）',opts:["1","2","3"],ans:3,exp:"-",audio:""},
+{id:96,sec:"聴解",type:"問題5",q:'3番\n（問題用紙に何も印刷されていません。まず文を聞いてください。それから、その返事を聞いて、1から3の中から、最もよいものを一つえらんでください。）',opts:["1","2","3"],ans:2,exp:"-",audio:""},
+{id:97,sec:"聴解",type:"問題5",q:'4番\n（問題用紙に何も印刷されていません。まず文を聞いてください。それから、その返事を聞いて、1から3の中から、最もよいものを一つえらんでください。）',opts:["1","2","3"],ans:2,exp:"-",audio:""},
+{id:98,sec:"聴解",type:"問題5",q:'5番\n（問題用紙に何も印刷されていません。まず文を聞いてください。それから、その返事を聞いて、1から3の中から、最もよいものを一つえらんでください。）',opts:["1","2","3"],ans:2,exp:"-",audio:""},
+{id:99,sec:"聴解",type:"問題5",q:'6番\n（問題用紙に何も印刷されていません。まず文を聞いてください。それから、その返事を聞いて、1から3の中から、最もよいものを一つえらんでください。）',opts:["1","2","3"],ans:1,exp:"-",audio:""},
+{id:100,sec:"聴解",type:"問題5",q:'7番\n（問題用紙に何も印刷されていません。まず文を聞いてください。それから、その返事を聞いて、1から3の中から、最もよいものを一つえらんでください。）',opts:["1","2","3"],ans:3,exp:"-",audio:""},
+{id:101,sec:"聴解",type:"問題5",q:'8番\n（問題用紙に何も印刷されていません。まず文を聞いてください。それから、その返事を聞いて、1から3の中から、最もよいものを一つえらんでください。）',opts:["1","2","3"],ans:1,exp:"-",audio:""},
+{id:102,sec:"聴解",type:"問題5",q:'9番\n（問題用紙に何も印刷されていません。まず文を聞いてください。それから、その返事を聞いて、1から3の中から、最もよいものを一つえらんでください。）',opts:["1","2","3"],ans:1,exp:"-",audio:""},
+];
+
+let currentQ=0,questions=[],answers={},startTime=null,timerInterval=null,totalSeconds=0,mode='all';
+
+function secBadgeClass(sec){
+  if(sec==="文字・語彙")return"badge badge-moji";
+  if(sec==="文法")return"badge badge-bunpou";
+  if(sec==="聴解")return"badge badge-choukai";
+  return"badge badge-dokkai";
+}
+function getQuestions(m){
+  if(m==='all')return[...Q];
+  if(m==='moji')return Q.filter(q=>q.sec==="文字・語彙");
+  if(m==='bunpou')return Q.filter(q=>q.sec==="文法");
+  if(m==='dokkai')return Q.filter(q=>q.sec==="読解");
+  if(m==='choukai')return Q.filter(q=>q.sec==="聴解");
+  return[...Q];
+}
+function getTimeLimit(m){return {all:9000,moji:2100,bunpou:1500,dokkai:3000,choukai:2400}[m]||9000;}
+
+/* ------------------------------------------------------------
+   聴解 audio setup
+   - Set window.CHOUKAI_AUDIO_BASE_PATH to your GitHub folder path,
+     e.g. 'Choukai/N3/2019/'.
+   - Set window.CHOUKAI_AUDIO_FILENAME when the whole section uses one file,
+     e.g. '2019.mp3'. If omitted, it falls back to 'choukai-<id>.mp3'.
+   - Per-question overrides still work via q.audio / q.audioSrc / q.audioFile.
+   - Player has no pause/stop controls; once played, it auto-resumes.
+------------------------------------------------------------ */
+const CHOUKAI_AUDIO_BASE_PATH = (typeof window !== '../../assets/choukai/N3/2019/7/' && window.CHOUKAI_AUDIO_BASE_PATH)
+  ? String(window.CHOUKAI_AUDIO_BASE_PATH)
+  : '';
+const CHOUKAI_AUDIO_FILENAME = (typeof window !== '../../assets/choukai/N3/2019/7/2019年7月.mp3' && window.CHOUKAI_AUDIO_FILENAME)
+  ? String(window.CHOUKAI_AUDIO_FILENAME)
+  : '../../assets/choukai/N3/2019/7/2019年7月.mp3';
+function resolveChoukaiAudioSrc(q){
+  const refRaw = (q && (q.audio || q.audioSrc || q.audioFile || '')).toString().trim();
+  const ref = refRaw || CHOUKAI_AUDIO_FILENAME || `choukai-${q.id}.mp3`;
+  if (/^(https?:)?\/\//i.test(ref) || /^data:|^blob:/i.test(ref)) return ref;
+  const base = CHOUKAI_AUDIO_BASE_PATH ? CHOUKAI_AUDIO_BASE_PATH.replace(/\/?$/, '/') : '';
+  return base + ref.replace(/^\/+/, '');
+}
+function mountChoukaiAudioPlayer(q){
+  const wrap = document.getElementById('audio-wrap');
+  if(!wrap) return;
+
+  const src = resolveChoukaiAudioSrc(q);
+  const existing = window.__CHOUKAI_AUDIO_STATE || null;
+  if(existing && existing.wrap === wrap && existing.src === src && existing.mounted){
+    if(existing.card) existing.card.style.display = '';
+    if(existing.state && existing.started && !existing.audio.ended){
+      existing.state.textContent = 'Audio sedang berjalan dan tetap tersambung walau soal berpindah.';
+    }
+    return existing;
+  }
+
+  if(!existing || existing.wrap !== wrap){
+    wrap.innerHTML = `
+      <div class="audio-lock-player">
+        <div class="audio-lock-row">
+          <button type="button" class="audio-lock-btn" id="audio-play-btn">▶ Putar audio</button>
+          <div class="audio-lock-status" id="audio-state">Siap diputar. Setelah mulai, audio akan terus berjalan sampai selesai.</div>
+        </div>
+        <audio id="choukai-audio" preload="auto" playsinline controlslist="nodownload noplaybackrate noremoteplayback"></audio>
+        <div class="audio-lock-progress" aria-hidden="true"><div class="audio-lock-progress-fill" id="audio-progress"></div></div>
+        <div class="audio-lock-note" id="audio-note">Sumber audio: <span id="audio-src-text"></span></div>
+      </div>`;
+  }
+
+  const card = wrap.firstElementChild;
+  const audio = document.getElementById('choukai-audio');
+  const btn = document.getElementById('audio-play-btn');
+  const state = document.getElementById('audio-state');
+  const progress = document.getElementById('audio-progress');
+  const srcText = document.getElementById('audio-src-text');
+  const note = document.getElementById('audio-note');
+
+  if(srcText) srcText.textContent = src;
+  if(!src){
+    if(note) note.style.display = 'none';
+    if(state) state.textContent = 'Audio belum disetel.';
+    if(btn) btn.disabled = true;
+    window.__CHOUKAI_AUDIO_STATE = { wrap, card, audio, btn, state, progress, src, started:false, mounted:true };
+    return window.__CHOUKAI_AUDIO_STATE;
+  }
+
+  const prev = existing && existing.audio && existing.audio !== audio ? existing : null;
+  if(prev && prev.audio && prev.audio !== audio){
+    try{ prev.audio.pause(); }catch(e){}
+  }
+
+  audio.src = src;
+  audio.preload = 'auto';
+  audio.controls = false;
+  audio.playsInline = true;
+  audio.setAttribute('controlslist', 'nodownload noplaybackrate noremoteplayback');
+
+  const stateObj = {
+    wrap, card, audio, btn, state, progress, src,
+    started: existing ? !!existing.started : false,
+    mounted: true,
+    progressLocked: false,
+    _listenersBound: false
+  };
+
+  const updateProgress = () => {
+    if(!stateObj.progress || !audio.duration || !isFinite(audio.duration)) return;
+    const pct = Math.max(0, Math.min(100, (audio.currentTime / audio.duration) * 100));
+    stateObj.progress.style.width = pct + '%';
+  };
+
+  const keepPlaying = () => {
+    if(!stateObj.started || audio.ended) return;
+    if(audio.paused && !stateObj.progressLocked){
+      stateObj.progressLocked = true;
+      audio.play().catch(()=>{}).finally(()=>{ stateObj.progressLocked = false; });
+    }
+  };
+
+  if(stateObj.btn && !stateObj._listenersBound){
+    stateObj.btn.onclick = async () => {
+      stateObj.started = true;
+      if(stateObj.btn) stateObj.btn.disabled = true;
+      if(stateObj.state) stateObj.state.textContent = 'Audio sedang diputar dan tetap berjalan saat soal diganti.';
+      try{
+        await audio.play();
+      }catch(err){
+        stateObj.started = false;
+        if(stateObj.btn) stateObj.btn.disabled = false;
+        if(stateObj.state) stateObj.state.textContent = 'Browser memblokir pemutaran. Coba tekan lagi.';
+      }
+    };
+
+    audio.onplay = () => {
+      stateObj.started = true;
+      if(stateObj.btn) stateObj.btn.disabled = true;
+      if(stateObj.state) stateObj.state.textContent = 'Audio sedang berjalan.';
+    };
+    audio.onpause = () => keepPlaying();
+    audio.oncontextmenu = (e) => e.preventDefault();
+    audio.addEventListener('seeking', () => { if(stateObj.started && !audio.ended && audio.paused) keepPlaying(); });
+    audio.addEventListener('seeking', updateProgress);
+    audio.onended = () => {
+      if(stateObj.progress) stateObj.progress.style.width = '100%';
+      if(stateObj.state) stateObj.state.textContent = 'Audio selesai.';
+      if(stateObj.btn) stateObj.btn.disabled = true;
+      stateObj.started = false;
+    };
+    audio.ontimeupdate = updateProgress;
+    audio.onloadedmetadata = updateProgress;
+    audio.onerror = () => {
+      if(stateObj.state) stateObj.state.textContent = 'Audio gagal dimuat. Cek path GitHub / nama file.';
+      if(stateObj.btn) stateObj.btn.disabled = true;
+    };
+    stateObj._listenersBound = true;
+  }
+
+  window.__CHOUKAI_AUDIO_STATE = stateObj;
+  return stateObj;
+}
+function startMode(m){
+  mode=m;questions=getQuestions(m);answers={};currentQ=0;
+  startTime=Date.now();totalSeconds=getTimeLimit(m);
+  showScreen('quiz');buildProgressGrid();renderQuestion();startTimer();
+}
+function startTimer(){
+  if(timerInterval)clearInterval(timerInterval);
+  timerInterval=setInterval(()=>{
+    const elapsed=Math.floor((Date.now()-startTime)/1000);
+    const remaining=totalSeconds-elapsed;
+    if(remaining<=0){clearInterval(timerInterval);finishQuiz();return;}
+    const mm=Math.floor(remaining/60),ss=remaining%60;
+    document.getElementById('timer-text').textContent=`${mm}:${ss.toString().padStart(2,'0')}`;
+    const pct=(remaining/totalSeconds)*100;
+    const fill=document.getElementById('timer-fill');
+    fill.style.width=pct+'%';
+    fill.className='timer-fill'+(pct<25?' danger':pct<50?' warn':'');
+  },500);
+}
+function buildProgressGrid(){
+  const g=document.getElementById('prog-grid');g.innerHTML='';
+  questions.forEach((_,i)=>{
+    const d=document.createElement('div');
+    d.className='prog-dot'+(i===currentQ?' current':'');
+    d.textContent=i+1;d.onclick=()=>goToQ(i);d.id='pd-'+i;
+    g.appendChild(d);
+  });
+}
+function goToQ(i){currentQ=i;renderQuestion();}
+function renderQuestion(){
+  const q=questions[currentQ];
+  const secBadge=document.getElementById('q-sec-badge');
+  secBadge.className=secBadgeClass(q.sec);secBadge.textContent=q.sec;
+  document.getElementById('q-type-badge').textContent=q.type;
+  document.getElementById('q-num').textContent=`問 ${currentQ+1} / ${questions.length}`;
+  const correct=Object.values(answers).filter(a=>a.correct).length;
+  document.getElementById('q-score-live').textContent = T('correct_live') + ' ' + correct;
+  const pc=document.getElementById('passage-card');
+  const pt=document.getElementById('passage-text');
+  if(q.passage&&PASSAGES[q.passage]){
+    pc.style.display='';
+    pt.innerHTML=PASSAGES[q.passage].split('\n').map(l=>l?`<p>${l}</p>`:'').join('');
+  }else{pc.style.display='none';}
+
+  // Audio player for 聴解 questions
+  // Example:
+  // window.CHOUKAI_AUDIO_BASE_PATH = 'Choukai/N3/2019/';
+  // window.CHOUKAI_AUDIO_FILENAME = '2019.mp3';
+  const ac=document.getElementById('audio-card');
+  if(ac){
+    if(q.sec==="聴解"){
+      ac.style.display='';
+      const al=document.getElementById('audio-label-text');
+      if(al) al.textContent=T('audio_label');
+      const playerState = mountChoukaiAudioPlayer(q);
+      if(playerState && playerState.card) playerState.card.style.display = '';
+      if(playerState && playerState.state && playerState.started && !playerState.audio.ended){
+        playerState.state.textContent = 'Audio sedang berjalan dan tetap tersambung walau soal diganti.';
+      }
+    }else{
+      ac.style.display='none';
+    }
+  }
+
+  // Image grid/single for picture-based questions
+  const od0=document.getElementById('q-img-area');
+  if(od0){
+    od0.innerHTML='';
+    if(q.imgs&&q.imgs.length){
+      const grid=document.createElement('div');
+      grid.className='q-img-grid';
+      q.imgs.forEach((src,i)=>{
+        const cell=document.createElement('div');
+        cell.className='img-cell';
+        cell.innerHTML=`<span class="img-num">${i+1}</span><img src="${src}" alt="choice ${i+1}">`;
+        grid.appendChild(cell);
+      });
+      od0.appendChild(grid);
+    }else if(q.img){
+      const single=document.createElement('div');
+      single.className='q-img-single';
+      single.innerHTML=`<img src="${q.img}" alt="illustration">`;
+      od0.appendChild(single);
+    }
+  }
+
+  document.getElementById('q-text').innerHTML=q.q.replace(/\n/g,'<br>');
+  const od=document.getElementById('options');od.innerHTML='';
+  q.opts.forEach((opt,i)=>{
+    const b=document.createElement('button');
+    b.className='option-btn';
+    b.innerHTML=`<span style="font-family:var(--mono);color:var(--muted);margin-right:10px;">${i+1}</span>${opt}`;
+    b.onclick=()=>selectAnswer(i);
+    od.appendChild(b);
+  });
+  const exp=document.getElementById('explanation');exp.style.display='none';
+  document.getElementById('next-btn').disabled=true;
+  if(answers[q.id]!==undefined){restoreAnswer(q);}
+  document.querySelectorAll('.prog-dot').forEach((d,i)=>{
+    d.className='prog-dot'+(i===currentQ?' current':'');
+    const qq=questions[i];
+    if(answers[qq.id]!==undefined){
+      const isPh = qq.ans===null || qq.ans===undefined;
+      if(!isPh) d.className+=' '+(answers[qq.id].correct?'correct':'wrong');
+    }
+  });
+}
+function selectAnswer(idx){
+  const q=questions[currentQ];
+  if(answers[q.id]!==undefined)return;
+  const isPlaceholder = q.ans===null || q.ans===undefined;
+  const correct=isPlaceholder ? null : idx===q.ans;
+  answers[q.id]={selected:idx,correct:isPlaceholder?null:correct};
+  const btns=document.querySelectorAll('.option-btn');
+  btns.forEach((b,i)=>{
+    b.disabled=true;
+    if(isPlaceholder){
+      if(i===idx)b.style.borderColor='#4a6aaa';
+    }else{
+      if(i===q.ans)b.classList.add('correct');
+      else if(i===idx&&!correct)b.classList.add('wrong');
+    }
+  });
+  const exp=document.getElementById('explanation');
+  exp.style.display='';
+  exp.textContent=q.exp;
+  document.getElementById('next-btn').disabled=false;
+  const dot=document.getElementById('pd-'+currentQ);
+  if(dot){dot.className='prog-dot current '+(isPlaceholder?'':(correct?'correct':'wrong'));}
+  document.getElementById('q-score-live').textContent = T('correct_live') + ' ' + Object.values(answers).filter(a=>a.correct).length;
+}
+function restoreAnswer(q){
+  const a=answers[q.id];
+  const isPlaceholder = q.ans===null || q.ans===undefined;
+  const btns=document.querySelectorAll('.option-btn');
+  btns.forEach((b,i)=>{
+    b.disabled=true;
+    if(isPlaceholder){
+      if(i===a.selected)b.style.borderColor='#4a6aaa';
+    }else{
+      if(i===q.ans)b.classList.add('correct');
+      else if(i===a.selected&&!a.correct)b.classList.add('wrong');
+    }
+  });
+  const exp=document.getElementById('explanation');
+  exp.style.display='';exp.textContent=q.exp;
+  document.getElementById('next-btn').disabled=false;
+}
+function nextQ(){if(currentQ<questions.length-1){currentQ++;renderQuestion();}}
+function prevQ(){if(currentQ>0){currentQ--;renderQuestion();}}
+
+// __JLPT_RESULT_UPGRADE_V1__
+const JLPT_SECTION_CONFIG = {
+  N5: {
+    overallPass: 80,
+    groups: [
+      { key: 'lang_read', label_id: '言語知識・読解', secs: ['文字・語彙', '文法', '読解'], max: 120, pass: 38 },
+      { key: 'listening', label_id: '聴解', secs: ['聴解'], max: 60, pass: 19, notTested: true },
+    ],
+  },
+  N4: {
+    overallPass: 90,
+    groups: [
+      { key: 'lang_read', label_id: '言語知識・読解', secs: ['文字・語彙', '文法', '読解'], max: 120, pass: 38 },
+      { key: 'listening', label_id: '聴解', secs: ['聴解'], max: 60, pass: 19, notTested: true },
+    ],
+  },
+  N3: {
+    overallPass: 95,
+    groups: [
+      { key: 'lang',      label_id: '言語知識（文字・語彙・文法）', secs: ['文字・語彙', '文法'], max: 60, pass: 19 },
+      { key: 'reading',   label_id: '読解',  secs: ['読解'],     max: 60, pass: 19 },
+      { key: 'listening', label_id: '聴解',  secs: ['聴解'],     max: 60, pass: 19, notTested: true },
+    ],
+  },
+  N2: {
+    overallPass: 90,
+    groups: [
+      { key: 'lang',      label_id: '言語知識（文字・語彙・文法）', secs: ['文字・語彙', '文法'], max: 60, pass: 19 },
+      { key: 'reading',   label_id: '読解',  secs: ['読解'],     max: 60, pass: 19 },
+      { key: 'listening', label_id: '聴解',  secs: ['聴解'],     max: 60, pass: 19, notTested: true },
+    ],
+  },
+  N1: {
+    overallPass: 100,
+    groups: [
+      { key: 'lang',      label_id: '言語知識（文字・語彙・文法）', secs: ['文字・語彙', '文法'], max: 60, pass: 19 },
+      { key: 'reading',   label_id: '読解',  secs: ['読解'],     max: 60, pass: 19 },
+      { key: 'listening', label_id: '聴解',  secs: ['聴解'],     max: 60, pass: 19, notTested: true },
+    ],
+  },
+};
+
+const JLPT_CEFR_BANDS = {
+  N5: [{ min: 80, label: 'A1', range: '80–180' }, { min: 0, label: 'A0', range: '0–79' }],
+  N4: [{ min: 90, label: 'A2', range: '90–180' }, { min: 80, label: 'A1', range: '80–89' }, { min: 0, label: 'A0', range: '0–79' }],
+  N3: [{ min: 104, label: 'B1', range: '104–180' }, { min: 90, label: 'A2', range: '90–103' }, { min: 0, label: 'A1', range: '0–89' }],
+  N2: [{ min: 112, label: 'B2', range: '112–180' }, { min: 90, label: 'B1', range: '90–111' }, { min: 0, label: 'A2', range: '0–89' }],
+  N1: [{ min: 142, label: 'C1', range: '142–180' }, { min: 100, label: 'B2', range: '100–141' }, { min: 90, label: 'B1', range: '90–99' }, { min: 0, label: 'A2', range: '0–89' }],
+};
+
+function jlptIsCorrect(q, answersMap) {
+  const a = answersMap[q.id];
+  if (a == null) return false;
+  if (typeof a === 'object') return !!a.correct;
+  return a === q.ans;
+}
+
+function computeJlptResult(questionList, answersMap, level) {
+  const lvl = String(level || 'N3').toUpperCase();
+  const config = JLPT_SECTION_CONFIG[lvl] || JLPT_SECTION_CONFIG.N3;
+
+  const sections = config.groups.map(group => {
+    if (group.notTested) {
+      return {
+        key: group.key, label: group.label_id, max: group.max, pass: group.pass,
+        score: null, correct: 0, total: 0, passed: null, notTested: true,
+      };
+    }
+    const qs = questionList.filter(q => group.secs.includes(q.sec));
+    const correct = qs.filter(q => jlptIsCorrect(q, answersMap)).length;
+    const total = qs.length;
+    const score = total > 0 ? Math.round((correct / total) * group.max) : 0;
+    return {
+      key: group.key, label: group.label_id, max: group.max, pass: group.pass,
+      score, correct, total, passed: total > 0 ? score >= group.pass : null, notTested: false,
+    };
+  });
+
+  const testedSections = sections.filter(s => !s.notTested && s.total > 0);
+  const totalScore = testedSections.reduce((sum, s) => sum + s.score, 0);
+  const totalMax    = testedSections.reduce((sum, s) => sum + s.max, 0);
+  const hasUntested  = sections.some(s => s.notTested);
+
+  const passedOverall = totalScore >= config.overallPass;
+  const passedAllTestedSections = testedSections.every(s => s.passed !== false);
+
+  const cefr = inferCefr(lvl, totalScore);
+
+  return {
+    totalScore, totalMax, totalTested: !hasUntested,
+    overallPass: config.overallPass,
+    passedOverall, sections, passedAllTestedSections,
+    cefr,
+    officialPassDeterminable: !hasUntested,
+  };
+}
+
+function inferCefr(level, score) {
+  const lvl = String(level || '').toUpperCase();
+  const bands = JLPT_CEFR_BANDS[lvl] || JLPT_CEFR_BANDS.N3;
+  const s = Number(score);
+  if (!Number.isFinite(s)) return { label: '—', range: '' };
+  const found = bands.find(b => s >= b.min);
+  return found || { label: '—', range: '' };
+}
+
+function finishQuiz(){
+  clearInterval(timerInterval);
+  const elapsed = Math.floor((Date.now() - startTime) / 1000);
+  showScreen('result');
+
+  const total = questions.length || 0;
+  const correct = questions.filter(q => jlptIsCorrect(q, answers)).length;
+  const wrong = Math.max(Object.keys(answers).length - correct, 0);
+  const pct = total ? Math.round((correct / total) * 100) : 0;
+
+  const levelName = (function() {
+    try {
+      if (typeof window.resolveLocalExamMeta === 'function') {
+        const m = window.resolveLocalExamMeta();
+        if (m && m.level) return m.level;
+      }
+      if (typeof resolveLocalExamMeta === 'function') {
+        const m = resolveLocalExamMeta();
+        if (m && m.level) return m.level;
+      }
+    } catch (e) {}
+    const titleMatch = (document.title || '').match(/N([1-5])/i);
+    if (titleMatch) return 'N' + titleMatch[1];
+    return 'N3';
+  })();
+
+  const result = computeJlptResult(questions, answers, levelName);
+  const cefr = result.cefr;
+  // "passed" di sini adalah ESTIMASI (karena 聴解 belum diujikan), bukan
+  // keputusan lulus/tidak yang resmi. Lihat result.officialPassDeterminable.
+  const passed = result.passedOverall && result.passedAllTestedSections;
+
+  document.getElementById('r-correct').textContent = correct;
+  document.getElementById('r-wrong').textContent = wrong;
+  document.getElementById('r-pct').textContent = pct + '%';
+
+  const mm = Math.floor(elapsed / 60), ss = elapsed % 60;
+  document.getElementById('r-time').textContent = mm + ':' + ss.toString().padStart(2, '0');
+  document.getElementById('res-date').textContent = new Date().toLocaleString('ja-JP');
+
+  const secs = ["文字・語彙", "文法", "読解", "聴解"];
+  const sr = document.getElementById('section-results');
+  sr.innerHTML = '';
+  secs.forEach(s => {
+    const qs = questions.filter(q => q.sec === s);
+    if (!qs.length) return;
+    const c = qs.filter(q => jlptIsCorrect(q, answers)).length;
+    const div = document.createElement('div');
+    div.className = 'section-result';
+    div.innerHTML = '<span>' + s + '</span><span style="font-family:var(--mono)">' + c + '/' + qs.length + ' (' + Math.round(c / qs.length * 100) + '%)</span>';
+    sr.appendChild(div);
+  });
+
+  const ssr = document.getElementById('scoring-section-results');
+  if (ssr) {
+    ssr.innerHTML = result.sections.map(s => {
+      if (s.notTested) {
+        return '<div class="section-result section-result--untested">' +
+          '<span>' + s.label + '</span>' +
+          '<span style="font-family:var(--mono);opacity:.6">' + T('not_tested') + '</span>' +
+          '</div>';
+      }
+      const icon = s.passed ? '✅' : '⚠️';
+      return '<div class="section-result">' +
+        '<span>' + icon + ' ' + s.label + '</span>' +
+        '<span style="font-family:var(--mono)">' + s.score + '/' + s.max + ' (' + T('min_pass') + ' ' + s.pass + ')</span>' +
+        '</div>';
+    }).join('');
+  }
+
+  const banner = document.getElementById('pass-banner');
+  banner.className = 'pass-banner ' + (passed ? 'pass' : 'fail');
+  document.getElementById('pass-text').textContent = T('score_estimate') + ': ' + result.totalScore + '/' + result.totalMax + (result.totalTested ? '' : ' *');
+  document.getElementById('pass-sub').textContent = correct + '/' + total + ' ' + (currentLang==='jp' ? '正解' : currentLang==='en' ? 'correct' : 'benar') + ' · ' + T('cefr_estimate') + ' ' + cefr.label + (cefr.range ? ' (' + cefr.range + ')' : '') + ' · ' + T('passing_mark') + ' ' + result.overallPass + '/180';
+
+  document.getElementById('hs-done').textContent = total;
+  document.getElementById('hs-score').textContent = result.totalScore + '/' + result.totalMax;
+  document.getElementById('hs-pred').textContent = cefr.label;
+  const resPredH2 = document.getElementById('res-pred-h2');
+  if (resPredH2) resPredH2.textContent = 'JLPT ' + levelName + ' · CEFR ' + cefr.label;
+
+  const pd = document.getElementById('prediction-detail');
+  pd.innerHTML =
+    '<p>📊 ' + T('score_estimate') + ': <strong>' + result.totalScore + '/' + result.totalMax + '</strong> (' + correct + '/' + total + ' ' + (currentLang==='jp' ? '正解' : currentLang==='en' ? 'correct' : 'benar') + ')</p>' +
+    '<p>🎯 ' + T('passing_mark') + ' ' + levelName + ': ' + result.overallPass + '/180 ' + T('overall_label') + '</p>' +
+    '<p>🌐 ' + T('cefr_estimate') + ': <strong>' + cefr.label + '</strong>' + (cefr.range ? ' (' + cefr.range + ')' : '') + '</p>' +
+    '<p>ℹ️ ' + T('info_audio') + '</p>' +
+    '<p>⚠️ ' + T('score_no_listening_note') + '</p>' +
+    '<p>' + (passed ? '✅ ' + T('estimate_pass_note') : '⚠️ ' + T('practice_note')) + '</p>';
+
+  const latestResult = {
+    level: levelName,
+    score: result.totalScore,
+    jlptScore: result.totalScore,
+    scoreEstimate: result.totalScore,
+    scoreMax: result.totalMax,
+    score_max: result.totalMax,
+    sections: result.sections,
+    correct,
+    total,
+    percentage: pct,
+    cefr: cefr.label,
+    cefrRange: cefr.range,
+    cefr_range: cefr.range,
+    passed,
+    officialPassDeterminable: result.officialPassDeterminable,
+    completedAt: new Date().toISOString(),
+  };
+  window.__JLPT_LAST_RESULT__ = latestResult;
+  try {
+    sessionStorage.setItem('jlpt_exam_result', JSON.stringify(latestResult));
+    localStorage.setItem('jlpt_exam_result_latest', JSON.stringify(latestResult));
+  } catch (e) {}
+
+  const printBtn = document.getElementById('print-pdf-btn');
+  if (printBtn) printBtn.classList.add('show');
+}
+function reviewAnswers(){
+  answers={};showScreen('quiz');buildProgressGrid();
+  currentQ=0;renderQuestion();
+}
+function goHome(){
+  clearInterval(timerInterval);
+  document.getElementById('print-pdf-btn').classList.remove('show');
+  showScreen('home');
+}
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function saveSessionManual(){
+  const data={answers,currentQ,mode,elapsed:Math.floor((Date.now()-startTime)/1000)};
+  localStorage.setItem('jlpt_n3_2019_07',JSON.stringify(data));
+  alert(T('save_msg'));
+}
+function loadSessionManual(){
+  const raw=localStorage.getItem('jlpt_n3_2019_07');
+  if(!raw){alert(T('no_session'));return;}
+  const data=JSON.parse(raw);
+  mode=data.mode||'all';
+  questions=getQuestions(mode);
+  answers=data.answers||{};
+  currentQ=data.currentQ||0;
+  startTime=Date.now()-(data.elapsed||0)*1000;
+  totalSeconds=getTimeLimit(mode);
+  showScreen('quiz');buildProgressGrid();renderQuestion();startTimer();
+  alert(T('load_msg'));
+}
+
+// ===== INTERNATIONALIZATION =====
+const I18N = {
+  id: {
+    score_estimate:'Skor JLPT (estimasi)',passing_mark:'Batas lulus',cefr_estimate:'Perkiraan CEFR',res_jlpt_section:'Skor Resmi JLPT per Seksi',not_tested:'Belum diujikan',min_pass:'min.',overall_label:'(total, tanpa 聴解)',score_no_listening_note:'Skor di atas BELUM termasuk nilai 聴解 (mendengarkan), karena bagian ini tidak diujikan dalam sistem ini. Skor resmi JLPT-mu nanti akan berbeda karena turut menyertakan nilai 聴解.',estimate_pass_note:'Berdasarkan bagian yang sudah diujikan, perkiraanmu sudah mencapai batas lulus. Ini bukan kepastian lulus resmi karena 聴解 belum dihitung.',practice_note:'Perlu latihan lagi untuk mencapai batas lulus.',
+    stat_total:'total soal',stat_done:'dikerjakan',stat_score:'skor terakhir',stat_pred:'prediksi',
+    info_audio:'⚠️ Sebagian soal 聴解 (問題3 & 問題5) masih placeholder karena belum ada transkrip audio lengkap.',
+    mode_all:'🎯 Ujian Penuh',mode_all_sub:'soal · timer',mode_all_unit:'menit',
+    mode_moji:'📝 文字・語彙',mode_bunpou:'📐 文法',mode_dokkai:'📖 読解',mode_choukai:'🎧 聴解',
+    mode_sub_menit:'soal · timer',
+    audio_label:'🎧 dengarkan audio',audio_missing:'⚠️ Audio untuk soal ini belum tersedia — tambahkan file audio secara manual.',
+    passage_label:'📖 teks bacaan',
+    btn_back:'← Kembali',btn_save:'💾 Simpan',btn_load:'📂 Muat',btn_next:'Lanjut →',btn_finish:'Selesai',btn_report:'🚩 Laporkan',
+    res_title:'Hasil Ujian',res_correct:'benar',res_wrong:'salah',res_accuracy:'akurasi',res_time:'waktu',
+    res_section:'Skor per seksi',res_pred_title:'Prediksi kelulusan',
+    btn_review:'Tinjau Jawaban',btn_home:'Kembali ke Menu',
+    pass_label:'✅ Lulus (Estimasi)',fail_label:'❌ Perlu Belajar Lagi',
+    pass_sub_pass:'kemungkinan lulus!',pass_sub_fail:'Perlu belajar lebih lanjut.',
+    save_msg:'💾 Sesi tersimpan!',load_msg:'📂 Sesi dimuat!',no_session:'Tidak ada sesi tersimpan.',
+    correct_live:'Benar:',q_label:'Soal',q_of:' dari ',
+    report_title:'🚩 Laporkan Soal Bermasalah',report_placeholder:'Jelaskan masalah pada soal ini (jawaban salah, teks tidak jelas, dll)...',
+    report_send:'📤 Kirim Laporan',report_cancel:'Batal',report_thinking:'📤 Mengirim laporan...',
+    pred_pass_high:'✅ Kemungkinan lulus sangat tinggi.',pred_pass_mid:'⚠️ Tepat di batas lulus. Terus berlatih.',pred_fail:'❌ Perlu belajar lebih banyak untuk lulus.'
+  },
+  en: {
+    score_estimate:'JLPT score estimate',passing_mark:'Passing mark',cefr_estimate:'CEFR estimate',res_jlpt_section:'Official JLPT Score by Section',not_tested:'Not tested yet',min_pass:'min.',overall_label:'(total, without 聴解)',score_no_listening_note:'The score above does NOT include the 聴解 (listening) section, since it is not tested in this system. Your official JLPT score will differ because it includes the listening score as well.',estimate_pass_note:'Based on the sections tested so far, your estimate has reached the passing line. This is not an official pass guarantee since 聴解 has not been counted.',practice_note:'More practice is needed to reach the passing line.',
+    stat_total:'total questions',stat_done:'attempted',stat_score:'last score',stat_pred:'prediction',
+    info_audio:'⚠️ Some 聴解 questions (問題3 & 問題5) are still placeholders pending a full audio transcript.',
+    mode_all:'🎯 Full Exam',mode_all_sub:'questions · timer',mode_all_unit:'min',
+    mode_moji:'📝 Vocabulary (文字・語彙)',mode_bunpou:'📐 Grammar (文法)',mode_dokkai:'📖 Reading (読解)',mode_choukai:'🎧 Listening (聴解)',
+    mode_sub_menit:'questions · timer',
+    audio_label:'🎧 listen to audio',audio_missing:'⚠️ Audio for this question is not yet available — add it manually.',
+    passage_label:'📖 reading passage',
+    btn_back:'← Back',btn_save:'💾 Save',btn_load:'📂 Load',btn_next:'Next →',btn_finish:'Finish',btn_report:'🚩 Report',
+    res_title:'Exam Results',res_correct:'correct',res_wrong:'wrong',res_accuracy:'accuracy',res_time:'time',
+    res_section:'Score by section',res_pred_title:'JLPT Pass Prediction',
+    btn_review:'Review Answers',btn_home:'Back to Menu',
+    pass_label:'✅ Pass (Estimated)',fail_label:'❌ Need More Study',
+    pass_sub_pass:'likely to pass!',pass_sub_fail:'Keep studying to improve.',
+    save_msg:'💾 Session saved!',load_msg:'📂 Session loaded!',no_session:'No saved session found.',
+    correct_live:'Correct:',q_label:'Q',q_of:' of ',
+    report_title:'🚩 Report a Problem',report_placeholder:'Describe the issue (wrong answer, unclear text, etc.)...',
+    report_send:'📤 Send Report',report_cancel:'Cancel',report_thinking:'📤 Sending report...',
+    pred_pass_high:'✅ Very likely to pass.',pred_pass_mid:'⚠️ Right on the passing line. Keep practicing.',pred_fail:'❌ More study needed to pass.'
+  },
+  jp: {
+    score_estimate:'JLPTスコア推定',passing_mark:'合格基準',cefr_estimate:'CEFR推定',res_jlpt_section:'JLPT公式採点セクション別スコア',not_tested:'未実施',min_pass:'必要最低点',overall_label:'（合計、聴解を除く）',score_no_listening_note:'上記のスコアには聴解の点数は含まれていません。本システムでは聴解を実施していないためです。実際のJLPTスコアは聴解の点数も含まれるため異なります。',estimate_pass_note:'実施済みのセクションに基づくと、合格ラインに達している見込みです。聴解の点数が含まれていないため、これは公式な合格保証ではありません。',practice_note:'合格ラインに達するには、さらに練習が必要です。',
+    stat_total:'問題数',stat_done:'解答済み',stat_score:'前回スコア',stat_pred:'予測',
+    info_audio:'⚠️ 一部の聴解問題（問題3・問題5）は音声の文字化が未完了のため、placeholderとなっています。',
+    mode_all:'🎯 全問テスト',mode_all_sub:'問 · タイマー',mode_all_unit:'分',
+    mode_moji:'📝 文字・語彙',mode_bunpou:'📐 文法',mode_dokkai:'📖 読解',mode_choukai:'🎧 聴解',
+    mode_sub_menit:'問 · タイマー',
+    audio_label:'🎧 音声を聞く',audio_missing:'⚠️ この問題の音声はまだ用意されていません。手動で追加してください。',
+    passage_label:'📖 読解文',
+    btn_back:'← 戻る',btn_save:'💾 保存',btn_load:'📂 読込',btn_next:'次へ →',btn_finish:'終了',btn_report:'🚩 報告',
+    res_title:'試験結果',res_correct:'正解',res_wrong:'不正解',res_accuracy:'正答率',res_time:'時間',
+    res_section:'セクション別スコア',res_pred_title:'JLPT合格予測',
+    btn_review:'解答を確認',btn_home:'メニューに戻る',
+    pass_label:'✅ 合格圏内 (推定)',fail_label:'❌ 要復習',
+    pass_sub_pass:'合格の可能性が高い！',pass_sub_fail:'引き続き学習が必要です。',
+    save_msg:'💾 セッションを保存しました！',load_msg:'📂 セッションを読み込みました！',no_session:'保存されたセッションがありません。',
+    correct_live:'正解：',q_label:'問',q_of:'/',
+    report_title:'🚩 問題を報告',report_placeholder:'問題の内容を説明してください（誤答、不明瞭なテキストなど）...',
+    report_send:'📤 報告を送信',report_cancel:'キャンセル',report_thinking:'📤 送信中...',
+    pred_pass_high:'✅ 合格の可能性が非常に高いです。',pred_pass_mid:'⚠️ 合格ラインギリギリです。引き続き練習を。',pred_fail:'❌ 合格には更なる学習が必要です。'
+  }
+};
+
+let currentLang = localStorage.getItem('jlpt_lang') || 'id';
+function T(k){ return I18N[currentLang][k] || I18N['id'][k] || k; }
+
+function setLang(lang) {
+  currentLang = lang;
+  localStorage.setItem('jlpt_lang', lang);
+  document.querySelectorAll('.lang-btn').forEach(b => {
+    b.classList.toggle('active', b.getAttribute('onclick') === `setLang('${lang}')`);
+  });
+  applyLang();
+}
+
+function applyLang() {
+  const homeStats = document.querySelectorAll('#home .stat-lbl');
+  const statKeys = ['stat_total','stat_done','stat_score','stat_pred'];
+  homeStats.forEach((el, i) => { if(statKeys[i]) el.textContent = T(statKeys[i]); });
+
+  const resKeys = ['res_correct','res_wrong','res_accuracy','res_time'];
+  const resStats = document.querySelectorAll('#result .stat-lbl');
+  resStats.forEach((el, i) => { if(resKeys[i]) el.textContent = T(resKeys[i]); });
+
+  const infoNote = document.querySelector('.info-note');
+  if(infoNote) infoNote.textContent = T('info_audio');
+
+  const modeBtns = document.querySelectorAll('.mode-btn');
+  if(modeBtns.length >= 5) {
+    const modeData = getModeData();
+    modeBtns[0].querySelector('strong').textContent = T('mode_all');
+    modeBtns[0].querySelector('span').textContent = modeData.all;
+    modeBtns[1].querySelector('strong').textContent = T('mode_moji');
+    modeBtns[1].querySelector('span').textContent = modeData.moji;
+    modeBtns[2].querySelector('strong').textContent = T('mode_bunpou');
+    modeBtns[2].querySelector('span').textContent = modeData.bunpou;
+    modeBtns[3].querySelector('strong').textContent = T('mode_dokkai');
+    modeBtns[3].querySelector('span').textContent = modeData.dokkai;
+    modeBtns[4].querySelector('strong').textContent = T('mode_choukai');
+    modeBtns[4].querySelector('span').textContent = modeData.choukai;
+  }
+
+  const pl = document.querySelector('.passage-label');
+  if(pl) pl.textContent = T('passage_label');
+
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    el.textContent = T(el.getAttribute('data-i18n'));
+  });
+
+  const resSection = document.querySelector('#result .card h2:first-of-type');
+  if(resSection) resSection.textContent = T('res_section');
+
+  const resHeader = document.querySelector('#result .header h1');
+  if(resHeader) resHeader.textContent = T('res_title');
+
+  document.getElementById('report-title').textContent = T('report_title');
+  document.getElementById('report-text').placeholder = T('report_placeholder');
+  document.getElementById('report-send-btn').textContent = T('report_send');
+
+  const livScore = document.getElementById('q-score-live');
+  if(livScore) {
+    const num = livScore.textContent.replace(/[^0-9]/g,'');
+    livScore.textContent = T('correct_live') + ' ' + (num || '0');
+  }
+}
+
+function getModeData() {
+  const total = 102;
+  const allTime = 150, mojiTime = 35, bunpouTime = 25, dokkaiTime = 50, choukaiTime = 40;
+  const mojiCount = '35', bunpouCount = '23', dokkaiCount = '16', choukaiCount = '28';
+  return {
+    all: total + ' ' + T('stat_total') + ' · ' + T('mode_all_unit') + ' ' + allTime + ' ' + T('mode_all_unit'),
+    moji: (mojiCount ? mojiCount + ' ' : '') + T('mode_sub_menit') + ' ' + mojiTime + ' ' + T('mode_all_unit'),
+    bunpou: (bunpouCount ? bunpouCount + ' ' : '') + T('mode_sub_menit') + ' ' + bunpouTime + ' ' + T('mode_all_unit'),
+    dokkai: (dokkaiCount ? dokkaiCount + ' ' : '') + T('mode_sub_menit') + ' ' + dokkaiTime + ' ' + T('mode_all_unit'),
+    choukai: (choukaiCount ? choukaiCount + ' ' : '') + T('mode_sub_menit') + ' ' + choukaiTime + ' ' + T('mode_all_unit'),
+  };
+}
+
+// ===== REPORT BUTTON (Telegram) =====
+let reportingQId = null;
+function openReport() {
+  const q = questions[currentQ];
+  if(!q) return;
+  reportingQId = q.id;
+  document.getElementById('report-qinfo').textContent = 'Q' + q.id + ' · ' + q.sec + ' · ' + q.type;
+  document.getElementById('report-text').value = '';
+  const botArea = document.getElementById('report-bot-area');
+  botArea.style.display = 'none';
+  botArea.innerHTML = '';
+  document.getElementById('report-modal').classList.add('open');
+  document.getElementById('report-title').textContent = T('report_title');
+  document.getElementById('report-text').placeholder = T('report_placeholder');
+  document.getElementById('report-send-btn').textContent = T('report_send');
+}
+
+function closeReport() {
+  document.getElementById('report-modal').classList.remove('open');
+  reportingQId = null;
+}
+
+async function sendReport() {
+  const q = questions.find(x => x.id === reportingQId);
+  if(!q) return;
+  const userMsg = document.getElementById('report-text').value.trim();
+  if(!userMsg) { document.getElementById('report-text').focus(); return; }
+
+  const botArea = document.getElementById('report-bot-area');
+  botArea.style.display = 'block';
+  botArea.textContent = T('report_thinking');
+  document.getElementById('report-send-btn').disabled = true;
+
+  const pageTitle = document.title || 'JLPT Quiz';
+  const qText = q.q.replace(/<[^>]+>/g, '').replace(/\n/g, ' ').trim();
+  const opts = q.opts.map((o, i) => (i === q.ans ? '✅ ' : '  ') + (i+1) + '. ' + o).join('\n');
+
+  const message = [
+    '🚩 *LAPORAN SOAL — ' + pageTitle + '*',
+    '',
+    '📋 *Info Soal*',
+    '• ID: Q' + q.id,
+    '• Seksi: ' + q.sec,
+    '• Tipe: ' + q.type,
+    '',
+    '❓ *Pertanyaan*',
+    qText.substring(0, 300) + (qText.length > 300 ? '...' : ''),
+    '',
+    '🔢 *Pilihan Jawaban*',
+    opts,
+    '',
+    '💬 *Laporan User*',
+    userMsg
+  ].join('\n');
+
+  try {
+    const res = await fetch('https://jlpt-auth-bot-production.up.railway.app/report', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: message, exam: pageTitle })
+    });
+    const data = await res.json();
+    if(data.ok) {
+      botArea.textContent = T('report_success');
+      document.getElementById('report-text').value = '';
+      setTimeout(closeReport, 2000);
+    } else {
+      botArea.textContent = '⚠️ Gagal kirim: ' + (data.description || 'Unknown error');
+    }
+  } catch(err) {
+    botArea.textContent = '⚠️ ' + T('report_fail');
+  }
+  document.getElementById('report-send-btn').disabled = false;
+}
+
+document.getElementById('report-modal').addEventListener('click', function(e) {
+  if(e.target === this) closeReport();
+});
+
+// ===== INIT LANG =====
+document.addEventListener('DOMContentLoaded', function() {
+  const saved = localStorage.getItem('jlpt_lang') || 'id';
+  currentLang = saved;
+  document.querySelectorAll('.lang-btn').forEach(b => {
+    b.classList.toggle('active', b.getAttribute('onclick') === `setLang('${saved}')`);
+  });
+  applyLang();
+});
+(function(){
+  const c=document.getElementById('bg-canvas');
+  const ctx=c.getContext('2d');
+  let W,H,particles=[];
+  function resize(){W=c.width=window.innerWidth;H=c.height=window.innerHeight;}
+  function init(){
+    resize();particles=[];
+    for(let i=0;i<60;i++)particles.push({x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.5+.3,dx:(Math.random()-.5)*.3,dy:(Math.random()-.5)*.3,a:Math.random()*.5+.1});
+  }
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    particles.forEach(p=>{
+      ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fillStyle='rgba(90,169,255,'+p.a+')';ctx.fill();
+      p.x+=p.dx;p.y+=p.dy;
+      if(p.x<0||p.x>W)p.dx*=-1;
+      if(p.y<0||p.y>H)p.dy*=-1;
+    });
+    requestAnimationFrame(draw);
+  }
+  window.addEventListener('resize',init);
+  init();draw();
+})();
+</script>
+<button id="print-pdf-btn" onclick="window.print()">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:22px;height:22px;"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+  <span>Cetak / PDF</span>
+</button>
+<script type="module" src="../../jlpt-exam-enhancer.js?v=1"></script>
+</body>
+</html>
