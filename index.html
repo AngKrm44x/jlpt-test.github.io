@@ -27,6 +27,11 @@
         title: 'システムメンテナンス中',
         desc: '現在、システム・問題データの更新作業を行っております。試験当日に支障が出ないよう、試験ファイルおよび機能への一時アクセスを停止しております。今しばらくお待ちください。',
         note: 'メンテナンス中、このページの操作・クリック・コピー＆ペーストは一時的に無効化されています。'
+      },
+      my: {
+        title: 'စနစ် ပြုပြင်နေပါသည်',
+        desc: 'စနစ်/စာမေးပွဲမေးခွန်းများကို အပ်ဒိတ်လုပ်နေပါသည်။ စာမေးပွဲအချိန်တွင် ချောမွေ့စွာ အလုပ်လုပ်နိုင်ရန် ဖိုင်များနှင့် စာမေးပွဲဆိုင်ရာ လုပ်ဆောင်ချက်များကို ခေတ္တပိတ်ထားပါသည်။ ခဏစောင့်ပေးပါ!',
+        note: 'ဤစာမျက်နှာကို ခေတ္တပိတ်ထားပါသည် — ပြုပြင်ထိန်းသိမ်းမှု ပြီးဆုံးသည်အထိ နှိပ်ခြင်း၊ ကူးယူခြင်းနှင့် ကူးထည့်ခြင်းများကို ခေတ္တ ပိတ်ထားပါသည်။'
       }
     };
 
@@ -40,12 +45,13 @@
           const nav = (navigator.language || 'id').toLowerCase();
           if (nav.startsWith('ja')) lang = 'ja';
           else if (nav.startsWith('en')) lang = 'en';
+          else if (nav.startsWith('my')) lang = 'my';
           else lang = 'id';
         }
       } catch (_) {}
 
-      const FLAGS = { id: '🇮🇩', en: '🇬🇧', ja: '🇯🇵' };
-      const LABELS = { id: 'Indonesia', en: 'English', ja: '日本語' };
+      const FLAGS = { id: '🇮🇩', en: '🇬🇧', ja: '🇯🇵', my: '🇲🇲' };
+      const LABELS = { id: 'Indonesia', en: 'English', ja: '日本語', my: 'မြန်မာ' };
 
       const renderContent = (l) => {
         const m = MT[l] || MT.id;
@@ -66,7 +72,7 @@
           position: fixed; inset: 0; background: #050910;
           color: #e8f0ff; display: flex; flex-direction: column;
           align-items: center; justify-content: center;
-          font-family: 'Inter', sans-serif; z-index: 2147483647; text-align: center; padding: 20px;
+          font-family: 'Inter', 'Noto Sans Myanmar', sans-serif; z-index: 2147483647; text-align: center; padding: 20px;
           user-select: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none;
           -webkit-touch-callout: none; cursor: default;
         ">
@@ -208,7 +214,7 @@
 <title>模擬試験　過去問題</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;family=Noto+Sans+JP:wght@300;400;500;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;family=Syne:wght@700;800&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;family=Noto+Sans+JP:wght@300;400;500;700&amp;family=Noto+Sans+Myanmar:wght@300;400;500;600;700;800&amp;family=Space+Grotesk:wght@400;500;600;700&amp;family=Syne:wght@700;800&amp;display=swap" rel="stylesheet">
 <style>
 :root{
 --bg:#070b16;--bg2:#111a2f;--card:#16213e;--card2:#1d2c50;
@@ -216,7 +222,7 @@
 --success:#19c37d;--danger:#ff5f73;--border:#2f4370;
 }
 *{margin:0;padding:0;box-sizing:border-box;}
-body{font-family:'Space Grotesk','Noto Sans JP',sans-serif;background:radial-gradient(circle at top left,#22345f 0%,transparent 30%),radial-gradient(circle at bottom right,#29194a 0%,transparent 25%),var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+body{font-family:'Space Grotesk','Noto Sans JP','Noto Sans Myanmar',sans-serif;background:radial-gradient(circle at top left,#22345f 0%,transparent 30%),radial-gradient(circle at bottom right,#29194a 0%,transparent 25%),var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
 canvas{position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.18;transform:translateZ(0);}
 .container{max-width:1300px;margin:auto;padding:30px;}
 
@@ -456,20 +462,21 @@ h1{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;letter-spacing:-
 }
 .notif-panel.open{transform:translateY(0) scale(1);opacity:1;pointer-events:all;}
 .notif-header{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:20px 22px 16px;border-bottom:1px solid rgba(255,255,255,.05);
+  display:flex;flex-direction:column;gap:8px;
+  padding:18px 22px 14px;border-bottom:1px solid rgba(255,255,255,.05);
 }
-.notif-header-title{font-family:'Syne',sans-serif;font-weight:800;font-size:17px;display:flex;align-items:center;gap:8px;}
+.notif-header-top{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.notif-header-title{font-family:'Syne',sans-serif;font-weight:800;font-size:17px;display:flex;align-items:center;gap:8px;white-space:nowrap;}
 .notif-count-pill{
   background:linear-gradient(135deg,#ff6b9d,#c44dff);
   color:white;font-size:11px;font-weight:800;
   padding:2px 8px;border-radius:999px;
 }
-.notif-mark-all{font-size:12px;color:var(--muted);cursor:pointer;transition:color .2s;font-weight:600;}
+.notif-header-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;}
+.notif-mark-all,.notif-clear-all{font-size:12px;color:var(--muted);cursor:pointer;transition:color .2s;font-weight:600;white-space:nowrap;}
 .notif-mark-all:hover{color:#5aa9ff;}
-.notif-header-actions{display:flex;align-items:center;gap:14px;}
-.notif-clear-all{font-size:12px;color:var(--muted);cursor:pointer;transition:color .2s;font-weight:600;}
 .notif-clear-all:hover{color:#ff5f73;}
+.notif-action-sep{font-size:11px;color:var(--border);user-select:none;}
 .notif-tabs{display:flex;gap:0;border-bottom:1px solid rgba(255,255,255,.05);}
 .notif-tab{flex:1;padding:10px;text-align:center;font-size:13px;font-weight:700;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;transition:.2s;}
 .notif-tab.active{color:#5aa9ff;border-bottom-color:#5aa9ff;}
@@ -1007,6 +1014,7 @@ body.sidebar-open .menu-fab{
         <div class="lang-opt" data-lang="id" data-flag="🇮🇩" data-label="Indonesia" onclick="setLang(this)">🇮🇩 <span>Indonesia</span></div>
         <div class="lang-opt" data-lang="en" data-flag="🇬🇧" data-label="English" onclick="setLang(this)">🇬🇧 <span>English</span></div>
         <div class="lang-opt" data-lang="ja" data-flag="🇯🇵" data-label="日本語" onclick="setLang(this)">🇯🇵 <span>日本語</span></div>
+        <div class="lang-opt" data-lang="my" data-flag="🇲🇲" data-label="မြန်မာ" onclick="setLang(this)">🇲🇲 <span>မြန်မာ</span></div>
       </div>
     </div>
     <!-- Notification Bell -->
@@ -1040,12 +1048,15 @@ body.sidebar-open .menu-fab{
 <!-- NOTIFICATION PANEL (outside hero, fixed) -->
 <div class="notif-panel" id="notifPanel">
   <div class="notif-header">
-    <div class="notif-header-title">
-      🔔 <span data-i18n="notifications">Notifications</span>
-      <span class="notif-count-pill" id="notifCountPill">0</span>
+    <div class="notif-header-top">
+      <div class="notif-header-title">
+        🔔 <span data-i18n="notifications">Notifications</span>
+        <span class="notif-count-pill" id="notifCountPill">0</span>
+      </div>
     </div>
     <div class="notif-header-actions">
       <span class="notif-mark-all" onclick="markAllRead()" data-i18n="markAllRead">Mark all read</span>
+      <span class="notif-action-sep" aria-hidden="true">•</span>
       <span class="notif-clear-all" onclick="clearAllNotifs()" data-i18n="clearAllNotifs">Clear all</span>
     </div>
   </div>
@@ -1911,6 +1922,47 @@ const TRANSLATIONS = {
     deleteWarning:'この操作は取り消せません。すべての進捗データ、受験履歴、アカウントが完全に削除されます。',
     deleteConfirmHint:'確認のために「削除」と入力してください', deleteConfirmWord:'削除',
     deleteCancel:'キャンセル', deleteBtn:'🗑️ アカウントを削除', accountDeleted:'🗑️ アカウントが削除されました。さようなら！',
+  },
+  my: {
+    heroTitle:'ဂျပန်ဘာသာစကားကျွမ်းကျင်မှု အတုစာမေးပွဲ မေးခွန်းဟောင်းများ',
+    heroSubtitle:'ခေတ်မီ UI ဖြင့် JLPT လေ့ကျင့်ခန်းမေးခွန်းများ။ စာဖတ်ခြင်း၊ သဒ္ဒါနှင့် ဝေါဟာရမေးခွန်းများကို စာမေးပွဲနှစ်အလိုက် လေ့လာနိုင်သည်။',
+    notifications:'အကြောင်းကြားချက်များ', markAllRead:'အားလုံးကို ဖတ်ပြီးဟု အမှတ်အသားပြုရန်',
+    clearAllNotifs:'အားလုံး ဖျက်ရန်', clearAllConfirm:'အကြောင်းကြားချက်အားလုံးကို ဖျက်မလား? ဖျက်ပြီးသား အကြောင်းကြားချက်များ ထပ်မံပေါ်လာမည် မဟုတ်ပါ။', clearAllDone:'အကြောင်းကြားချက်အားလုံး ဖျက်ပြီးပါပြီ',
+    tabAll:'အားလုံး', tabNewExam:'စာမေးပွဲအသစ်', tabUpdate:'အပ်ဒိတ်', tabSystem:'စနစ်',
+    viewHistory:'📋 စာမေးပွဲမှတ်တမ်း ကြည့်ရန်',
+    activeMember:'အသုံးပြုနေသော အဖွဲ့ဝင်', requestExam:'JLPT မေးခွန်းတောင်းဆိုရန်', examHistory:'စာမေးပွဲမှတ်တမ်း', logout:'ထွက်ရန်',
+    totalExams:'စုစုပေါင်း စာမေးပွဲ', jlptLevel:'JLPT အဆင့်', updated:'အပ်ဒိတ်လုပ်ထားသည်', levelAvailable:'ရရှိနိုင်သော အဆင့်များ', completed:'ပြီးစီးခဲ့သည်',
+    all:'အားလုံး', examList:'စာမေးပွဲစာရင်း',
+    editName:'ပရိုဖိုင်အမည် ပြင်ဆင်ရန်', displayName:'ဖော်ပြမည့်အမည်', saveChanges:'ပြောင်းလဲမှုများ သိမ်းရန်', cancel:'မလုပ်တော့ပါ', close:'ပိတ်ရန်',
+    chooseAvatar:'Avatar ရွေးချယ်ရန်', pickEmoji:'Emoji ရွေးချယ်ပါ သို့မဟုတ် ဓာတ်ပုံတင်ပါ', uploadPhoto:'ဓာတ်ပုံတင်ရန် (JPG/PNG, အများဆုံး 2MB)', apply:'အသုံးပြုရန်',
+    requestDesc:'Admin ထံ တောင်းဆိုလိုသော JLPT အဆင့်နှင့် မေးခွန်းအမျိုးအစားကို ရွေးချယ်ပါ။', levelJLPT:'JLPT အဆင့်', questionType:'မေးခွန်းအမျိုးအစား', additionalNotes:'စာမေးပွဲနှစ် / အပိုမှတ်ချက်', sendRequest:'📨 တောင်းဆိုချက် ပို့ရန်',
+    totalCompleted:'ပြီးစီးမှု စုစုပေါင်း', levelsAttempted:'ဖြေဆိုခဲ့သော အဆင့်များ', lastActivity:'နောက်ဆုံး လုပ်ဆောင်မှု', clearHistory:'🗑 မှတ်တမ်းဖျက်ရန်',
+    notFound:'စာမေးပွဲ မတွေ့ပါ', notFoundSub:'ရှာဖွေမှု filter သို့မဟုတ် သော့ချက်စာလုံးကို ပြောင်းပြီး ထပ်မံရှာပါ။',
+    showAll:'✦ အားလုံးပြရန်', allLevels:'အဆင့်အားလုံး', newest:'အသစ်ဆုံး', oldest:'အဟောင်းဆုံး',
+    notifCompletedTip:'ဤစာမေးပွဲကို သင်ပြီးဆုံးထားပါသည်။',
+    sidebarTitle:'အမြန်မီနူး', sidebarSubtitle:'ဖွင့်လိုသော အပိုင်းကို ရွေးချယ်ပါ', sidebarJump:'စာမျက်နှာသို့ သွားရန်',
+    navDashboard:'Dashboard', navDashboardSub:'ထိပ်ပိုင်းသို့ ပြန်သွားရန်',
+    navProfile:'ပရိုဖိုင်', navProfileSub:'အကောင့်နှင့် အဓိကခလုတ်များ',
+    navStats:'စာရင်းအင်း', navStatsSub:'စာမျက်နှာအကျဉ်းချုပ်',
+    navFilters:'အဆင့်ရွေးချယ်မှု', navFiltersSub:'N1 မှ N5 အထိ ရွေးချယ်ပါ',
+    navExamList:'စာမေးပွဲစာရင်း', navExamListSub:'ရရှိနိုင်သော မေးခွန်းအားလုံး',
+    navNotifications:'အကြောင်းကြားချက်များ', navNotificationsSub:'နောက်ဆုံး အပ်ဒိတ်များ',
+    sidebarResources:'အရင်းအမြစ်များ', navResourceHub:'Resource Hub ဖွင့်ရန်', navResourceHubSub:'JLPT, SSW, NAT, JFT, Marugoto',
+    sidebarOfficial:'တရားဝင်ဝဘ်ဆိုဒ်', sidebarAccount:'အကောင့်',
+    navHistory:'စာမေးပွဲမှတ်တမ်း', navHistorySub:'သင့်တိုးတက်မှုကို ကြည့်ရန်',
+    navLogout:'ထွက်ရန်', navLogoutSub:'လက်ရှိ session ကို အဆုံးသတ်ရန်',
+    securityAccount:'အကောင့်လုံခြုံရေး', loginHistory:'ဝင်ရောက်မှုနှင့် စက်ပစ္စည်းမှတ်တမ်း',
+    loadingHistory:'ဝင်ရောက်မှုမှတ်တမ်းကို ဖတ်နေသည်...', noHistory:'သိမ်းဆည်းထားသော ဝင်ရောက်မှုမှတ်တမ်း မရှိသေးပါ။',
+    thisDevice:'ဤစက်', logoutDevice:'ထွက်ရန်', revokeConfirm:'ဤစက်ကို Logout လုပ်မလား? ထိုစက်ရှိ session ကို အဆုံးသတ်ပါမည်။',
+    changePassword:'စကားဝှက်ပြောင်းရန်', deleteAccount:'အကောင့်ဖျက်ရန်',
+    newPassword:'စကားဝှက်အသစ်', confirmPassword:'စကားဝှက်အသစ် အတည်ပြုရန်',
+    pwPlaceholder:'အနည်းဆုံး စာလုံး ၆ လုံး', pwConfirmPlaceholder:'စကားဝှက်အသစ်ကို ထပ်ရေးပါ',
+    pwWeak:'အားနည်း', pwFair:'အလယ်အလတ်', pwStrong:'ခိုင်မာ', pwStrength:'စကားဝှက်အင်အား',
+    savePassword:'🔑 စကားဝှက် သိမ်းရန်', passwordMismatch:'⚠️ အတည်ပြုစကားဝှက် မကိုက်ညီပါ',
+    passwordTooShort:'⚠️ စကားဝှက်သည် အနည်းဆုံး စာလုံး ၆ လုံးရှိရမည်', passwordChanged:'✅ စကားဝှက်ကို အောင်မြင်စွာ ပြောင်းလဲပြီးပါပြီ!',
+    deleteWarning:'ဤလုပ်ဆောင်ချက်ကို ပြန်လည်မလုပ်နိုင်ပါ။ သင့်၏ တိုးတက်မှု၊ စာမေးပွဲမှတ်တမ်းနှင့် အကောင့်ကို အပြီးတိုင် ဖျက်ပစ်မည်။',
+    deleteConfirmHint:'အတည်ပြုရန် ဖျက် ဟု ရိုက်ထည့်ပါ', deleteConfirmWord:'ဖျက်',
+    deleteCancel:'မဖျက်တော့ပါ', deleteBtn:'🗑️ အကောင့်ဖျက်ရန်', accountDeleted:'🗑️ အကောင့်ကို ဖျက်ပြီးပါပြီ။ နောက်မှ ပြန်တွေ့ပါမယ်!',
   }
 };
 
@@ -1936,7 +1988,7 @@ function applyLang(){
   updateVisibleCount();
   applySidebarOfficialLabels();
   // update lang btn display
-  const langs = {id:{flag:'🇮🇩',code:'ID'},en:{flag:'🇬🇧',code:'EN'},ja:{flag:'🇯🇵',code:'JA'}};
+  const langs = {id:{flag:'🇮🇩',code:'ID'},en:{flag:'🇬🇧',code:'EN'},ja:{flag:'🇯🇵',code:'JA'},my:{flag:'🇲🇲',code:'MY'}};
   const l = langs[currentLang];
   if(l){
     document.getElementById('currentFlag').textContent = l.flag;
@@ -1953,7 +2005,8 @@ function applySidebarOfficialLabels(){
   const labelSets = {
     id: ['JLPT Indonesia', 'JLPT Jepang', 'SSW Indonesia'],
     en: ['JLPT Indonesia', 'JLPT Japan', 'SSW Indonesia'],
-    ja: ['JLPTインドネシア', 'JLPT日本', 'SSWインドネシア']
+    ja: ['JLPTインドネシア', 'JLPT日本', 'SSWインドネシア'],
+    my: ['JLPT အင်ဒိုနီးရှား', 'JLPT ဂျပန်', 'SSW အင်ဒိုနီးရှား']
   };
   const labels = labelSets[currentLang] || labelSets.id;
   const links = document.querySelectorAll('#sidebar .sidebar-section:nth-of-type(3) .sidebar-link');
@@ -1972,7 +2025,7 @@ function setLang(el){
   applyLang();
   renderNotifList();
   renderHistoryList();
-  showToast({ id:'🇮🇩 Bahasa Indonesia', en:'🇬🇧 English selected', ja:'🇯🇵 日本語に切り替えました' }[currentLang]);
+  showToast({ id:'🇮🇩 Bahasa Indonesia', en:'🇬🇧 English selected', ja:'🇯🇵 日本語に切り替えました', my:'🇲🇲 မြန်မာဘာသာသို့ ပြောင်းပြီးပါပြီ' }[currentLang]);
 }
 
 function toggleLangMenu(){
