@@ -6,7 +6,7 @@
 <meta http-equiv="refresh" content="10;url=https://jlptexamhub.page.gd/">
 <title>JLPT Exam Hub sudah pindah alamat</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Space+Grotesk:wght@400;500;600&family=Noto+Sans+JP:wght@400;500;700&family=Noto+Sans+Myanmar:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
 :root{
   --bg:#070b16; --bg2:#111a2f; --card:#16213e;
@@ -16,7 +16,7 @@
 *{margin:0;padding:0;box-sizing:border-box;}
 html,body{height:100%;}
 body{
-  font-family:'Space Grotesk',sans-serif;
+  font-family:'Space Grotesk','Noto Sans JP','Noto Sans Myanmar',sans-serif;
   background:
     radial-gradient(circle at top left, #22345f 0%, transparent 30%),
     radial-gradient(circle at bottom right, #29194a 0%, transparent 25%),
@@ -30,13 +30,13 @@ body{
 }
 
 .panel{
-  max-width:560px;
+  max-width:580px;
   width:100%;
   background:rgba(17,26,47,.85);
   backdrop-filter:blur(6px);
   border:1px solid var(--border);
   border-radius:28px;
-  padding:48px 40px;
+  padding:40px 40px 44px;
   text-align:center;
   box-shadow:0 20px 60px rgba(0,0,0,.45);
   position:relative;
@@ -53,6 +53,39 @@ body{
   z-index:-1;
 }
 @keyframes gradBorder{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+
+/* LANGUAGE PILLS */
+.lang-row{
+  display:flex;
+  justify-content:center;
+  gap:8px;
+  margin-bottom:28px;
+  flex-wrap:wrap;
+}
+.lang-pill{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  background:rgba(255,255,255,.04);
+  border:1px solid var(--border);
+  color:var(--muted);
+  font-family:'Space Grotesk',sans-serif;
+  font-size:13px;
+  font-weight:600;
+  padding:7px 14px;
+  border-radius:999px;
+  cursor:pointer;
+  transition:.2s;
+}
+.lang-pill:hover{
+  border-color:#3d5a8a;
+  color:#fff;
+}
+.lang-pill.active{
+  background:rgba(90,169,255,.15);
+  border-color:var(--primary);
+  color:#fff;
+}
 
 .badge{
   display:inline-flex;
@@ -81,31 +114,24 @@ body{
 }
 
 h1{
-  font-family:'Syne',sans-serif;
-  font-size:30px;
+  font-family:'Syne','Noto Sans JP',sans-serif;
+  font-size:28px;
   font-weight:800;
   letter-spacing:-1px;
-  line-height:1.25;
+  line-height:1.3;
   margin-bottom:14px;
   background:linear-gradient(135deg,#fff 30%,#7cc0ff 70%,#b69cff);
   -webkit-background-clip:text;
   -webkit-text-fill-color:transparent;
   background-clip:text;
 }
+h1[data-i18n="my"]{font-family:'Noto Sans Myanmar',sans-serif;font-size:23px;letter-spacing:0;}
 
 p.lead{
   color:var(--muted);
   font-size:15px;
-  line-height:1.8;
+  line-height:1.85;
   margin-bottom:28px;
-}
-p.lead code{
-  background:rgba(255,255,255,.06);
-  border:1px solid var(--border);
-  padding:2px 8px;
-  border-radius:6px;
-  font-size:13px;
-  color:#fff;
 }
 
 .url-box{
@@ -176,12 +202,16 @@ p.lead code{
   font-size:12px;
   color:var(--muted);
   opacity:.7;
-  line-height:1.7;
+  line-height:1.8;
 }
 
+[data-i18n]{ display:none; }
+[data-i18n].active{ display:block; }
+span[data-i18n].active{ display:inline; }
+
 @media (max-width:480px){
-  .panel{padding:36px 24px;}
-  h1{font-size:24px;}
+  .panel{padding:32px 22px 36px;}
+  h1{font-size:22px;}
 }
 
 @media (prefers-reduced-motion: reduce){
@@ -193,18 +223,52 @@ p.lead code{
 <body>
 
 <div class="panel">
-  <div class="badge"><span class="dot"></span> Alamat baru aktif</div>
 
-  <h1>JLPT Exam Hub sudah pindah rumah</h1>
+  <div class="lang-row" id="langRow">
+    <button class="lang-pill" data-lang="id" onclick="setLang('id')">🇮🇩 Indonesia</button>
+    <button class="lang-pill" data-lang="en" onclick="setLang('en')">🇬🇧 English</button>
+    <button class="lang-pill" data-lang="ja" onclick="setLang('ja')">🇯🇵 日本語</button>
+    <button class="lang-pill" data-lang="my" onclick="setLang('my')">🇲🇲 မြန်မာ</button>
+  </div>
 
-  <p class="lead">
+  <div class="badge">
+    <span class="dot"></span>
+    <span data-i18n="id">Alamat baru aktif</span>
+    <span data-i18n="en">New address is live</span>
+    <span data-i18n="ja">新しいアドレスが有効です</span>
+    <span data-i18n="my">လိပ်စာအသစ် အသုံးပြုနေပါသည်</span>
+  </div>
+
+  <h1 data-i18n="id">JLPT Exam Hub sudah pindah rumah</h1>
+  <h1 data-i18n="en">JLPT Exam Hub has a new home</h1>
+  <h1 data-i18n="ja">JLPT Exam Hub は新しい場所に移転しました</h1>
+  <h1 data-i18n="my">JLPT Exam Hub သည် နေရာအသစ်သို့ ရွှေ့ပြောင်းပြီးပါပြီ</h1>
+
+  <p class="lead" data-i18n="id">
     Kami sudah memindahkan seluruh platform — soal latihan, akun, dan riwayat ujian kamu —
     ke alamat baru. Tautan lama ini tidak lagi diperbarui.
+  </p>
+  <p class="lead" data-i18n="en">
+    We've moved the entire platform — practice exams, accounts, and your exam history —
+    to a new address. This old link is no longer updated.
+  </p>
+  <p class="lead" data-i18n="ja">
+    練習問題、アカウント、受験履歴を含むプラットフォーム全体を、新しいアドレスに移転しました。
+    このページの古いリンクは今後更新されません。
+  </p>
+  <p class="lead" data-i18n="my">
+    လေ့ကျင့်စာမေးပွဲများ၊ အကောင့်များနှင့် သင့်စာမေးပွဲမှတ်တမ်းများအပါအဝင် ပလက်ဖောင်းတစ်ခုလုံးကို
+    လိပ်စာအသစ်သို့ ရွှေ့ပြောင်းပြီးဖြစ်ပါသည်။ ဤလိပ်စာဟောင်းကို နောက်ထပ် မွမ်းမံတော့မည် မဟုတ်ပါ။
   </p>
 
   <div class="url-box">🔗 jlptexamhub.page.gd</div>
 
-  <a class="cta" href="https://jlptexamhub.page.gd/" id="goNowBtn">Buka alamat baru sekarang →</a>
+  <a class="cta" href="https://jlptexamhub.page.gd/" id="goNowBtn">
+    <span data-i18n="id">Buka alamat baru sekarang →</span>
+    <span data-i18n="en">Go to the new address now →</span>
+    <span data-i18n="ja">今すぐ新しいアドレスへ →</span>
+    <span data-i18n="my">လိပ်စာအသစ်သို့ ယခုပင်သွားရန် →</span>
+  </a>
 
   <div class="countdown-wrap">
     <div class="ring">
@@ -213,29 +277,80 @@ p.lead code{
         <circle class="fg" cx="14" cy="14" r="12" id="ringFg"></circle>
       </svg>
     </div>
-    <span>Dialihkan otomatis dalam <span id="countNum">10</span> detik</span>
+    <span data-i18n="id">Dialihkan otomatis dalam <span id="countNum-id">10</span> detik</span>
+    <span data-i18n="en">Redirecting automatically in <span id="countNum-en">10</span> seconds</span>
+    <span data-i18n="ja"><span id="countNum-ja">10</span> 秒後に自動的に移動します</span>
+    <span data-i18n="my">စက္ကန့် <span id="countNum-my">10</span> အတွင်း အလိုအလျောက် ပြောင်းပေးပါမည်</span>
   </div>
 
-  <p class="footnote">
+  <p class="footnote" data-i18n="id">
     Perbarui bookmark atau tautan kamu ke alamat baru di atas supaya tidak melewati halaman ini lagi.
   </p>
+  <p class="footnote" data-i18n="en">
+    Please update your bookmarks or links to the new address above so you won't land on this page again.
+  </p>
+  <p class="footnote" data-i18n="ja">
+    今後このページを表示しないよう、ブックマークやリンクを上記の新しいアドレスに更新してください。
+  </p>
+  <p class="footnote" data-i18n="my">
+    ဤစာမျက်နှာကို နောက်တစ်ကြိမ် မမြင်ရစေရန် သင့် Bookmark သို့မဟုတ် လင့်များကို အပေါ်ပါ လိပ်စာအသစ်အတိုင်း ပြင်ဆင်ပေးပါ။
+  </p>
+
 </div>
 
 <script>
 (function(){
+  var NEW_URL = 'https://jlptexamhub.page.gd/';
+  var SUPPORTED = ['id','en','ja','my'];
+
+  // Sama dengan key localStorage yang dipakai platform utama, supaya kalau
+  // user sudah pernah pilih bahasa di sana, halaman ini otomatis ikut.
+  var STORAGE_KEY = 'jlpt_lang';
+
+  function detectLang(){
+    var saved = localStorage.getItem(STORAGE_KEY);
+    if (saved && SUPPORTED.indexOf(saved) !== -1) return saved;
+
+    var nav = (navigator.language || 'id').toLowerCase();
+    if (nav.indexOf('en') === 0) return 'en';
+    if (nav.indexOf('ja') === 0) return 'ja';
+    if (nav.indexOf('my') === 0) return 'my';
+    return 'id';
+  }
+
+  function applyLang(lang){
+    document.documentElement.lang = lang;
+    document.querySelectorAll('[data-i18n]').forEach(function(el){
+      el.classList.toggle('active', el.getAttribute('data-i18n') === lang);
+    });
+    document.querySelectorAll('.lang-pill').forEach(function(el){
+      el.classList.toggle('active', el.dataset.lang === lang);
+    });
+  }
+
+  window.setLang = function(lang){
+    localStorage.setItem(STORAGE_KEY, lang);
+    applyLang(lang);
+  };
+
+  var currentLang = detectLang();
+  applyLang(currentLang);
+
+  // Countdown — update angka detik di keempat versi bahasa sekaligus
+  // (yang aktif terlihat, yang lain disembunyikan via CSS).
   var seconds = 10;
-  var countEl = document.getElementById('countNum');
   var ringFg = document.getElementById('ringFg');
-  var circumference = 75.4; // 2 * PI * r(12), dibulatkan
+  var circumference = 75.4;
+  var countEls = SUPPORTED.map(function(l){ return document.getElementById('countNum-' + l); });
 
   var timer = setInterval(function(){
     seconds--;
     if (seconds <= 0) {
       clearInterval(timer);
-      window.location.href = 'https://jlptexamhub.page.gd/';
+      window.location.href = NEW_URL;
       return;
     }
-    countEl.textContent = seconds;
+    countEls.forEach(function(el){ if (el) el.textContent = seconds; });
     var offset = circumference * (1 - seconds / 10);
     ringFg.style.strokeDashoffset = offset;
   }, 1000);
